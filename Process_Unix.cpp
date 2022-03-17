@@ -4,8 +4,7 @@
 #error Only for posix process handling
 #endif
 
-#include "Assertions.h"
-#include "StringUtil.h"
+#include <assert.h>
 #include <csignal>
 #include <cstdlib>
 #include <fcntl.h>
@@ -18,6 +17,7 @@
 
 #ifdef __APPLE__
 extern char **environ;
+#warning This code is not tested on MacOS so use with caution!
 #endif
 
 namespace util {
@@ -27,9 +27,9 @@ namespace util {
     }
 
     bool SubProcess::writeTo(std::string_view str) const {
-        if (!running) {
+        if (!running)
             return false;
-        }
+
         char const* head = str.data();
         auto toWrite = static_cast<ssize_t>(str.size());
 
@@ -50,7 +50,7 @@ namespace util {
         };
 
         while (toWrite > 0) {
-            ssize_t written = write(m_stdIn, head, toWrite);
+            ssize_t written = write(m_std_in, head, toWrite);
             if (written < 0) {
                 if (errno == EPIPE) {
                     running = false;
@@ -69,11 +69,11 @@ namespace util {
     }
 
     bool SubProcess::readLine(std::string& line) const {
-        if (!running) {
+        if (!running)
             return false;
-        }
+
         while (!readLineFromBuffer(line)) {
-            ssize_t readBytes = read(m_stdOut, readBuffer.data() + m_bufferLoc, readBuffer.size() - m_bufferLoc);
+            ssize_t readBytes = read(m_std_out, readBuffer.data() + m_bufferLoc, readBuffer.size() - m_bufferLoc);
             if (readBytes < 0) {
                 perror("read");
                 return false;
@@ -91,13 +91,13 @@ namespace util {
             running = false;
 
             // should trigger command ending
-            close(m_stdIn);
+            close(m_std_in);
 
             int status;
             if (pid_t waited = waitpid(m_procPid, &status, 0); waited < 0) {
                 perror("waitpid");
             }
-            close(m_stdOut);
+            close(m_std_out);
 
             m_waitCalled = true;
 
@@ -123,7 +123,7 @@ namespace util {
 
     std::unique_ptr<SubProcess> SubProcess::create(std::vector<std::string> command) {
         if (command.size() >= maxCommandSize || command.empty()) {
-            ASSERT_NOT_REACHED();
+            assert(false);
             return nullptr;
         }
 
@@ -179,15 +179,15 @@ namespace util {
 
         auto proc = std::make_unique<SubProcess>();
         proc->m_procPid = pid;
-        proc->m_stdIn = inPipe[pipeWrite];
-        proc->m_stdOut = outPipe[pipeRead];
+        proc->m_std_in = inPipe[pipeWrite];
+        proc->m_std_out = outPipe[pipeRead];
 
         proc->running = true;
 
         if (posix_spawn_file_actions_destroy(&actions)) {
             perror("posix_spawn_file_actions_destroy");
             // uh oh we just started it... try to stop and otherwise whatever
-            ASSERT_NOT_REACHED();
+            assert(false);
             proc->stop();
             return nullptr;
         }

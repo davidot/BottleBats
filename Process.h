@@ -60,8 +60,8 @@ namespace util {
 #ifdef POSIX_PROCESS
         pid_t m_procPid = -1;
 
-        int m_pipe_us_end = -1;
-        int m_pipe_child_end = -1;
+        int m_std_in = -1;
+        int m_std_out = -1;
 
         bool m_waitCalled = false;
 
