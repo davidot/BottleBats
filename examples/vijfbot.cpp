@@ -2,6 +2,7 @@
 #include <string>
 #include <sstream>
 #include <ctime>
+#include <limits>
 
 int main(int argc, char** argv) {
     std::string line;
