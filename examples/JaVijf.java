@@ -47,6 +47,7 @@ public static void main(String[] args) {
         }
 
         System.out.println("play " + handParts[1].charAt(0));
+        System.out.flush();
     }
 
 }
