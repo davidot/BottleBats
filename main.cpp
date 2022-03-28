@@ -179,6 +179,20 @@ public:
         return to_card_stack().to_string_repr();
     }
 
+    [[nodiscard]] void to_sstream_ordered(std::ostringstream& output) const {
+      const size_t cards = m_cards.size();
+
+      output << cards;
+      if (!cards)
+        return;
+
+      output << ' ';
+
+      for (auto i = m_cards.size(); i > 0; --i) {
+        output << card_to_char_repr(m_cards[i - 1]);
+      }
+    }
+
     static OrderedCardStack from_card_stack(CardStack const &stack) {
         OrderedCardStack ordered_stack{};
         ordered_stack.m_cards.reserve(stack.total_cards());
@@ -472,6 +486,30 @@ private:
     }
 
     std::unique_ptr<util::SubProcess> m_process {nullptr};
+};
+
+
+struct StartData {
+  CardStack discarded;
+  OrderedCardStack deck;
+  std::array<CardStack, player_count> hands;
+
+
+  [[nodiscard]] std::string to_string() const {
+      std::ostringstream result;
+      for (auto const& hand : hands) {
+        hand.to_sstream(result);
+        result << ' ';
+      }
+
+      deck.to_sstream_ordered(result);
+      result << ' ';
+
+      discarded.to_sstream(result);
+
+      return std::move(*result.rdbuf()).str();
+  }
+
 };
 
 Results play_game(std::default_random_engine &rng) {
