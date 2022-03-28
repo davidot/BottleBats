@@ -650,7 +650,7 @@ Results play_game(std::default_random_engine &rng) {
             }
         }
 
-        if (current_player.alive && current_player.hand.total_cards() == 0) {
+        if (state.players_alive > 1 && current_player.alive && current_player.hand.total_cards() == 0) {
 //            std::cout << "No cards left player " << turn << " has to stop\n";
             kill_player(turn);
         }
