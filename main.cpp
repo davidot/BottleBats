@@ -319,7 +319,7 @@ public:
 
 CardNumber random_pick(CardStack const& stack) {
     static std::minstd_rand engine {static_cast<uint32_t>(rand())};
-    std::uniform_int<size_t> dist{0, stack.total_cards() - 1};
+    std::uniform_int_distribution<size_t> dist{0, stack.total_cards() - 1};
     auto index = dist(engine);
     for (auto const& card : low_to_high_cards) {
         auto count = stack.card_count(card);
@@ -440,7 +440,7 @@ private:
 
         size_t timeTaken = 0;
         auto val = std::move(*message.rdbuf()).str();
-        auto result = m_process->sendAndWaitForResponse(message.str(), 100, &timeTaken);
+        auto result = m_process->sendAndWaitForResponse(val, 50, &timeTaken);
         if (!result.has_value()) {
             std::cerr << "ProcessPlayer sent no response!\n";
             return std::nullopt;
@@ -674,81 +674,6 @@ Results play_game(std::default_random_engine &rng) {
 
 int main() {
 
-//    auto process = util::SubProcess::create({"cmake-build-debug-visual-studio/Vijfbot.exe"});
-//    auto process = util::SubProcess::create({"python.exe", "run.py"});
-//    auto process2 = util::SubProcess::create({"python.exe", "run.py"});
-//    if (!process || !process2) {
-//        std::cout << "FAiled to create process!\n";
-//        return 1;
-//    }
-//    std::string line;
-//    if (!process->writeToWithTimeout("game 0 vijf\n", 250)) {
-//        std::cout << "Failed to write line (timeout probably?)\n";
-//    } else {
-//        std::cout << "Wrote line!\n";
-//    }
-//
-//    if (!process->writeToWithTimeout("game 0 vijf\n", 10)) {
-//        std::cout << "Failed to write line (timeout probably?)\n";
-//    } else {
-//        std::cout << "Wrote line!\n";
-//    }
-//
-//    if (!process->readLineWithTimeout(line, 10)) {
-//        std::cout << "read line failed\n";
-//    } else {
-//        std::cout << "Got line_" << line << "_\n";
-//    }
-
-//    auto response = process->sendAndWaitForResponse("game 0 vijf\n", 250);
-//    if (!response.has_value()) {
-//        std::cout << "FAiled to read line!\n";
-//    } else {
-//        std::cout << " got response: _" << *response << "_\n";
-//    }
-
-//    for (int i = 0; i < 100; ++i) {
-//
-//
-//        if (i == 3) {
-//            auto response22 = process2->sendAndWaitForResponse("game 0 vijf\n", 250);
-//            if (!response22.has_value()) {
-//                std::cout << "FAiled to read line! 22\n";
-//            } else {
-//                std::cout << " got response: 22 _" << *response << "_\n";
-//            }
-//        } else if (i > 6 && i % 2 == 1) {
-//            auto response22 = process->sendAndWaitForResponse("turn 7 2 5\n", 1000);
-//            if (!response22.has_value()) {
-//                std::cout << "FAiled to read lin 22e!\n";
-//                break;
-//            } else {
-//                std::cout << " got response22: _" << *response << "_\n";
-//            }
-//        }
-//
-//        auto response2 = process->sendAndWaitForResponse("turn 7 2 5\n", 1000);
-//        if (!response2.has_value()) {
-//            std::cout << "FAiled to read lin 2e!\n";
-//            break;
-//        } else {
-//            std::cout << " got response2: _" << *response << "_\n";
-//        }
-//    }
-
-//    std::cout << "Stopping now!" << std::endl;
-//    return 0;
-//    auto stopped = process->stop();
-//    if (!stopped.stopped) {
-//        std::cout << "Failed to stop\n";
-//    } else {
-//        std::cout << "Stopped process!\n";
-//    }
-//
-
-//    return 0;
-//
-//
     // FIXME: Better random seeding?
     srand(time(nullptr));
     uint32_t seed = rand();
