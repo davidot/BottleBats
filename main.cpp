@@ -398,6 +398,8 @@ public:
 class ProcessPlayer : public VijfPlayer {
 public:
     ProcessPlayer(std::vector<std::string> command) {
+        assert(command.size() > 0);
+        m_command = command;
         auto proc_or_fail = util::SubProcess::create(move(command));
         if (!proc_or_fail)
             return;
@@ -406,15 +408,14 @@ public:
         size_t timeTaken = 0;
         auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 400, &timeTaken);
         if (!ready_response.has_value()) {
-            std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf'\n";
+            std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf' for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
             return;
         }
-        if (timeTaken > 300) {
-            std::cout << "WARN: Slow startup took " << timeTaken << " ms\n";
-        }
+        if (timeTaken > 300)
+            std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
         if (*ready_response != "ready\n") {
-            std::cout << "Did not get correct ready response, got _" << *ready_response << "_\n";
+            std::cout << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
             return;
         }
 
@@ -467,13 +468,13 @@ private:
         }
 
         if (timeTaken > 5)
-            std::cout << "Slow response took " << timeTaken << " ms\n";
+            std::cout << "Slow response took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
         std::string_view view = *result;
         assert(view[view.length() - 1] == '\n');
         view.remove_suffix(1);
 
-        if (!view.starts_with("play ") || view.size() < 6) {
+        if (view.find("play ") != 0 || view.size() < 6) {
             std::cout << "Player response does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
             std::cout << "When given: " << val;
             return std::nullopt;
@@ -492,6 +493,7 @@ private:
     }
 
     std::unique_ptr<util::SubProcess> m_process {nullptr};
+    std::vector<std::string> m_command;
 };
 
 
