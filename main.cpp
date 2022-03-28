@@ -555,15 +555,20 @@ Results play_game(std::default_random_engine &rng) {
         if (!players[i].alive)
             continue;
 
-        if (i == 0) {
-            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release-visual-studio/Vijfbot.exe"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python.exe", "run.py"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java.exe", "JaVijf"});
+//        players[i].engine = std::make_unique<HighestFirst>();
+
+        if (i != 0) {
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
+            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "python-example"});
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "java-example"});
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "cpp-example"});
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"javijf.exe"});
 //            players[i].engine = std::make_unique<CheatingPlayer>();
         } else {
-//            players[i].engine = std::make_unique<RandomPlayer>();
-            players[i].engine = std::make_unique<CheatingPlayer>();
+            players[i].engine = std::make_unique<LowestFirst>();
+//            players[i].engine = std::make_unique<CheatingPlayer>();
         }
     }
 
@@ -677,7 +682,7 @@ int main() {
     // FIXME: Better random seeding?
     srand(time(nullptr));
     uint32_t seed = rand();
-//    uint32_t seed = 1479;
+//    uint32_t seed = 1265726450;
 
     std::cout << "Seed: " << seed << '\n';
     auto engine = std::default_random_engine{seed};
@@ -690,7 +695,7 @@ int main() {
     std::array<size_t, 52> rounds{};
 
 
-    for (auto i = 0; i < 1000; ++i) {
+    for (auto i = 0; i < 10; ++i) {
         auto results = play_game(engine);
         if (results.misbehaved >= 0) {
             std::cout << "Misbehaving by " << results.misbehaved << '\n';
