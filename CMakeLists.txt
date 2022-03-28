@@ -7,8 +7,6 @@ add_executable(BottleBats
         main.cpp
         Process_Base.cpp)
 
-
-
 if (UNIX)
     target_compile_definitions(BottleBats PUBLIC POSIX_PROCESS=1)
     target_sources(BottleBats PRIVATE Process_Unix.cpp)
@@ -23,6 +21,3 @@ elseif (MINGW)
 else()
     message(ERROR "Don't know this operating system.")
 endif()
-
-
-add_executable(VijfBot examples/vijfbot.cpp)
