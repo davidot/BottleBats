@@ -384,12 +384,12 @@ public:
 
         auto& temp_process = *proc_or_fail;
         size_t timeTaken = 0;
-        auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 1000, &timeTaken);
+        auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 400, &timeTaken);
         if (!ready_response.has_value()) {
             std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf'\n";
             return;
         }
-        if (timeTaken > 100) {
+        if (timeTaken > 300) {
             std::cout << "WARN: Slow startup took " << timeTaken << " ms\n";
         }
 
@@ -407,7 +407,7 @@ public:
             auto result_or_failed = play_turn(game_state, your_position);
             if (result_or_failed.has_value())
                 return result_or_failed.value();
-            m_process->writeToWithTimeout("died\n", 50);
+            m_process->writeToWithTimeout("died\n", 10);
             m_process = nullptr;
         }
         std::cerr << "Process player falling back on random player!\n";
@@ -417,7 +417,7 @@ public:
 
     ~ProcessPlayer() {
         if (m_process)
-            m_process->writeToWithTimeout("died\n", 50);
+            m_process->writeToWithTimeout("died\n", 10);
 
     }
 
@@ -601,9 +601,9 @@ Results play_game(std::default_random_engine &rng) {
             return results;
         }
 
-        current_player.hand.play_card(played);
         if (!silent)
-            std::cout << "Player " << turn << " played " << card_to_char_repr(played) << '\n';
+            std::cout << "Player " << turn << " played " << card_to_char_repr(played) << " from " << current_player.hand.to_string_repr() << '\n';
+        current_player.hand.play_card(played);
 
         if (played == CardNumber::RuleCard) {
             if (!silent)
@@ -623,7 +623,7 @@ Results play_game(std::default_random_engine &rng) {
                         players[innerTurn].hand.add_card(card);
                         if (card == CardNumber::Five) {
                             if (!silent)
-                                std::cout << "Player " << innerTurn << " died because of 5 from rules\n";
+                                std::cout << "Player " << innerTurn << " died because of 5 from rules played by " << turn << '\n';
                             kill_player(innerTurn);
                             break;
                         }
