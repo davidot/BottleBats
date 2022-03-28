@@ -31,8 +31,6 @@ namespace util {
 
         static std::unique_ptr<SubProcess> create(std::vector<std::string> command);
 
-        static std::optional<SubProcess> try_create(std::vector<std::string> command);
-
         bool writeTo(std::string_view) const;
         bool readLine(std::string&) const;
 

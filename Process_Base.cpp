@@ -33,14 +33,6 @@ namespace util {
         return true;
     }
 
-    std::optional<SubProcess> SubProcess::try_create(std::vector<std::string> command) {
-        SubProcess process{};
-        auto passed = setup(process, move(command));
-        if (!passed)
-            return std::nullopt;
-        return process;
-    }
-
     std::unique_ptr<SubProcess> SubProcess::create(std::vector<std::string> command) {
         auto process = std::make_unique<SubProcess>();
         auto passed = setup(*process, std::move(command));
