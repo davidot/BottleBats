@@ -14,6 +14,7 @@
 #include <string>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <poll.h>
 
 #ifdef __APPLE__
 extern char **environ;
@@ -27,45 +28,73 @@ namespace util {
     }
 
     bool SubProcess::writeTo(std::string_view str) const {
-        if (!running)
-            return false;
+        return writeToWithTimeout(str, 0);
+    }
 
-        char const* head = str.data();
-        auto toWrite = static_cast<ssize_t>(str.size());
+    bool SubProcess::writeToWithTimeout(std::string_view str,
+                                        size_t milliseconds) const {
+      if (!running)
+        return false;
 
-        struct sigaction act{};
-        struct sigaction oldAct{};
-        act.sa_flags = 0;
-        act.sa_handler = SIG_IGN;
-        if (sigaction(SIGPIPE, &act, &oldAct) < 0) {
-            perror("sigaction");
-            return false;
+      char const* head = str.data();
+      auto toWrite = static_cast<ssize_t>(str.size());
+
+      struct sigaction act{};
+      struct sigaction oldAct{};
+      act.sa_flags = 0;
+      act.sa_handler = SIG_IGN;
+      if (sigaction(SIGPIPE, &act, &oldAct) < 0) {
+        perror("sigaction");
+        return false;
+      }
+
+      // TODO: add some scope exit convenience maybe?
+      auto recoverSigaction = [&oldAct]() {
+        if (sigaction(SIGPIPE, &oldAct, nullptr) < 0) {
+          perror("sigaction");
         }
+      };
 
-        // TODO: add some scope exit convenience maybe?
-        auto recoverSigaction = [&oldAct]() {
-          if (sigaction(SIGPIPE, &oldAct, nullptr) < 0) {
-              perror("sigaction");
+
+      struct pollfd write_poll {
+        m_std_in, POLLOUT, 0
+      };
+
+      while (toWrite > 0) {
+        if (milliseconds != 0) {
+
+          int poll_result = poll(&write_poll, 1, static_cast<int>(milliseconds));
+
+          if (poll_result == -1) {
+            perror("poll");
+            return false;
           }
-        };
 
-        while (toWrite > 0) {
-            ssize_t written = write(m_std_in, head, toWrite);
-            if (written < 0) {
-                if (errno == EPIPE) {
-                    running = false;
-                } else {
-                    perror("write");
-                }
-                recoverSigaction();
-                return false;
-            }
-            toWrite -= written;
-            head += toWrite;
+          if (poll_result == 0) {
+            // Timeout!
+            std::cout << "Failed to write with timeout!\n";
+            return false;
+          }
+
+          assert(poll_result == 1);
         }
 
-        recoverSigaction();
-        return true;
+        ssize_t written = write(m_std_in, head, toWrite);
+        if (written < 0) {
+          if (errno == EPIPE) {
+            running = false;
+          } else {
+            perror("write");
+          }
+          recoverSigaction();
+          return false;
+        }
+        toWrite -= written;
+        head += toWrite;
+      }
+
+      recoverSigaction();
+      return true;
     }
 
     bool SubProcess::readLine(std::string& line) const {
@@ -84,6 +113,101 @@ namespace util {
             m_bufferLoc += readBytes;
         }
         return true;
+    }
+
+    bool SubProcess::readLineWithTimeout(std::string &line,
+                                         size_t milliseconds) const {
+      if (!running)
+        return false;
+
+      struct pollfd read_poll {
+        m_std_out, POLLIN, 0
+      };
+
+      while (!readLineFromBuffer(line)) {
+
+        int poll_result = poll(&read_poll, 1, static_cast<int>(milliseconds));
+
+        if (poll_result == -1) {
+          perror("poll");
+          return false;
+        }
+
+        if (poll_result == 0) {
+          // Timeout!
+          return false;
+        }
+
+        assert(poll_result == 1);
+
+        ssize_t readBytes = read(m_std_out, readBuffer.data() + m_bufferLoc, readBuffer.size() - m_bufferLoc);
+        if (readBytes < 0) {
+          perror("read");
+          return false;
+        }
+        if (readBytes == 0) {
+          return false;
+        }
+        m_bufferLoc += static_cast<int32_t>(readBytes);
+      }
+
+      return true;
+    }
+
+    std::optional<std::string>
+    SubProcess::sendAndWaitForResponse(std::string_view message,
+                                       size_t milliseconds, size_t *outTiming) {
+      if (!running)
+        return std::nullopt;
+
+      struct timespec start_time;
+      if (clock_gettime(CLOCK_MONOTONIC, &start_time)) {
+        perror("clock_gettime");
+        return std::nullopt;
+      }
+
+      if (!writeToWithTimeout(message, milliseconds)) {
+        running = false;
+        std::cerr << "Failed to write " << message << '\n';
+        return std::nullopt;
+      }
+
+      struct timespec end_of_write_time;
+      if (clock_gettime(CLOCK_MONOTONIC, &end_of_write_time)) {
+        perror("clock_gettime");
+        return std::nullopt;
+      }
+
+      size_t millis_taken = 1000*(end_of_write_time.tv_sec - start_time.tv_sec) +
+                            (end_of_write_time.tv_nsec - start_time.tv_nsec)/1000000;
+      if (millis_taken > milliseconds) {
+        std::cerr << "Took so long time ran out?\n";
+        return std::nullopt;
+      }
+
+      assert(millis_taken < milliseconds);
+      milliseconds -= millis_taken;
+
+      std::string response;
+
+
+      if (!readLineWithTimeout(response, milliseconds)) {
+        running = false;
+        std::cerr << "Failed to read in response to " << message << '\n';
+        return std::nullopt;
+      }
+
+      if (outTiming) {
+        if (clock_gettime(CLOCK_MONOTONIC, &end_of_write_time)) {
+          perror("clock_gettime");
+          return std::nullopt;
+        }
+
+        *outTiming = 1000*(end_of_write_time.tv_sec - start_time.tv_sec) +
+                     (end_of_write_time.tv_nsec - start_time.tv_nsec)/1000000;
+      }
+
+      return response;
     }
 
     SubProcess::ProcessExit SubProcess::stop() {
@@ -121,10 +245,10 @@ namespace util {
     constexpr int pipeWrite = 1;
     constexpr int maxCommandSize = 64;
 
-    std::unique_ptr<SubProcess> SubProcess::create(std::vector<std::string> command) {
+    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command) {
         if (command.size() >= maxCommandSize || command.empty()) {
             assert(false);
-            return nullptr;
+            return false;
         }
 
         char* args[maxCommandSize];
@@ -137,13 +261,13 @@ namespace util {
         posix_spawn_file_actions_t actions;
         if (posix_spawn_file_actions_init(&actions)) {
             perror("posix_spawn_file_actions_init");
-            return nullptr;
+            return false;
         }
 
         int inPipe[2] = {-1, -1};
         if (pipe(inPipe) < 0) {
             perror("pipe");
-            return nullptr;
+            return false;
         }
 
 #define CLOSE_PIPE(pipe) \
@@ -154,7 +278,7 @@ namespace util {
         if (pipe(outPipe) < 0) {
             perror("pipe");
             CLOSE_PIPE(inPipe);
-            return nullptr;
+            return false;
         }
 
         // Setup child operations
@@ -165,34 +289,32 @@ namespace util {
         posix_spawn_file_actions_adddup2(&actions, outPipe[pipeWrite], STDOUT_FILENO);
 
         pid_t pid;
-        if (posix_spawn(&pid, command[0].c_str(), &actions, nullptr, args, environ)) {
+        if (posix_spawnp(&pid, command[0].c_str(), &actions, nullptr, args, environ)) {
             perror("posix_spawn");
-            std::cout << command[0] << '\n';
+            std::cout << "Failed: " << command[0] << '\n';
             CLOSE_PIPE(inPipe);
             CLOSE_PIPE(outPipe);
             posix_spawn_file_actions_destroy(&actions);
-            return nullptr;
+            return false;
         }
 
         close(inPipe[pipeRead]);
         close(outPipe[pipeWrite]);
 
-        auto proc = std::make_unique<SubProcess>();
-        proc->m_procPid = pid;
-        proc->m_std_in = inPipe[pipeWrite];
-        proc->m_std_out = outPipe[pipeRead];
-
-        proc->running = true;
+        process.m_procPid = pid;
+        process.m_std_in = inPipe[pipeWrite];
+        process.m_std_out = outPipe[pipeRead];
+        process.running = true;
 
         if (posix_spawn_file_actions_destroy(&actions)) {
             perror("posix_spawn_file_actions_destroy");
             // uh oh we just started it... try to stop and otherwise whatever
             assert(false);
-            proc->stop();
-            return nullptr;
+            process.stop();
+            return false;
         }
 
-        return proc;
+        return true;
     }
 
 }
