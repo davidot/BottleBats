@@ -3,6 +3,13 @@ project(BottleBats)
 
 set(CMAKE_CXX_STANDARD 20)
 
+
+add_compile_options(-Wall)
+add_compile_options(-Wextra)
+add_compile_options(-Werror)
+add_compile_options(-Wno-sign-compare)
+
+
 add_executable(BottleBats
         main.cpp
         Process_Base.cpp)

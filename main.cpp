@@ -105,7 +105,7 @@ public:
         assert(m_counts[card_to_underlying(card)] != 0);
     }
 
-    void add_cards(CardStack& otherStack) {
+    void take_cards(CardStack& otherStack) {
         for (size_t i = 0; i < m_counts.size(); ++i)
             m_counts[i] += otherStack.m_counts[i];
 
@@ -137,14 +137,14 @@ public:
 
         for (auto& [card, character] : all_cards) {
             if (auto amount = m_counts[card_to_underlying(card)]; amount > 0) {
-                for (auto i = 0; i < amount; ++i)
+                for (auto i = 0u; i < amount; ++i)
                     ostringstream << character;
             }
         }
     }
 
 private:
-    std::array<size_t, all_cards.size()> m_counts;
+    std::array<size_t, all_cards.size()> m_counts{};
 };
 
 class OrderedCardStack {
@@ -158,6 +158,7 @@ public:
     }
 
     [[nodiscard]] CardNumber take_card() {
+        assert(!m_cards.empty());
         auto card = m_cards.back();
         m_cards.pop_back();
         return card;
@@ -179,7 +180,7 @@ public:
         return to_card_stack().to_string_repr();
     }
 
-    [[nodiscard]] void to_sstream_ordered(std::ostringstream& output) const {
+    void to_sstream_ordered(std::ostringstream& output) const {
       const size_t cards = m_cards.size();
 
       output << cards;
@@ -198,7 +199,7 @@ public:
         ordered_stack.m_cards.reserve(stack.total_cards());
         for (auto& [card, _] : all_cards) {
             auto count = stack.card_count(card);
-            for (auto i = 0; i < count; ++i) {
+            for (auto i = 0u; i < count; ++i) {
                 ordered_stack.m_cards.emplace_back(card);
             }
         }
@@ -212,18 +213,18 @@ public:
         }
     }
 
-    int next_five() const {
+    [[nodiscard]] std::optional<int> next_five() const {
         assert(five_count() > 0);
-        for (int i = m_cards.size() - 1; i >= 0; --i) {
-            if (m_cards[i] == CardNumber::Five) {
-                return m_cards.size() - 1 - i;
+        for (auto i = m_cards.size(); i > 0; --i) {
+            if (m_cards[i - 1] == CardNumber::Five) {
+                return m_cards.size() - i;
             }
         }
-        return -1;
+        return {};
     }
 
 private:
-    std::vector<CardNumber> m_cards;
+    std::vector<CardNumber> m_cards{};
 
 };
 
@@ -263,14 +264,19 @@ int number_of_card_to_get(CardNumber number) {
     return 0;
 }
 
-struct Results {
-    int misbehaved = -1;
-    int won = -1;
-    int final_round = -1;
-    bool instadied[5] = {false, false, false, false, false};
-};
-
 constexpr int player_count = 5;
+
+struct Results {
+    enum class Type {
+        PlayerWon,
+        PlayerMisbehaved,
+    };
+    Type type { Type::PlayerWon };
+    size_t player;
+    int rounds_played = 0;
+    std::array<bool, player_count> instadied{false, false, false, false, false};
+    std::vector<CardNumber> moves_made;
+};
 
 struct GameState {
     size_t players_alive;
@@ -512,13 +518,65 @@ struct StartData {
 
 };
 
-Results play_game(std::default_random_engine &rng) {
-    constexpr int initial_hand_size = 3;
+StartData generate_random_start(std::default_random_engine &rng) {
+  constexpr int initial_hand_size = 3;
 
-    auto deck = OrderedCardStack::from_card_stack(CardStack::default_deck(true, 2));
+  StartData data;
+
+  data.deck = OrderedCardStack::from_card_stack(CardStack::default_deck(true, 2));
+  data.deck.shuffle(rng);
+
+  auto& deck = data.deck;
+
+  size_t fives_left_over = 0;
+
+  for (int i = 0; i < player_count; ++i) {
+    CardStack& hand = data.hands[i];
+    for (int j = 0; j < initial_hand_size; ++j) {
+      CardNumber card = deck.take_card();
+      hand.add_card(card);
+    }
+
+    auto fives_in_hand = hand.remove_fives();
+    if (fives_in_hand == 0)
+      continue;
+
+    fives_left_over += fives_in_hand;
+    while (fives_in_hand > 0) {
+      CardNumber card = deck.take_card();
+
+      hand.add_card(card);
+      if (card == CardNumber::Five) {
+        data.discarded.take_cards(hand);
+        assert(hand.total_cards() == 0);
+        assert(fives_in_hand > 0);
+        break;
+      }
+      --fives_in_hand;
+    }
+
+    if (fives_in_hand == 0) {
+      assert(!hand.has_card(CardNumber::Five));
+      assert(hand.total_cards() == initial_hand_size);
+    }
+  }
+
+  if (fives_left_over > 0) {
+    // Don't shuffle if we don't have to
+    deck.add_fives(fives_left_over);
     deck.shuffle(rng);
+  }
 
-    CardStack discarded_cards{};
+  assert(std::count_if(data.hands.begin(), data.hands.end(), [](CardStack& hand) { return hand.total_cards() > 0; }) == 1 + deck.five_count());
+
+  return data;
+}
+
+Results play_game(StartData data) {
+
+    CardStack discarded_cards = data.discarded;
+    OrderedCardStack deck {std::move(data.deck)};
+    assert(deck.five_count() > 0);
 
     struct Player {
         CardStack hand {};
@@ -538,72 +596,42 @@ Results play_game(std::default_random_engine &rng) {
         assert(players[index].alive);
         players[index].alive = false;
         --state.players_alive;
-        discarded_cards.add_cards(players[index].hand);
+        discarded_cards.take_cards(players[index].hand);
         players[index].engine.reset();
         assert(players[index].hand.total_cards() == 0);
     };
 
     Results results{};
-    {
-        size_t fives_left_over = 0;
-
-        for (int i = 0; i < player_count; ++i) {
-            for (int j = 0; j < initial_hand_size; ++j) {
-                CardNumber card = deck.take_card();
-                players[i].hand.add_card(card);
-            }
-
-            auto fives_in_hand = players[i].hand.remove_fives();
-            if (fives_in_hand == 0)
-                continue;
-
-            fives_left_over += fives_in_hand;
-            while (fives_in_hand > 0) {
-                CardNumber card = deck.take_card();
-                players[i].hand.add_card(card);
-                if (card == CardNumber::Five) {
-                    if (!silent)
-                        std::cout << "Player " << i << " died from inital double five\n";
-                    kill_player(i);
-                    results.instadied[i] = true;
-                    break;
-                }
-                --fives_in_hand;
-            }
-
-            if (!results.instadied[i]) {
-                assert(!players[i].hand.has_card(CardNumber::Five));
-                assert(players[i].hand.total_cards() == initial_hand_size);
-            }
-        }
-
-        if (fives_left_over > 0) {
-            // Don't shuffle if we don't have to
-            deck.add_fives(fives_left_over);
-            deck.shuffle(rng);
-        }
-
-        assert(state.players_alive == deck.five_count() + 1);
-    }
-
 
     for (auto i = 0; i < player_count; ++i) {
+        auto& initial_hand = data.hands[i];
+
+        if (initial_hand.total_cards() == 0) {
+            --state.players_alive;
+            players[i].alive = false;
+            results.instadied[i] = true;
+
+            if (!silent)
+                std::cout << "Player " << i << " died from initial double five\n";
+            continue;
+        }
+
+        players[i].hand = initial_hand;
         state.hands[i] = &players[i].hand;
 
-        if (!players[i].alive)
-            continue;
 
 //        players[i].engine = std::make_unique<HighestFirst>();
 
         if (i != 0) {
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
-            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
+//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "python-example"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "java-example"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "cpp-example"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"javijf.exe"});
 //            players[i].engine = std::make_unique<CheatingPlayer>();
+            players[i].engine = std::make_unique<RandomPlayer>();
         } else {
             players[i].engine = std::make_unique<LowestFirst>();
 //            players[i].engine = std::make_unique<CheatingPlayer>();
@@ -640,7 +668,8 @@ Results play_game(std::default_random_engine &rng) {
         if (!current_player.hand.has_card(played)) {
             // Player misbehaved stop game
             std::cout << "Player " << turn << " misbehaved! Played " << card_to_char_repr(played) << " while hand: " << current_player.hand.to_string_repr() << '\n';
-            results.misbehaved = turn;
+            results.type = Results::Type::PlayerMisbehaved;
+            results.player = turn;
             return results;
         }
 
@@ -707,11 +736,11 @@ Results play_game(std::default_random_engine &rng) {
 
     for (auto i = 0; i < players.size(); ++i) {
         if (players[i].alive) {
-            results.won = i;
+            results.player = i;
             break;
         }
     }
-    results.final_round = state.round_number;
+    results.rounds_played = state.round_number;
     return results;
 }
 
@@ -720,7 +749,7 @@ int main() {
     // FIXME: Better random seeding?
     srand(time(nullptr));
     uint32_t seed = rand();
-//    uint32_t seed = 1265726450;
+//    uint32_t seed = 181503997;
 
     std::cout << "Seed: " << seed << '\n';
     auto engine = std::default_random_engine{seed};
@@ -733,25 +762,24 @@ int main() {
     std::array<size_t, 52> rounds{};
 
 
-    for (auto i = 0; i < 10; ++i) {
-        auto results = play_game(engine);
-        if (results.misbehaved >= 0) {
-            std::cout << "Misbehaving by " << results.misbehaved << '\n';
+    for (auto i = 0; i < 1000000; ++i) {
+        auto initial_data = generate_random_start(engine);
+        auto results = play_game(std::move(initial_data));
+        if (results.type == Results::Type::PlayerMisbehaved) {
+            std::cout << "Misbehaving by " << results.player << '\n';
             break;
         }
-        if (results.won < 0 || results.won >= 5) {
-            std::cout << "Failed? with seed: " << seed << " , " << i << "=> " << results.won << '\n';
+        if (results.player >= player_count) {
+            std::cout << "Failed? with seed: " << seed << " , " << i << "=> " << results.player << '\n';
             continue;
         }
-//        if (i % 1000 == 0 && i) {
-//            std::cout << "At game: " << i << '\n';
-//        }
-        for (int i = 0; i < 5; ++i) {
-            if (results.instadied[i])
-                ++instadied[i];
+
+        for (int j = 0; j < 5; ++j) {
+            if (results.instadied[j])
+                ++instadied[j];
         }
-        ++rounds[results.final_round];
-        ++won_games[results.won];
+        ++rounds[results.rounds_played];
+        ++won_games[results.player];
     }
     for (auto i = 0; i < 5; ++i) {
         std::cout << i << " won " << won_games[i] << " times and died instant " << instadied[i]
