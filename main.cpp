@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include "Process.h"
 
 
@@ -625,7 +626,8 @@ Results play_game(StartData data) {
 
 //        players[i].engine = std::make_unique<HighestFirst>();
 
-        if (i != 0) {
+        players[i].engine = std::make_unique<LowestFirst>();
+//        if (i != 0) {
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "python-example"});
@@ -634,14 +636,15 @@ Results play_game(StartData data) {
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"javijf.exe"});
 //            players[i].engine = std::make_unique<CheatingPlayer>();
-            players[i].engine = std::make_unique<RandomPlayer>();
-        } else {
-            players[i].engine = std::make_unique<LowestFirst>();
+//            players[i].engine = std::make_unique<RandomPlayer>();
+//        } else {
+//            players[i].engine = std::make_unique<LowestFirst>();
 //            players[i].engine = std::make_unique<CheatingPlayer>();
-        }
+//        }
     }
 
     int turn = player_count - 1;
+    results.moves_made.reserve(16);
 
     auto advance_to_next_player = [&] {
         assert(state.players_alive > 0);
@@ -677,6 +680,8 @@ Results play_game(StartData data) {
         if (!silent)
             std::cout << "Player " << turn << " played " << card_to_char_repr(played) << " from " << current_player.hand.to_string_repr() << '\n';
         current_player.hand.play_card(played);
+
+        results.moves_made.push_back(played);
 
         if (played == CardNumber::RuleCard) {
             if (!silent)
@@ -757,11 +762,14 @@ int main() {
 
     std::array<size_t, 5> won_games{};
     std::array<size_t, 5> instadied{};
-    std::array<size_t, 52> rounds{};
+    std::array<size_t, 26> rounds{};
+    std::array<size_t, 52> moves{};
 
+    std::ofstream games{"games_played.txt"};
 
     for (auto i = 0; i < 1000000; ++i) {
         auto initial_data = generate_random_start(engine);
+        std::string start_string = initial_data.to_string();
         auto results = play_game(std::move(initial_data));
         if (results.type == Results::Type::PlayerMisbehaved) {
             std::cout << "Misbehaving by " << results.player << '\n';
@@ -778,7 +786,21 @@ int main() {
         }
         ++rounds[results.rounds_played];
         ++won_games[results.player];
+
+        assert(!results.moves_made.empty());
+        ++moves[results.moves_made.size()];
+
+        std::ostringstream moves_string;
+        moves_string << results.moves_made.size() << ' ';
+
+        for (auto& card : results.moves_made)
+            moves_string << card_to_char_repr(card);
+
+        games  << start_string << "; " << moves_string.str() << '\n';
     }
+
+    games.close();
+
     for (auto i = 0; i < 5; ++i) {
         std::cout << i << " won " << won_games[i] << " times and died instant " << instadied[i]
                   << " times\n";
@@ -787,6 +809,11 @@ int main() {
     for (auto i = 0; i < rounds.size(); ++i) {
         if (rounds[i] > 0 || i < 5)
             std::cout << rounds[i] << " game finished in round " << i << '\n';
+    }
+
+    for (auto i = 0; i < moves.size(); ++i) {
+        if (moves[i] > 0 || i < 10)
+            std::cout << moves[i] << " game finished in " << i << " moves\n";
     }
 
     return 0;
