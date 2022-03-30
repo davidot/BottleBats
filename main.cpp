@@ -657,8 +657,6 @@ Results play_game(StartData data) {
     };
 
     while (state.players_alive >= 2) {
-//        if (!silent)
-//            std::cout.flush();
         assert(state.players_alive <= deck.five_count() + 1);
         advance_to_next_player();
 
@@ -726,14 +724,11 @@ Results play_game(StartData data) {
         }
 
         if (state.players_alive > 1 && current_player.alive && current_player.hand.total_cards() == 0) {
-//            std::cout << "No cards left player " << turn << " has to stop\n";
+            if (!silent)
+                std::cout << "No cards left player " << turn << " has to stop\n";
             kill_player(turn);
         }
     }
-
-//    print_players();
-
-//    results.won = -1;
 
     assert(state.players_alive == 1);
 
