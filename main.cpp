@@ -571,7 +571,7 @@ StartData generate_random_start(std::default_random_engine &rng) {
     deck.shuffle(rng);
   }
 
-  assert(std::count_if(data.hands.begin(), data.hands.end(), [](CardStack& hand) { return hand.total_cards() > 0; }) == 1 + deck.five_count());
+  assert((size_t)std::count_if(data.hands.begin(), data.hands.end(), [](CardStack& hand) { return hand.total_cards() > 0; }) == 1 + deck.five_count());
 
   return data;
 }
@@ -737,7 +737,7 @@ Results play_game(StartData data) {
 
     assert(state.players_alive == 1);
 
-    for (auto i = 0; i < players.size(); ++i) {
+    for (auto i = 0u; i < players.size(); ++i) {
         if (players[i].alive) {
             results.player = i;
             break;
@@ -806,12 +806,12 @@ int main() {
                   << " times\n";
     }
 
-    for (auto i = 0; i < rounds.size(); ++i) {
+    for (auto i = 0u; i < rounds.size(); ++i) {
         if (rounds[i] > 0 || i < 5)
             std::cout << rounds[i] << " game finished in round " << i << '\n';
     }
 
-    for (auto i = 0; i < moves.size(); ++i) {
+    for (auto i = 0u; i < moves.size(); ++i) {
         if (moves[i] > 0 || i < 10)
             std::cout << moves[i] << " game finished in " << i << " moves\n";
     }
