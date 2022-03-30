@@ -65,7 +65,7 @@ export default {
   position: relative;
   max-width: 100%;
   background-color: #fff;
-  box-shadow: 0 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);
+  box-shadow: -5px 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);
   color: #4a4a4a;
 
   /*margin-left: -50px;*/
@@ -76,6 +76,8 @@ export default {
 }
 
 .card-suit {
+  transition: visibility 5s ease;
+
   width: 100%;
   display: block;
 }
@@ -142,12 +144,21 @@ export default {
 .playing-card:hover {
   transition: transform 0.5s cubic-bezier( 0.32, 1, 0.32, 1.275 );
   transform: translateY(-75px);
-  box-shadow: 1px 1px 1px 1px red;
-  /*border-bottom: 50px solid transparent;*/
-  /*z-index: 10;*/
+  box-shadow: -5px 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1),
+    -1px 1px 1px 1px red;
+
+  z-index: 5;
 }
 
-.playing-card:hover::after {
+.playing-card.backside:hover {
+  transform: initial;
+  /*box-shadow: -5px 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1),*/
+  /*-1px 1px 1px 1px blue;*/
+
+  z-index: inherit;
+}
+
+.playing-card:not(.backside):hover::after {
   content: "";
   position: absolute;
   top: 100%;

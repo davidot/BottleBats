@@ -68,14 +68,14 @@ export default {
       }
     },
     moveToTop() {
-      if (this.nums2.length === 0) return;
-      const el = this.nums2.pop();
-      this.nums.push(el);
+      if (this.deck.length === 0) return;
+      const el = this.deck.pop();
+      this.players[0].push(el);
     },
     moveToBottom() {
       if (this.players[0].length === 0) return;
       const el = this.players[0].pop();
-      this.discarded.push(el);
+      this.deck.push(el);
     },
     cardClicked(num) {
       this.textOut += num;
@@ -86,15 +86,18 @@ export default {
 
 <style scoped>
 .deck {
-  margin-left: 30px;
-  padding-top: 30px;
+  /*margin-left: 30px;*/
+  /*padding-top: 30px;*/
   /*position: initial;*/
   /*top: 0;*/
-  background: ghostwhite;
+  background: #336846;
+  border: 25px solid #4e3327;
 
-  width: 100%;
+  width: calc(100% - 50px);
+  min-width: 600px;
   height: 500px;
   position: relative;
+  border-radius: 150px;
   /*display: flex;*/
   /*flex-direction: column;*/
 }
