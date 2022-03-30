@@ -8,7 +8,9 @@
 
 #ifdef POSIX_PROCESS
 #elif defined(WINDOWS_PROCESS)
+#pragma warning(push, 0)
 #include <windows.h>
+#pragma warning(pop)
 #else
 #error Must define one of POSIX_PROCESS or WINDOWS_PROCESS
 #endif

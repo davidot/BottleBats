@@ -4,10 +4,14 @@ project(BottleBats)
 set(CMAKE_CXX_STANDARD 20)
 
 
-add_compile_options(-Wall)
-add_compile_options(-Wextra)
-add_compile_options(-Werror)
-add_compile_options(-Wno-sign-compare)
+if (MSVC)
+    add_compile_options(/W2 /WX)
+    add_compile_options(/Zc:preprocessor)
+else()
+    add_compile_options(-Wall)
+    add_compile_options(-Wextra)
+    add_compile_options(-Werror)
+endif()
 
 
 add_executable(BottleBats

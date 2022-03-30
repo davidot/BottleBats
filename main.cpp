@@ -213,7 +213,7 @@ public:
         }
     }
 
-    [[nodiscard]] std::optional<int> next_five() const {
+    [[nodiscard]] std::optional<size_t> next_five() const {
         assert(five_count() > 0);
         for (auto i = m_cards.size(); i > 0; --i) {
             if (m_cards[i - 1] == CardNumber::Five) {
@@ -228,7 +228,7 @@ private:
 
 };
 
-int number_of_card_to_get(CardNumber number) {
+size_t number_of_card_to_get(CardNumber number) {
     switch (number) {
         case CardNumber::RuleCard:
             [[fallthrough]];
@@ -366,7 +366,8 @@ class CheatingPlayer : public VijfPlayer {
 public:
     CardNumber take_turn(const GameState &game_state, size_t your_position) override {
         auto next_five = game_state.deck.next_five();
-        assert(next_five >= 0 && next_five < game_state.deck.cards_left());
+        assert(next_five.has_value());
+        assert(next_five < game_state.deck.cards_left());
         auto& hand = *game_state.hands[your_position];
         if (hand.has_card(CardNumber::RuleCard)) {
             if (next_five < game_state.players_alive * 2)
@@ -380,7 +381,7 @@ public:
             if (!hand.has_card(card)) {
                 continue;
             }
-            size_t to_get = number_of_card_to_get(card);
+            auto to_get = number_of_card_to_get(card);
             if (to_get >= next_five) {
                 if (!any) {
                     return card;
