@@ -2,35 +2,43 @@
   <button @click="shuffle">Shuffle!</button>
   <button @click="moveToTop">To top!</button>
   <button @click="moveToBottom">To bottom!</button>
+  <label for="showDeckToggle">Show deck cards</label><input id="showDeckToggle" type="checkbox" v-model="showdeck">
   {{ textOut }}
-  <div class="deck">
+  <div class="vijf-table">
     <transition-group name="card-deck">
+      <template v-for="(card, index) in deck" :key="'card' + card.id">
+        <playing-card
+            :type="card.type"
+            :backside="!showdeck"
+            class="cards-deck"
+            :style="{
+              top: '10%', left: 'calc(10% + ' + (deck.length * 25 - index * 25) + 'px)',
+              opacity: Math.min(Math.max(0, 1 - ((deck.length - index - 1) - 5)/5), 1),
+              visibility: index >= (deck.length - 15) ? 'visible':'hidden'
+            }"
+        />
+      </template>
       <playing-card
         @clicked="cardClicked"
-        v-for="(n, index) in deck"
-        :key="'card' + n"
-        :type="'' + n"
-        backside
-        class="cards-deck"
-        :style="{ top: '10%', left: 'calc(10% + ' + index * 26 + 'px)' }"
-      />
-      <playing-card
-        @clicked="cardClicked"
-        v-for="(n, index) in discarded"
-        :key="'card' + n"
-        :type="'' + n"
+        v-for="(card, index) in discarded"
+        :key="'card' + card.id"
+        :type="card.type"
         class="cards-discarded"
-        :style="{ top: '35%', left: 'calc(10% + ' + index * 25 + 'px)' }"
+        :style="{ top: '10%', left: 'calc(50% - ' + index * 25 + 'px)', visibility: 'visible' }"
       />
 
       <template v-for="(player, pIndex) in players">
         <playing-card
-            @clicked="cardClicked"
-            v-for="(n, index) in player"
-            :key="'card' + n"
-            :type="'' + n"
-            class="player-cards"
-            :style="{ top: '70%', left: 'calc(' + (15 + pIndex * 15) + '% + ' + index * 25 + 'px)' }"
+          @clicked="cardClicked"
+          v-for="(card, index) in player"
+          :key="'card' + card.id"
+          :type="card.type"
+          class="player-cards"
+          :style="{
+            top: '70%',
+            left: 'calc(' + (15 + pIndex * 15) + '% + ' + index * 25 + 'px)',
+            visibility: 'visible',
+          }"
         />
       </template>
     </transition-group>
@@ -39,34 +47,56 @@
 
 <script>
 import PlayingCard from "@/components/games/Card.vue";
+
+class CardConverter {
+  constructor() {
+    this.cardNum = {};
+  }
+
+  do(str) {
+    return [...str].map((c) => {
+      if (!(c in this.cardNum)) {
+        this.cardNum[c] = 0;
+      }
+
+      let num = this.cardNum[c]++;
+
+      return {
+        type: c,
+        id: c + "_" + num,
+      };
+    });
+  }
+}
+
+function defaultDeck() {
+  return new CardConverter().do(
+    "**+A23456789TJQKA23456789TJQKA23456789TJQKA23456789TJQK"
+  );
+}
+
 export default {
   name: "VijfGame",
   components: {
     PlayingCard,
   },
+  props: {
+    start: String,
+    moves: String,
+  },
   data() {
+    const startDeck = defaultDeck();
     return {
-      deck: ["+", "*", "A", "K",],
-      discarded: ["2"],
-      players: [
-          ["Q", "J", "T", ],
-          [],
-          ["9", "8", "7", ],
-          ["6", "5", ],
-          ["4", "3", ],
-      ],
+      discarded: [], //startDeck.splice(0, 5),
+      deck: startDeck,
+      players: [[], [], [], [], []],
       textOut: "",
+      invalid: false,
+      showdeck: false,
+      nextMoveIndex: 0,
     };
   },
   methods: {
-    shuffle() {
-      for (let i = 0; i < this.nums.length; i++) {
-        let number = Math.floor(i + (this.nums.length - i) * Math.random());
-        const temp = this.nums[i];
-        this.nums[i] = this.nums[number];
-        this.nums[number] = temp;
-      }
-    },
     moveToTop() {
       if (this.deck.length === 0) return;
       const el = this.deck.pop();
@@ -80,12 +110,50 @@ export default {
     cardClicked(num) {
       this.textOut += num;
     },
+    clearAll() {
+      this.deck = [];
+      this.discarded = [];
+      for (let i = 0; i < this.players.length; ++i) {
+        this.players[i] = [];
+      }
+    },
+    reset() {
+      const parts = this.start.split(";");
+      if (parts.length !== 7) {
+        this.clearAll();
+        this.invalid = true;
+        return;
+      }
+
+      const converter = new CardConverter();
+
+      for (let i = 0; i < 5; ++i) {
+        this.players[i] = converter.do(parts[i]);
+      }
+
+      this.deck = converter.do(parts[5]);
+      this.discarded = converter.do(parts[6]);
+    },
+  },
+  watch: {
+    start: {
+      handler(newValue, oldValue) {
+        console.log('new ', newValue, ' old', oldValue)
+        if (oldValue !== undefined)
+          this.reset();
+      },
+      immediate: true,
+    },
+    moves() {
+      this.reset();
+      this.nextMoveIndex = 0;
+    },
   },
 };
 </script>
 
 <style scoped>
-.deck {
+.vijf-table {
   /*margin-left: 30px;*/
   /*padding-top: 30px;*/
   /*position: initial;*/
@@ -142,5 +210,4 @@ export default {
 /*.deck .playing-card {*/
 /*  position: absolute;*/
 /*}*/
-
 </style>

@@ -1,8 +1,10 @@
 <template>
-  <div :class="['playing-card', colorClass, backside ? 'backside' : 'frontside']" @click="clicked">
-    <span class="card-suit suit-top">{{ suitText }}</span>
-    <span class="card-type">{{ text }}</span>
-    <span class="card-suit suit-bottom">{{ suitText }}</span>
+  <div :class="['playing-card', colorClass, backside ? 'backside' : '']" @click="clicked">
+    <template v-if="!backside">
+      <span class="card-suit suit-top">{{ suitText }}</span>
+      <span class="card-type">{{ text }}</span>
+      <span class="card-suit suit-bottom">{{ suitText }}</span>
+    </template>
   </div>
 </template>
 
@@ -67,6 +69,8 @@ export default {
   background-color: #fff;
   box-shadow: -5px 2px 3px rgba(10, 10, 10, 0.1), 0 0 0 1px rgba(10, 10, 10, 0.1);
   color: #4a4a4a;
+
+  transition: opacity 1s ease;
 
   /*margin-left: -50px;*/
 }
