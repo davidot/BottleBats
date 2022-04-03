@@ -41,6 +41,8 @@ export default {
       return cardMap[this.type]?.type || this.type;
     },
     suitText() {
+      if (this.type === 'T')
+        return '10';
       return this.text.charAt(0).toUpperCase();
     },
     colorClass() {
