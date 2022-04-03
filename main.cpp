@@ -11,6 +11,7 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <thread>
 #include "Process.h"
 
 
@@ -408,13 +409,13 @@ public:
 
         auto& temp_process = *proc_or_fail;
         size_t timeTaken = 0;
-        auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 400, &timeTaken);
+        auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 1500, &timeTaken);
         if (!ready_response.has_value()) {
             std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf' for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
             return;
         }
-        if (timeTaken > 300)
-            std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
+//        if (timeTaken > 100)
+//            std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
         if (*ready_response != "ready\n") {
             std::cout << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
@@ -431,9 +432,10 @@ public:
             if (result_or_failed.has_value())
                 return result_or_failed.value();
             m_process->writeToWithTimeout("died\n", 10);
-            m_process = nullptr;
+            m_process.reset();
+
+            std::cerr << "Process player falling back on random player!\n";
         }
-        std::cerr << "Process player falling back on random player!\n";
         auto& hand = *game_state.hands[your_position];
         return random_pick(hand);
     }
@@ -463,21 +465,21 @@ private:
 
         size_t timeTaken = 0;
         auto val = std::move(*message.rdbuf()).str();
-        auto result = m_process->sendAndWaitForResponse(val, 50, &timeTaken);
+        auto result = m_process->sendAndWaitForResponse(val, 100, &timeTaken);
         if (!result.has_value()) {
-            std::cerr << "ProcessPlayer sent no response!\n";
+            std::cerr << "ProcessPlayer '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "' sent no response!\n";
             return std::nullopt;
         }
 
-        if (timeTaken > 5)
-            std::cout << "Slow response took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
+//        if (timeTaken > 5)
+//            std::cout << "Slow response took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
         std::string_view view = *result;
         assert(view[view.length() - 1] == '\n');
         view.remove_suffix(1);
 
         if (view.find("play ") != 0 || view.size() < 6) {
-            std::cout << "Player response does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
+            std::cout << "Player response from '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "'does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
             std::cout << "When given: " << val;
             return std::nullopt;
         }
@@ -590,7 +592,7 @@ Results play_game(StartData data) {
 
     std::array<Player, player_count> players{};
     GameState state {
-        player_count, 0, {}, discarded_cards, deck
+        player_count, player_count, {}, discarded_cards, deck
     };
 
     auto kill_player = [&](size_t index) {
@@ -609,8 +611,10 @@ Results play_game(StartData data) {
 
     for (auto i = 0; i < player_count; ++i) {
         auto& initial_hand = data.hands[i];
+        players[i].hand = initial_hand;
+        state.hands[i] = &players[i].hand;
 
-        if (initial_hand.total_cards() == 0) {
+        if (players[i].hand.total_cards() == 0) {
             --state.players_alive;
             players[i].alive = false;
             results.instadied[i] = true;
@@ -620,27 +624,59 @@ Results play_game(StartData data) {
             continue;
         }
 
-        players[i].hand = initial_hand;
-        state.hands[i] = &players[i].hand;
+
+
+//        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
+        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
+//        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{
+//            "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
+//            "cpp-example"
+//            //                "python-example"
+//            //              "java-example"
+//            //                "zig-example"
+//        });
+        continue;
 
 
 //        players[i].engine = std::make_unique<HighestFirst>();
 
-        players[i].engine = std::make_unique<LowestFirst>();
-//        if (i != 0) {
+        if (i == 4) {
+          players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{
+              "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
+              //                "cpp-example"
+                              "python-example"
+//              "java-example"
+              //                "zig-example"
+          });
+
+        } else if (i == 1) {
+          players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{
+              "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
+                              "cpp-example"
+              //                "python-example"
+//              "java-example"
+              //                "zig-example"
+          });
+
+        } else if (i == 0) {
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "python-example"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "java-example"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"podman", "run", "--network=none", /*"--cpus", "1.0",*/ "--memory=100m", "--cap-drop=all", "--rm", "--interactive", "cpp-example"});
+            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{
+                "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
+//                "cpp-example"
+//                "python-example"
+                "java-example"
+//                "zig-example"
+            });
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
 //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"javijf.exe"});
 //            players[i].engine = std::make_unique<CheatingPlayer>();
 //            players[i].engine = std::make_unique<RandomPlayer>();
-//        } else {
+        } else {
+            players[i].engine = std::make_unique<RandomPlayer>();
 //            players[i].engine = std::make_unique<LowestFirst>();
 //            players[i].engine = std::make_unique<CheatingPlayer>();
-//        }
+        }
     }
 
     int turn = player_count - 1;
@@ -748,35 +784,40 @@ Results play_game(StartData data) {
 }
 
 int main() {
-
     // FIXME: Better random seeding?
     srand(time(nullptr));
+
+    std::vector<std::thread> threads;
+
+//    for (int tid = 0; tid < 10; tid++) {
+//      threads.emplace_back([tid] {
     uint32_t seed = rand();
-//    uint32_t seed = 181503997;
+    //    uint32_t seed = 343173667;
 
     std::cout << "Seed: " << seed << '\n';
     auto engine = std::default_random_engine{seed};
 
-//    play_game(engine);
-//    return 0;
+    //    play_game(engine);
+    //    return 0;
 
     std::array<size_t, 5> won_games{};
     std::array<size_t, 5> instadied{};
     std::array<size_t, 26> rounds{};
     std::array<size_t, 52> moves{};
 
-    std::ofstream games{"games_played.txt"};
+  //        std::ofstream games{"games_played.txt"};
 
-    for (auto i = 0; i < 1000000; ++i) {
+    for (auto i = 0; i < 100; ++i) {
         auto initial_data = generate_random_start(engine);
-        std::string start_string = initial_data.to_string();
+        //          std::string start_string = initial_data.to_string();
         auto results = play_game(std::move(initial_data));
         if (results.type == Results::Type::PlayerMisbehaved) {
             std::cout << "Misbehaving by " << results.player << '\n';
             break;
         }
         if (results.player >= player_count) {
-            std::cout << "Failed? with seed: " << seed << " , " << i << "=> " << results.player << '\n';
+            std::cout << "Failed? with seed: " << seed << " , " << i << "=> "
+                      << results.player << '\n';
             continue;
         }
 
@@ -790,20 +831,20 @@ int main() {
         assert(!results.moves_made.empty());
         ++moves[results.moves_made.size()];
 
-        std::ostringstream moves_string;
-        moves_string << results.moves_made.size() << ' ';
-
-        for (auto& card : results.moves_made)
-            moves_string << card_to_char_repr(card);
-
-        games  << start_string << "; " << moves_string.str() << '\n';
+        //          std::ostringstream moves_string;
+        //          moves_string << results.moves_made.size() << ' ';
+        //
+        //          for (auto &card : results.moves_made)
+        //            moves_string << card_to_char_repr(card);
+        //
+        ////          games << start_string << "; " << moves_string.str() << '\n';
     }
 
-    games.close();
+    //        games.close();
 
     for (auto i = 0; i < 5; ++i) {
-        std::cout << i << " won " << won_games[i] << " times and died instant " << instadied[i]
-                  << " times\n";
+        std::cout << i << " won " << won_games[i]
+                  << " times and died instant " << instadied[i] << " times\n";
     }
 
     for (auto i = 0u; i < rounds.size(); ++i) {
@@ -815,6 +856,13 @@ int main() {
         if (moves[i] > 0 || i < 10)
             std::cout << moves[i] << " game finished in " << i << " moves\n";
     }
+
+//    std::cout << "Thread " << tid << " Done!\n";
+//  });
+//    }
+
+//    for (auto& t : threads)
+//        t.join();
 
     return 0;
 }
