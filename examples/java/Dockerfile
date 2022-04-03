@@ -4,4 +4,4 @@ ADD JaVijf.java /
 
 RUN javac JaVijf.java -d .
 
-ENTRYPOINT ["java","-Xms100m", "-Xmx100m", "JaVijf"]
+ENTRYPOINT ["java","-Xms128m", "-Xmx128m", "JaVijf"]

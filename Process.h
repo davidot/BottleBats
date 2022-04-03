@@ -63,8 +63,6 @@ namespace util {
         int m_std_in = -1;
         int m_std_out = -1;
 
-        bool m_waitCalled = false;
-
         std::optional<int> m_exitCode;
 #elif defined(WINDOWS_PROCESS)
         HANDLE m_childProc { nullptr };

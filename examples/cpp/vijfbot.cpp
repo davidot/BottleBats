@@ -4,7 +4,7 @@
 #include <ctime>
 #include <limits>
 
-int main(int argc, char** argv) {
+int main() {
     std::string line;
 
     if (!std::getline(std::cin, line))
@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
 
 //        std::cerr << "Got hand: _" << hand << "_" << std::endl;
         std::istringstream split_hand {hand};
-        int cards_in_hand;
+        unsigned cards_in_hand;
         std::string hand_cards;
         split_hand >> cards_in_hand >> hand_cards;
         if (!split_hand || cards_in_hand != hand_cards.size()) {
@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        int card_to_pick = rand() % cards_in_hand;
+        unsigned card_to_pick = rand() % cards_in_hand;
 
         std::cout << "play " << hand_cards[card_to_pick] << std::endl;
     }

@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <poll.h>
+#include <future>
 
 #ifdef __APPLE__
 extern char **environ;
@@ -167,7 +168,6 @@ namespace util {
       }
 
       if (!writeToWithTimeout(message, milliseconds)) {
-        running = false;
         std::cerr << "Failed to write " << message << '\n';
         return std::nullopt;
       }
@@ -192,8 +192,7 @@ namespace util {
 
 
       if (!readLineWithTimeout(response, milliseconds)) {
-        running = false;
-        std::cerr << "Failed to read in response to " << message << '\n';
+        std::cerr << "Failed to read in response to _" << message << "_\n";
         return std::nullopt;
       }
 
@@ -211,30 +210,41 @@ namespace util {
     }
 
     SubProcess::ProcessExit SubProcess::stop() {
-        if (!m_waitCalled) {
+        if (running) {
             running = false;
 
             // should trigger command ending
             close(m_std_in);
 
             int status;
-            if (pid_t waited = waitpid(m_procPid, &status, 0); waited < 0) {
-                perror("waitpid");
+
+            std::future<bool> processDied =
+                std::async(std::launch::async, [pid = m_procPid, &status]() {
+                    do {
+                        if (pid_t waited = waitpid(pid, &status, 0);
+                            waited < 0) {
+                            perror("waitpid");
+                            return false;
+                        }
+                    } while (!(WIFEXITED(status) || WIFSIGNALED(status)));
+
+                    return true;
+                });
+
+            switch (processDied.wait_for(std::chrono::milliseconds(1000))) {
+            case std::future_status::ready:
+              if (WIFEXITED(status))
+                  m_exitCode = WEXITSTATUS(status);
+              break;
+            case std::future_status::timeout:
+            case std::future_status::deferred:
+              if (kill(m_procPid, SIGTERM) < 0) {
+                perror("kill");
+              }
+              break;
             }
+
             close(m_std_out);
-
-            m_waitCalled = true;
-
-            if (!WIFEXITED(status)) {
-                std::cerr << "Child was stopped non normally?\n";
-            } else {
-                int stat = WEXITSTATUS(status);
-                if (stat != 0) {
-                    std::cerr << "Process exited with non-zero: " << stat << '\n';
-                }
-
-                m_exitCode = stat;
-            }
 
         }
 
