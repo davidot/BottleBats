@@ -3,6 +3,10 @@
 - [ ] Run games async
 - [ ] Store results
 - [ ] Store "special" events
+- [ ] Auto create containers
+  - [ ] "Detect" type 
+  - [ ] Add zig
+
 
 # Web
 - [ ] Uploading files
