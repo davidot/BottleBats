@@ -32,3 +32,5 @@ elseif (MINGW)
 else()
     message(ERROR "Don't know this operating system.")
 endif()
+
+add_executable(VijfBot examples/cpp/vijfbot.cpp)
