@@ -19,8 +19,9 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
         std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf' for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
         return;
     }
-    //        if (timeTaken > 100)
-    //            std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
+
+//    if (timeTaken > 100)
+//        std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
     if (*ready_response != "ready\n") {
         std::cout << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
@@ -43,7 +44,7 @@ CardNumber ProcessPlayer::take_turn(GameState const& game_state, std::size_t you
         std::cerr << "Process player falling back on random player!\n";
     }
     auto& hand = *game_state.hands[your_position];
-    return random_pick(hand);
+    return random_pick(hand, game_state.rng_engine);
 }
 
 std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, std::size_t your_position)

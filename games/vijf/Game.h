@@ -12,6 +12,8 @@ struct GameState {
     std::array<CardStack const*, player_count> hands;
     CardStack const& discarded_cards;
     OrderedCardStack const& deck; // No cheating!
+
+    mutable std::minstd_rand rng_engine;
 };
 
 struct Results {

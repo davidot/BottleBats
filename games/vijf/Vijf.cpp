@@ -4,13 +4,16 @@
 #include "players/VijfPlayer.h"
 #include "players/ProcessPlayer.h"
 #include "players/BasicPlayers.h"
+#include <chrono>
 
 namespace Vijf {
 
 bool silent = true;
 
-Results play_game(StartData data)
+Results play_game(StartData data, std::array<std::string_view, player_count> const& player_commands)
 {
+
+//    auto start_time = std::chrono::high_resolution_clock::now();
 
     CardStack discarded_cards = data.discarded;
     OrderedCardStack deck { std::move(data.deck) };
@@ -24,7 +27,7 @@ Results play_game(StartData data)
 
     std::array<Player, player_count> players {};
     GameState state {
-        player_count, player_count, {}, discarded_cards, deck
+        player_count, player_count, {}, discarded_cards, deck, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
     };
 
     auto kill_player = [&](std::size_t index) {
@@ -55,58 +58,12 @@ Results play_game(StartData data)
                 std::cout << "Player " << i << " died from initial double five\n";
             continue;
         }
-        players[i].engine = std::make_unique<RandomPlayer>();
-
-//        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
-//        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string> { "java", "JaVijf" });
-        //        players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{
-        //            "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
-        //            "cpp-example"
-        //            //                "python-example"
-        //            //              "java-example"
-        //            //                "zig-example"
-        //        });
-        continue;
-
-        //        players[i].engine = std::make_unique<HighestFirst>();
-
-//        if (i == 4) {
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string> {
-//                "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
-//                //                "cpp-example"
-//                "python-example"
-//                //              "java-example"
-//                //                "zig-example"
-//            });
-//
-//        } else if (i == 1) {
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string> {
-//                "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
-//                "cpp-example"
-//                //                "python-example"
-//                //              "java-example"
-//                //                "zig-example"
-//            });
-//
-//        } else if (i == 0) {
-//            //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"cmake-build-release/VijfBot"});
-//            //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"python3", "examples/run.py"});
-//            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string> {
-//                "podman", "run", "--network=none", "--cpus", "0.5", "--memory=128m", "--cap-drop=all", "--rm", "--interactive",
-//                //                "cpp-example"
-//                //                "python-example"
-//                "java-example"
-//                //                "zig-example"
-//            });
-//            //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"java", "JaVijf"});
-//            //            players[i].engine = std::make_unique<ProcessPlayer>(std::vector<std::string>{"javijf.exe"});
-//            //            players[i].engine = std::make_unique<CheatingPlayer>();
-//            //            players[i].engine = std::make_unique<RandomPlayer>();
-//        } else {
-//            players[i].engine = std::make_unique<RandomPlayer>();
-//            //            players[i].engine = std::make_unique<LowestFirst>();
-//            //            players[i].engine = std::make_unique<CheatingPlayer>();
-//        }
+        players[i].engine = VijfPlayer::from_command(player_commands[i]);
+        if (!players[i].engine) {
+            results.type = Results::Type::PlayerMisbehaved;
+            results.player = i;
+            return results;
+        }
     }
 
     int turn = player_count - 1;
@@ -124,6 +81,8 @@ Results play_game(StartData data)
             ASSERT(turn < player_count);
         } while (!players[turn].alive);
     };
+
+//    auto initial_time = std::chrono::high_resolution_clock::now();
 
     while (state.players_alive >= 2) {
         ASSERT(state.players_alive <= deck.five_count() + 1);
@@ -209,6 +168,15 @@ Results play_game(StartData data)
         }
     }
     results.rounds_played = state.round_number;
+
+//    auto done_time = std::chrono::high_resolution_clock::now();
+//
+//    auto duration_in_ms = [&](auto end_time) {
+//        auto duration = end_time - start_time;
+//        return duration_cast<std::chrono::milliseconds>(duration).count();
+//    };
+
+//    std::cerr << "Ran game in " << duration_in_ms(done_time) << " with init taking: " << duration_in_ms(initial_time) << '\n';
     return results;
 }
 

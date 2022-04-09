@@ -26,7 +26,7 @@ CardNumber HighestFirst::take_turn(GameState const& game_state, std::size_t your
 CardNumber RandomPlayer::take_turn(GameState const& game_state, std::size_t your_position)
 {
     auto& hand = *game_state.hands[your_position];
-    return random_pick(hand);
+    return random_pick(hand, game_state.rng_engine);
 }
 
 CardNumber CheatingPlayer::take_turn(GameState const& game_state, std::size_t your_position)
@@ -41,7 +41,7 @@ CardNumber CheatingPlayer::take_turn(GameState const& game_state, std::size_t yo
     }
 
     bool any = false;
-    CardNumber highest;
+    CardNumber highest = CardNumber::King;
     for (auto const& card : low_to_high_cards) {
         if (!hand.has_card(card)) {
             continue;
