@@ -1,4 +1,4 @@
-FROM docker.io/python:3
+FROM docker.io/python:alpine3.15
 
 ADD run.py /
 
