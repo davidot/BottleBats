@@ -67,7 +67,7 @@ int main() {
         ++rounds[results.rounds_played];
         ++won_games[results.player];
 
-        assert(!results.moves_made.empty());
+        ASSERT(!results.moves_made.empty());
         ++moves[results.moves_made.size()];
 
                   std::ostringstream moves_string;

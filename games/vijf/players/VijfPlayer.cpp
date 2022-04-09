@@ -13,7 +13,7 @@ CardNumber random_pick(CardStack const& stack, std::minstd_rand& engine)
         if (count > index)
             return card;
         index -= count;
-        assert(card != CardNumber::King);
+        ASSERT(card != CardNumber::King);
     }
     ASSERT_NOT_REACHED();
 }

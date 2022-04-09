@@ -131,7 +131,7 @@ CardStack OrderedCardStack::to_card_stack() const
 }
 CardNumber OrderedCardStack::take_card()
 {
-    assert(!m_cards.empty());
+    ASSERT(!m_cards.empty());
     auto card = m_cards.back();
     m_cards.pop_back();
     return card;

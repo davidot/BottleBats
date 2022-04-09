@@ -49,7 +49,7 @@ CardNumber ProcessPlayer::take_turn(GameState const& game_state, std::size_t you
 
 std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, std::size_t your_position)
 {
-    assert(m_process);
+    ASSERT(m_process);
 
     std::ostringstream message {};
     message << "turn " << (player_count + 2) << ' ' << your_position << ' ' << game_state.players_alive << ' ' << game_state.round_number << '\n';
@@ -76,7 +76,7 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     //            std::cout << "Slow response took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
     std::string_view view = *result;
-    assert(view[view.length() - 1] == '\n');
+    ASSERT(view[view.length() - 1] == '\n');
     view.remove_suffix(1);
 
     if (view.find("play ") != 0 || view.size() < 6) {

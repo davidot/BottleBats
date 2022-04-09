@@ -5,7 +5,7 @@ namespace Vijf {
 Vijf::CardNumber Vijf::LowestFirst::take_turn(Vijf::GameState const& game_state, std::size_t your_position)
 {
     auto& hand = *game_state.hands[your_position];
-    assert(hand.total_cards() > 0);
+    ASSERT(hand.total_cards() > 0);
     for (auto& card : low_to_high_cards) {
         if (hand.has_card(card))
             return card;
@@ -32,8 +32,8 @@ CardNumber RandomPlayer::take_turn(GameState const& game_state, std::size_t your
 CardNumber CheatingPlayer::take_turn(GameState const& game_state, std::size_t your_position)
 {
     auto next_five = game_state.deck.next_five();
-    assert(next_five.has_value());
-    assert(next_five < game_state.deck.cards_left());
+    ASSERT(next_five.has_value());
+    ASSERT(next_five < game_state.deck.cards_left());
     auto& hand = *game_state.hands[your_position];
     if (hand.has_card(CardNumber::RuleCard)) {
         if (next_five < game_state.players_alive * 2)

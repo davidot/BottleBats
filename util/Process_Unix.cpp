@@ -1,10 +1,10 @@
 #include "Process.h"
+#include "Assertions.h"
 
 #ifndef POSIX_PROCESS
 #error Only for posix process handling
 #endif
 
-#include <assert.h>
 #include <csignal>
 #include <cstdlib>
 #include <fcntl.h>
@@ -77,7 +77,7 @@ namespace util {
             return false;
           }
 
-          assert(poll_result == 1);
+          ASSERT(poll_result == 1);
         }
 
         ssize_t written = write(m_std_in, head, toWrite);
@@ -139,7 +139,7 @@ namespace util {
           return false;
         }
 
-        assert(poll_result == 1);
+        ASSERT(poll_result == 1);
 
         ssize_t readBytes = read(m_std_out, readBuffer.data() + m_bufferLoc, readBuffer.size() - m_bufferLoc);
         if (readBytes < 0) {
@@ -185,7 +185,7 @@ namespace util {
         return std::nullopt;
       }
 
-      assert(millis_taken < milliseconds);
+      ASSERT(millis_taken < milliseconds);
       milliseconds -= millis_taken;
 
       std::string response;
@@ -257,7 +257,7 @@ namespace util {
 
     bool SubProcess::setup(SubProcess& process, std::vector<std::string> command) {
         if (command.size() >= maxCommandSize || command.empty()) {
-            assert(false);
+            ASSERT_NOT_REACHED();
             return false;
         }
 
@@ -319,7 +319,7 @@ namespace util {
         if (posix_spawn_file_actions_destroy(&actions)) {
             perror("posix_spawn_file_actions_destroy");
             // uh oh we just started it... try to stop and otherwise whatever
-            assert(false);
+            ASSERT_NOT_REACHED();
             process.stop();
             return false;
         }
