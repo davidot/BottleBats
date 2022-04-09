@@ -22,6 +22,16 @@ else()
     add_compile_options(-Werror)
 endif()
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT supported OUTPUT error)
+
+if(supported AND (CMAKE_BUILD_TYPE MATCHES Release))
+    message(STATUS "IPO / LTO enabled")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+    message(STATUS "IPO / LTO not supported or disabled: <${error}>")
+endif()
+
 add_library(SubProcess INTERFACE)
 target_sources(SubProcess PUBLIC util/Process_Base.cpp)
 
@@ -41,3 +51,5 @@ else()
 endif()
 
 add_subdirectory(games)
+#add_subdirectory(server)
+add_subdirectory(director)
