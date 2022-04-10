@@ -51,5 +51,4 @@ else()
 endif()
 
 add_subdirectory(games)
-#add_subdirectory(server)
-add_subdirectory(director)
+add_subdirectory(server)
