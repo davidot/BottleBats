@@ -1,17 +1,26 @@
 <template>
   <div>
     <div style="display: flex; flex-direction: row">
-      <div style="display: flex; place-items: center;">
-        <span class="name"> Hello!</span> {{ count }}
-        <button @click="addMe">Click</button>
-        <button @click="removeMe">Remove</button>
-        <button @click="shuffle">Shuffle</button>
-      </div>
+<!--      <div style="display: flex; place-items: center;">-->
+<!--        <button @click="addMe">Click</button>-->
+<!--        <button @click="removeMe">Remove</button>-->
+<!--        <button @click="shuffle">Shuffle</button>-->
+<!--        {{ oldRanks }}-->
+<!--      </div>-->
       <div style="height: 500px; width: 500px; overflow-y: scroll; overflow-x: hidden">
         <div style="width: 80%; margin: auto; display: flex; flex-direction: column">
-          <TransitionGroup name="alist" move-class="moving-item">
-            <component :is="'vijf-leaderboard-item'" v-for="(item, index) in orderedItems" :key="'lb-' + item.itemId" :data="item" class="anim-item" :data-change="index <= (oldIndices[index] || -1) ? 'positive-change' : 'negative-change'">
-              {{ index }} vs {{ oldIndices[index] || -1 }}
+          <div v-if="connectionLost" style="color: red; position: relative; top: 0; width: 100%; text-align: center;">
+            Connection to server lost!
+          </div>
+          <div v-if="items == null">
+            No data / Loading
+          </div>
+          <TransitionGroup v-else name="alist" move-class="moving-item">
+            <component :is="'vijf-leaderboard-item'" v-for="(item, index) in orderedItems"
+                       :key="'lb-' + item.itemId"
+                       :data="item" class="anim-item"
+                       :data-change="index <= (oldRanks[item.itemId] || -1) ? 'positive-change' : 'negative-change'">
+<!--               / {{ index }} vs {{ oldRanks[item.itemId] || -1 }}-->
             </component>
           </TransitionGroup>
         </div>
@@ -23,58 +32,55 @@
 <script>
 
 import VijfLeaderboardItem from "@/components/vijf/VijfLeaderboardItem.vue";
+import {endpoint} from "@/http";
 
 export default {
   name: "LeaderBoard",
   components: {
     VijfLeaderboardItem,
   },
+  mounted() {
+    this.dataInterval = setInterval(() => this.getData(), 1000);
+    this.getData();
+  },
+  unmounted() {
+    if (this.dataInterval)
+      clearInterval(this.dataInterval);
+  },
   data() {
     return {
-      count: 1,
-      things: [{ rank: 2, itemId: '123y5d', name: "hi" }, {rank: 0, itemId: '123152by5d',name: "hello"}, {rank: 1, itemId: 'asdg80021',name: "bye"}],
-      oldIndices: [],
+      dataInterval: null,
+      connectionLost: false,
+      items: null,
+      oldRanks: {},
     };
   },
   computed: {
     orderedItems() {
-      return [...this.things].sort((lhs, rhs) => lhs.rank - rhs.rank);
+      return [...this.items].sort((lhs, rhs) => lhs.rank - rhs.rank);
     },
   },
   methods: {
-    fillOldIndices() {
-      this.oldIndices = [...this.things.keys()];
+    saveOldRanks() {
+      this.oldRanks = {};
+      if (this.items == null)
+        return;
+
+      for (let item of this.items)
+        this.oldRanks[item.itemId] = item.rank;
+
+      console.log(this.oldRanks);
     },
-    addMe() {
-      // this.things.push({nm: this.things[this.things.length - 1].nm + 'b'});
+    async getData() {
+      this.saveOldRanks();
 
-      this.fillOldIndices();
-    },
-    removeMe() {
-      this.fillOldIndices();
-
-      const index = Math.random() * this.things.length;
-      this.things.splice(index, 1);
-    },
-    shuffle() {
-      this.fillOldIndices();
-
-      const indices = [...this.things.keys()];
-
-      for (let i = 0; i < this.things.length; i++) {
-        let number = Math.floor(i + (this.things.length - i) * Math.random());
-        const temp = indices[i];
-        indices[i] = indices[number];
-        indices[number] = temp;
+      try {
+        const data = await endpoint.get("/vijf/leaderboard", {timeout: 750});
+        this.items = data.data;
+        this.connectionLost = false;
+      } catch {
+        this.connectionLost = true;
       }
-
-      for (let i = 0; i < this.things.length; i++) {
-        // const tempIdx = this.oldIndices[i];
-        // this.oldIndices[i] = this.oldIndices[number];
-        // this.oldIndices[number] = tempIdx;
-
-      }
-
     },
   },
 };

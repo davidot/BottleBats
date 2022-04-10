@@ -1,6 +1,6 @@
 <template>
   <div class="vijf-leaderboard-item">
-    {{ data.name }} |
+    {{ data.name }} {{ data.played }}  {{ data.won }}|
     <slot />
   </div>
 </template>
