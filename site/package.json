@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "vue": "^3.2.31",
-    "vue-router": "^4.0.12"
+    "vue-router": "^4.0.12",
+    "axios": "0.26.1"
   },
   "devDependencies": {
     "@rushstack/eslint-patch": "^1.1.0",
