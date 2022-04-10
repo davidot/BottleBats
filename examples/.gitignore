@@ -2,3 +2,6 @@
 *.exe
 *.pyc
 *.jar
+
+zig/zig-cache/*
+zig/program
