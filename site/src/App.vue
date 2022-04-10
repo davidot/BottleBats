@@ -1,14 +1,25 @@
 <template>
   <main>
-    <RouterView />
-    <VijfGame :start="start" :moves="moves" />
+    <NavBar />
+    <div class="main-content">
+      <RouterView />
+      <input
+          type="file"
+          ref="fileInput"
+          @change="onFilePicked"/>
+      <VijfGame :start="start" :moves="moves" />
+      <LogoSVG style="width: 400px"/>
+    </div>
   </main>
 </template>
 
 <script setup lang="ts">
 import { RouterView } from "vue-router";
 import VijfGame from "@/components/vijf/VijfGame.vue";
-import {onMounted, ref} from "vue";
+import NavBar from "@/components/NavBar.vue";
+import {onMounted, provide, ref} from "vue";
+import LogoSVG from "@/components/LogoSVG.vue";
+import {endpoint} from "./http";
 
 const start = ref("");
 const moves = ref("");
@@ -19,8 +30,81 @@ const moves = ref("");
     moves.value = "10 A8A723*426";
   // }, 1000);
 // });
+
+const userDetails = ref({
+  displayName: null,
+  isAdmin: false
+});
+
+function updateUserDetails() {
+  endpoint.get("/auth/info").then((val) => {
+    console.log('Auth successful!');
+      const userData = val.data;
+      userDetails.value.displayName = userData.displayName;
+      userDetails.value.isAdmin = userData.admin;
+  }).catch((err) => {
+      console.log('Not logged in ', err);
+  });
+}
+
+provide("userDetails", {
+  values: userDetails,
+  updateUserDetails,
+});
+
+updateUserDetails();
+
+
+
+const fileInput = ref(null)
+
+function onFilePicked() {
+  console.log('File picked!');
+  const files = fileInput.value.files;
+  console.log(files);
+
+  const data = new FormData();
+  data.append("file", files[0]);
+  // data.append("filename", files[0].name);
+
+  endpoint
+    .post("/multipart", data, {
+      // headers: {
+      //   "Content-Type": "multipart/form-data; boundary=--------abd",
+      // },
+    })
+    .then((done) => {
+      console.log("axios done", done);
+    });
+}
 </script>
 
 <style>
+
+body {
+  margin-top: 0;
+}
+
+main {
+  width: calc(max(1200px, 60%));
+  margin: auto;
+}
+
+.bb-nav {
+  position: sticky;
+  top: 0;
+  height: 50px;
+  width: 100%;
+  z-index: 100;
+  background: #444cf7;
+  text-align: center;
+  /*vertical-align: center;*/
+}
+
+.main-content {
+  position: relative;
+  top: 50px;
+    /*padding-top: 5px;*/
+}
 
 </style>
