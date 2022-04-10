@@ -83,6 +83,15 @@ void add_authentication(ServerType& app)
         };
     });
 
+    CROW_ROUTE(app, "/api/auth/logout")
+    .methods(crow::HTTPMethod::POST)
+    .middlewares<ServerType, BBServer::AuthGuard>()
+    ([&](crow::request const& req) {
+        auto& cookies = app.get_context<crow::CookieParser>(req);
+        cookies.set_cookie(COOKIE_AUTH_NAME, "this-cookie-should-be-deleted; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        return "Logged out";
+    });
+
 }
 
 void fail_response_with_message(crow::response& resp, int code, std::string const& message)
