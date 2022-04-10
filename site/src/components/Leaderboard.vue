@@ -68,8 +68,6 @@ export default {
 
       for (let item of this.items)
         this.oldRanks[item.itemId] = item.rank;
-
-      console.log(this.oldRanks);
     },
     async getData() {
       this.saveOldRanks();
