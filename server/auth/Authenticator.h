@@ -27,9 +27,8 @@ struct BaseMiddleware {
         crow::CookieParser::context& cookies = all_context.template get<crow::CookieParser>();
 
         auto log_in = cookies.get_cookie(COOKIE_AUTH_NAME);
-        if (log_in.empty()) {
+        if (log_in.empty())
             return;
-        }
 
         std::string decrypted_log_in = crow::utility::base64decode(log_in);
 
@@ -44,7 +43,7 @@ struct BaseMiddleware {
         }
 
         // Log out because else we might get weird stuff
-        cookies.set_cookie(COOKIE_AUTH_NAME, "this-cookie-should-be-deleted!; expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        cookies.set_cookie(COOKIE_AUTH_NAME, "this-cookie-should-be-deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT");
     }
 
     void after_handle(crow::request&, crow::response&, context& ctx);
