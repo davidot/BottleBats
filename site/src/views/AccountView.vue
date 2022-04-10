@@ -53,7 +53,7 @@ export default {
             Authorization: username + ":" + token,
           },
         })
-        .then((val) => {
+        .then(() => {
           this.userDetails.updateUserDetails();
           this.$router.push({ name: "home" });
         })
@@ -63,6 +63,23 @@ export default {
     },
     register() {
       if (!this.hasValues) return;
+
+      const username = this.username;
+      const token = this.token;
+
+      endpoint
+          .post("/auth/register", '', {
+            headers: {
+              Authorization: username + ":" + token,
+            },
+          })
+          .then(() => {
+            this.userDetails.updateUserDetails();
+            this.$router.push({ name: "home" });
+          })
+          .catch(({ response }) => {
+            this.errorText = response.data;
+          });
     },
   },
 };

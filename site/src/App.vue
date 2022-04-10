@@ -43,7 +43,9 @@ function updateUserDetails() {
       userDetails.value.displayName = userData.displayName;
       userDetails.value.isAdmin = userData.admin;
   }).catch((err) => {
-      console.log('Not logged in ', err);
+      console.log('Not logged in (anymore)', err);
+    userDetails.value.displayName = null;
+    userDetails.value.isAdmin = false;
   });
 }
 

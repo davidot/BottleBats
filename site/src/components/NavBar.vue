@@ -18,8 +18,10 @@
     <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
       Log in / Register
     </NavBarButton>
-    <span v-else class="nav-button">
-      Logout
+    <span v-else class="nav-button login-side">
+      <a @click="logOut">
+        Logout
+      </a>
     </span>
     <div v-if="loggedIn" class="nav-button login-side nav-active-link" style="cursor: default">
       Welcome, {{ username }}
@@ -30,6 +32,7 @@
 <script>
 import NavBarButton from "@/components/NavBarButton.vue";
 import LogoSVG from "@/components/LogoSVG.vue";
+import {endpoint} from "@/http";
 export default {
   name: "TopBar",
   components: {LogoSVG, NavBarButton},
@@ -43,6 +46,20 @@ export default {
       return "Not logged in";
     },
   },
+  methods: {
+    logOut() {
+      endpoint
+          .post("/auth/logout", '')
+          .then(() => {
+            this.userDetails.updateUserDetails();
+            console.log('Log out sucessful!');
+          })
+          .catch((err) => {
+            console.log('Log out failed? probably just server disconnect?', err);
+            this.userDetails.updateUserDetails();
+          });
+    }
+  }
 };
 </script>
 
