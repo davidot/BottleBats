@@ -11,7 +11,7 @@
     <NavBarButton :to="{name: 'games'}">
       Games
     </NavBarButton>
-    <NavBarButton :to="{name: 'bots'}">
+    <NavBarButton :to="{name: 'bots'}" :enabled="loggedIn">
       Bots
     </NavBarButton>
 
@@ -99,6 +99,12 @@ export default {
 
 .login-side {
   float: right;
+}
+
+.nav-button.disabled {
+  background-color: gray;
+  text-decoration: line-through;
+  pointer-events: none;
 }
 
 </style>
