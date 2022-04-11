@@ -64,13 +64,16 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     std::ostringstream message {};
     message << "turn " << (player_count + 2) << ' ' << your_position << ' ' << game_state.players_alive << ' ' << game_state.round_number << '\n';
     for (auto const& hand : game_state.hands) {
+        message << hand->total_cards() << ' ';
         hand->to_sstream(message);
         message << '\n';
     }
 
+    message << game_state.discarded_cards.total_cards() << ' ';
     game_state.discarded_cards.to_sstream(message);
     message << '\n';
 
+    message << game_state.deck.cards_left() << ' ';
     game_state.deck.to_card_stack().to_sstream(message);
     message << '\n';
 

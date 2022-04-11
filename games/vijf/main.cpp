@@ -71,7 +71,6 @@ int main() {
         ++moves[results.moves_made.size()];
 
       std::ostringstream moves_string;
-      moves_string << results.moves_made.size() << ' ';
 
       for (auto &card : results.moves_made)
         moves_string << card_to_char_repr(card);

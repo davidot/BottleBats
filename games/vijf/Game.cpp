@@ -50,11 +50,11 @@ std::string StartData::to_string() const
     std::ostringstream result;
     for (auto const& hand : hands) {
         hand.to_sstream(result);
-        result << ' ';
+        result << ';';
     }
 
     deck.to_sstream_ordered(result);
-    result << ' ';
+    result << ';';
 
     discarded.to_sstream(result);
 

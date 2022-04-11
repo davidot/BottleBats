@@ -59,11 +59,8 @@ void CardStack::to_sstream(std::ostringstream& ostringstream) const
 {
     const std::size_t cards = total_cards();
 
-    ostringstream << cards;
     if (!cards)
         return;
-
-    ostringstream << ' ';
 
     for (auto& [card, character] : all_cards) {
         if (auto amount = m_counts[card_to_underlying(card)]; amount > 0) {
@@ -106,11 +103,8 @@ void OrderedCardStack::to_sstream_ordered(std::ostringstream& output) const
 {
     const std::size_t cards = m_cards.size();
 
-    output << cards;
     if (!cards)
         return;
-
-    output << ' ';
 
     for (auto i = m_cards.size(); i > 0; --i) {
         output << card_to_char_repr(m_cards[i - 1]);
