@@ -18,47 +18,18 @@
 #include "database/ConnectionPool.h"
 #include "BasicServer.h"
 #include "BotCreator.h"
+#include "GamePlayer.h"
 
 boost::asio::io_service io_service;
 boost::posix_time::milliseconds interval(200);
 boost::asio::deadline_timer timer(io_service, interval);
 
-std::atomic<int> i{0};
 //std::string next_event;
-std::mutex scoreboard_lock;
-long total = 0;
-std::unordered_map<std::string, std::pair<long, long>> scoreboard;
 
 void tick(const boost::system::error_code& /*e*/) {
 //    ++i;
 
 //    std::cout << "tick " << i << " expires next at " << timer.expires_at() << '\n';
-    {
-        std::lock_guard l(scoreboard_lock);
-        total += 1;
-
-
-        for (auto i = 0; i < 3; ++i) {
-            size_t j = rand() % scoreboard.size();
-            for (auto& [key, value] : scoreboard) {
-                if (j-- == 0) {
-                    value.first += 1;
-                    break;
-                }
-            }
-        }
-
-        {
-            size_t i = rand() % scoreboard.size();
-            for (auto& [key, value] : scoreboard) {
-                if (i-- == 0) {
-                    value.second += 1;
-                    break;
-                }
-            }
-        }
-
-    }
 
     // Reschedule the timer for 1 second in the future:
     timer.expires_at(timer.expires_at() + interval + boost::posix_time::milliseconds(rand() % 100));
@@ -82,13 +53,10 @@ std::string trim(const std::string& str)
 int main()
 {
     srand(time(nullptr));
-    scoreboard.insert({"<div>ik</div>", {0, 0}});
-    scoreboard.insert({"<script>alert(1)</script>jij", {0, 0}});
-    scoreboard.insert({"drij", {0, 0}});
-    scoreboard.insert({"vijr", {0, 0}});
 
     try {
         BBServer::ConnectionPool::initialize_pool(4, "postgresql://postgres:passwrd@localhost:6543/postgres");
+        BBServer::init_engine();
     } catch (std::exception const &e)
     {
         std::cerr << "Could not establish connection to database!\n";
@@ -221,17 +189,17 @@ int main()
     });
 
     CROW_ROUTE(app, "/api/vijf/leaderboard")
-    ([&]() {
-
+    ([&](crow::request const& req) {
         struct PlayerResult {
             std::string name;
-            long won;
+            long bot_id;
             long played;
+            long won;
 
             crow::json::wvalue to_wvalue(int rank) {
                 return {
                     {"name", name},
-                    {"itemId", name + "-1"},
+                    {"itemId", "id-" + std::to_string(bot_id) },
                     {"played", played},
                     {"won", won},
                     {"rank", rank}
@@ -252,34 +220,35 @@ int main()
 
         std::vector<PlayerResult> results;
 
-        {
-            std::lock_guard score_lock(scoreboard_lock);
 
-            for (auto& [key, value] : scoreboard) {
-                results.push_back(PlayerResult {key, value.second, value.first});
+        {
+            auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+            pqxx::read_transaction transaction{*base_context.database_connection};
+
+            auto db_results = transaction.exec("SELECT vijf_bots.name, vijf_bots.bot_id,  COUNT(*) as played, COUNT(*) filter ( where vgp.game_result = 5 ) as won\n"
+                                               "FROM vijf_bots INNER JOIN vijf_game_players vgp on vijf_bots.bot_id = vgp.bot_id\n"
+                                               "WHERE enabled\n"
+                                               "GROUP BY vijf_bots.bot_id\n"
+                                               "HAVING count(*) > 5\n"
+                                               "ORDER BY won DESC\n"
+                                               "LIMIT 100");
+
+            for (auto row : db_results) {
+                results.emplace_back(PlayerResult{row[0].c_str(), row[1].as<long>(), row[2].as<long>(), row[3].as<long>()});
             }
         }
+
+
 
         std::sort(results.begin(), results.end());
         std::vector<crow::json::wvalue> values;
         values.reserve(results.size());
 
-        for (int i = 0; i < results.size(); ++i)
+        for (auto i = 0u; i < results.size(); ++i)
             values.push_back(results[i].to_wvalue(i));
 
         return crow::json::wvalue(values);
     });
-
-    CROW_ROUTE(app, "/api/vijf/add-bot/<string>")
-    ([&](std::string name) {
-        std::lock_guard score_lock(scoreboard_lock);
-
-        scoreboard.insert({name, {0, 0}});
-
-        return "Done.";
-    });
-
-
 
     auto running = app.port(18080)
         .bindaddr("127.0.0.1")
