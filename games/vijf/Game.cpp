@@ -19,8 +19,8 @@ static constexpr std::array<EventInt, 12> real_types = {
     to_int(EventType::NoChoiceInCard),
     to_int(EventType::AllOfNonSpecial),
     to_int(EventType::DiedWithRuleCard),
-    to_int(EventType::ProcessPlayerToSlowToStart),
-    to_int(EventType::ProcessPlayerToSlowToPlay),
+    to_int(EventType::ProcessPlayerTooSlowToStart),
+    to_int(EventType::ProcessPlayerTooSlowToPlay),
     to_int(EventType::ProcessPlayerMisbehaved),
 };
 

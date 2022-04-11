@@ -18,8 +18,8 @@ enum class EventType : uint32_t {
     AllOfNonSpecial = 1 << 7,
     DiedWithRuleCard = 1 << 8,
 
-    ProcessPlayerToSlowToStart = 1 << 10,
-    ProcessPlayerToSlowToPlay = 1 << 11,
+    ProcessPlayerTooSlowToStart = 1 << 10,
+    ProcessPlayerTooSlowToPlay = 1 << 11,
     ProcessPlayerMisbehaved = 1 << 12,
 };
 

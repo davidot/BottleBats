@@ -36,7 +36,7 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
 CardNumber ProcessPlayer::take_turn(GameState const& game_state, std::size_t your_position)
 {
     if (m_slow_start) {
-        add_event(game_state.events[your_position], EventType::ProcessPlayerToSlowToPlay);
+        add_event(game_state.events[your_position], EventType::ProcessPlayerTooSlowToPlay);
         m_slow_start = false;
     } else if (m_invalid_start) {
         add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
@@ -79,7 +79,7 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     auto result = m_process->sendAndWaitForResponse(val, 100, &timeTaken);
     if (!result.has_value()) {
 //        std::cerr << "ProcessPlayer '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "' sent no response!\n";
-        add_event(game_state.events[your_position], EventType::ProcessPlayerToSlowToPlay);
+        add_event(game_state.events[your_position], EventType::ProcessPlayerTooSlowToPlay);
         return std::nullopt;
     }
 

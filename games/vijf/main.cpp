@@ -13,10 +13,10 @@ int main() {
     auto start_time = std::chrono::high_resolution_clock::now();
 
 
-    std::vector<std::thread> threads;
-
-    for (int tid = 0; tid < threads_c; tid++) {
-      threads.emplace_back([tid] {
+//    std::vector<std::thread> threads;
+//
+//    for (int tid = 0; tid < threads_c; tid++) {
+//      threads.emplace_back([tid] {
     uint32_t seed = rand();
     //    uint32_t seed = 343173667;
 
@@ -34,11 +34,11 @@ int main() {
   std::ofstream games{"games_played.txt"};
 
     std::array<std::string_view, Vijf::player_count> players = {
-        "container:cpp-example",
-        "container:cpp-example",
-        "container:cpp-example",
-        "container:cpp-example",
-        "container:cpp-example",
+        "internal:random",
+        "internal:random",
+        "internal:random",
+        "internal:random",
+        "internal:random",
 //        "raw:./program",
 //        "raw:./program",
 //        "raw:java JaVijf",
@@ -48,7 +48,7 @@ int main() {
 
     for (auto i = 0; i < games_per_thread; ++i) {
         auto initial_data = Vijf::generate_random_start(engine);
-                  std::string start_string = initial_data.to_string();
+        std::string start_string = initial_data.to_string();
         auto results = play_game(std::move(initial_data), players);
         if (results.type == Vijf::Results::Type::PlayerMisbehaved) {
             std::cout << "Misbehaving by " << results.player << '\n';
@@ -70,16 +70,20 @@ int main() {
         ASSERT(!results.moves_made.empty());
         ++moves[results.moves_made.size()];
 
-                  std::ostringstream moves_string;
-                  moves_string << results.moves_made.size() << ' ';
+      std::ostringstream moves_string;
+      moves_string << results.moves_made.size() << ' ';
 
-                  for (auto &card : results.moves_made)
-                    moves_string << card_to_char_repr(card);
+      for (auto &card : results.moves_made)
+        moves_string << card_to_char_repr(card);
 
-                  games << start_string << "; " << moves_string.str() << '\n';
+      games << start_string << "; " << moves_string.str() << ';';
+      for (auto& event : results.events)
+          games << static_cast<uint32_t>(event) << "; ";
+
+      games << '\n';
     }
 
-            games.close();
+    games.close();
 
     for (auto i = 0; i < 5; ++i) {
         std::cout << i << " won " << won_games[i]
@@ -95,13 +99,13 @@ int main() {
         if (moves[i] > 0 || i < 10)
             std::cout << moves[i] << " game finished in " << i << " moves\n";
     }
+//
+//    std::cout << "Thread " << tid << " Done!\n";
+//  });
+//    }
 
-    std::cout << "Thread " << tid << " Done!\n";
-  });
-    }
-
-    for (auto& t : threads)
-        t.join();
+//    for (auto& t : threads)
+//        t.join();
 
     auto end_time = std::chrono::high_resolution_clock::now();
     long millis_taken = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
