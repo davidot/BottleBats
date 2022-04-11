@@ -100,13 +100,28 @@ int main()
 
     add_authentication(app);
 
+    CROW_ROUTE(app, "/api/vijf/bot/<int>")
+    ([&app](crow::request const& req, int bot_id){
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::read_transaction transaction {*base_context.database_connection};
+
+        base_context.database_connection->prepare("SELECT COUNT(*) as played, COUNT(*) filter ( where game_result = 5 ) as won FROM vijf_game_players WHERE bot_id = $1");
+        auto results = transaction.exec_prepared1("", bot_id);
+
+        return crow::json::wvalue {
+            {"played", results[0].as<long>()},
+            {"won", results[1].as<long>()}
+        };
+
+    });
+
     CROW_ROUTE(app, "/api/vijf/bots")
     .CROW_MIDDLEWARES(app, BBServer::AuthGuard)
     ([&app](crow::request const& req){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::read_transaction transaction {*base_context.database_connection};
 
-        base_context.database_connection->prepare("SELECT name, enabled, failed, state FROM vijf_bots WHERE user_id = $1 ORDER BY created DESC LIMIT 50");
+        base_context.database_connection->prepare("SELECT bot_id, name, enabled, failed, state FROM vijf_bots WHERE user_id = $1 ORDER BY created DESC LIMIT 50");
 
         auto results = transaction.exec_prepared("", base_context.user.id);
 
@@ -115,10 +130,11 @@ int main()
 
         for (auto row : results) {
             bots.push_back({
-                { "name", row[0].c_str() },
-                { "enabled", row[1].as<bool>() },
-                { "failed", row[2].as<bool>() },
-                { "state", row[3].c_str() }
+                { "botId", row[0].as<int>() },
+                { "name", row[1].c_str() },
+                { "enabled", row[2].as<bool>() },
+                { "failed", row[3].as<bool>() },
+                { "state", row[4].c_str() }
             });
         }
 
