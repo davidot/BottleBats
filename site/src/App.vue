@@ -22,9 +22,14 @@ const moves = ref("");
 
 // onMounted(() => {
 //   setTimeout(() => {
-    start.value = "AJ4;T98;AK6;KQ7;942;345*259T26Q5*87A754AT83J96KQ38T6KJQ37J+2;";
-    moves.value = "10 A8A723*426";
-  // }, 1000);
+start.value = "379;A6T;27Q;469;89Q;KAQ8KT428J3JT59+2A336545Q6K8*2KJA57*47JT;";
+moves.value = "9A269K63+*Q";
+
+// 0,18,false,2,32
+// 2,19,false,5,0
+// 3,20,false,1,0
+
+// }, 1000);
 // });
 
 const userDetails = ref({
