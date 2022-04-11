@@ -1,4 +1,5 @@
 #include <numeric>
+#include <algorithm>
 #include <sstream>
 #include "Cards.h"
 
@@ -80,6 +81,26 @@ CardStack CardStack::default_deck(bool withRulesCard, std::size_t joker_count)
     return stack;
 }
 
+std::size_t CardStack::card_types_count() const
+{
+    return std::count_if(m_counts.begin(), m_counts.end(), [](auto i) {
+        return i > 0;
+    });
+}
+
+CardNumber CardStack::get_lowest_card() const
+{
+    for (auto& card : low_to_high_cards) {
+        if (has_card(card))
+            return card;
+    }
+    ASSERT_NOT_REACHED();
+}
+
+std::size_t CardStack::get_max_of_card() const
+{
+    return *std::max_element(m_counts.begin(), m_counts.end());
+}
 
 void OrderedCardStack::to_sstream_ordered(std::ostringstream& output) const
 {

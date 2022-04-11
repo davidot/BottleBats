@@ -19,6 +19,8 @@ private:
 
     std::unique_ptr<util::SubProcess> m_process { nullptr };
     std::vector<std::string> m_command;
+    bool m_slow_start { false };
+    bool m_invalid_start { false };
 };
 
 }

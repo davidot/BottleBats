@@ -26,8 +26,9 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
     };
 
     std::array<Player, player_count> players {};
+    Results results {};
     GameState state {
-        player_count, player_count, {}, discarded_cards, deck, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
+        player_count, player_count, {}, discarded_cards, deck, results.events, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
     };
 
     auto kill_player = [&](std::size_t index) {
@@ -41,8 +42,6 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
         players[index].engine.reset();
         ASSERT(players[index].hand.total_cards() == 0);
     };
-
-    Results results {};
 
     for (auto i = 0; i < player_count; ++i) {
         auto& initial_hand = data.hands[i];
@@ -91,6 +90,13 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
         auto& current_player = players[turn];
         ASSERT(current_player.engine);
 
+
+        if (current_player.hand.get_max_of_card() == 4)
+            add_event(results.events[turn], EventType::AllOfNonSpecial);
+
+        if (current_player.hand.total_cards() > 1 && current_player.hand.card_types_count() == 1)
+            add_event(results.events[turn], EventType::NoChoiceInCard);
+
         auto played = current_player.engine->take_turn(state, turn);
 
         if (!current_player.hand.has_card(played)) {
@@ -104,6 +110,9 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
         if (!silent)
             std::cout << "Player " << turn << " played " << card_to_char_repr(played) << " from " << current_player.hand.to_string_repr() << '\n';
         current_player.hand.play_card(played);
+        CardNumber lowest = CardNumber::King;
+        if (current_player.hand.total_cards() > 0)
+            lowest = current_player.hand.get_lowest_card();
 
         results.moves_made.push_back(played);
 
@@ -111,6 +120,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
             if (!silent)
                 std::cout << "Rule card played\n";
 
+            int kills = 0;
             int innerTurn = (turn + 1) % player_count;
             while (innerTurn != turn) {
                 if (!silent)
@@ -124,6 +134,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
 
                         players[innerTurn].hand.add_card(card);
                         if (card == CardNumber::Five) {
+                            ++kills;
                             if (!silent)
                                 std::cout << "Player " << innerTurn << " died because of 5 from rules played by " << turn << '\n';
                             kill_player(innerTurn);
@@ -132,6 +143,14 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
                     }
                 }
                 innerTurn = (innerTurn + 1) % player_count;
+            }
+
+            if (kills == 4) {
+                add_event(results.events[turn], EventType::RulesQuadrupleKill);
+            } else if (kills == 3) {
+                add_event(results.events[turn], EventType::RulesTripleKill);
+            } else if (kills == 2) {
+                add_event(results.events[turn], EventType::RulesDoubleKill);
             }
         } else {
             auto cards_to_get = number_of_card_to_get(played);
@@ -143,7 +162,16 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
                 if (new_card == CardNumber::Five) {
                     if (!silent)
                         std::cout << "Died because of got vijf\n";
+
+                    if ((number_of_card_to_get(played) - number_of_card_to_get(lowest)) > cards_to_get)
+                        add_event(results.events[turn], EventType::CouldHaveSavedYourSelf);
+
+                    if (current_player.hand.has_card(CardNumber::RuleCard))
+                        add_event(results.events[turn], EventType::DiedWithRuleCard);
+
                     kill_player(turn);
+
+
                     break;
                 }
                 if (new_card == CardNumber::RuleCard)
@@ -156,6 +184,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
             if (!silent)
                 std::cout << "No cards left player " << turn << " has to stop\n";
             kill_player(turn);
+            add_event(results.events[turn], EventType::RanOutOfCards);
         }
     }
 
@@ -164,6 +193,8 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
     for (auto i = 0u; i < players.size(); ++i) {
         if (players[i].alive) {
             results.player = i;
+            if (players[i].hand.total_cards() == 0)
+                add_event(results.events[turn], EventType::WonWithNoCards);
             break;
         }
     }

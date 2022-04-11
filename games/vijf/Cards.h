@@ -50,6 +50,24 @@ static constexpr std::array<CardWithChar, 15> all_cards { {
     { CardNumber::King, 'K' },
 } };
 
+static constexpr std::array<CardNumber, 15> low_to_high_cards = {
+    CardNumber::RuleCard,
+    CardNumber::Joker,
+    CardNumber::Ace,
+    CardNumber::Two,
+    CardNumber::Three,
+    CardNumber::Four,
+    CardNumber::Five,
+    CardNumber::Six,
+    CardNumber::Seven,
+    CardNumber::Eight,
+    CardNumber::Nine,
+    CardNumber::Ten,
+    CardNumber::Jack,
+    CardNumber::Queen,
+    CardNumber::King,
+};
+
 using CardNumberUnderlying = std::underlying_type_t<CardNumber>;
 
 static constexpr CardNumberUnderlying card_to_underlying(CardNumber number)
@@ -83,6 +101,12 @@ public:
     static CardStack default_deck(bool withRulesCard, std::size_t joker_count);
 
     void to_sstream(std::ostringstream& ostringstream) const;
+
+    [[nodiscard]] CardNumber get_lowest_card() const;
+
+    [[nodiscard]] std::size_t get_max_of_card() const;
+
+    [[nodiscard]] std::size_t card_types_count() const;
 
 private:
     std::array<std::size_t, all_cards.size()> m_counts {};
@@ -128,25 +152,6 @@ private:
 };
 
 std::size_t number_of_card_to_get(CardNumber number);
-
-
-static constexpr std::array<CardNumber, 15> low_to_high_cards = {
-    CardNumber::RuleCard,
-    CardNumber::Joker,
-    CardNumber::Ace,
-    CardNumber::Two,
-    CardNumber::Three,
-    CardNumber::Four,
-    CardNumber::Five,
-    CardNumber::Six,
-    CardNumber::Seven,
-    CardNumber::Eight,
-    CardNumber::Nine,
-    CardNumber::Ten,
-    CardNumber::Jack,
-    CardNumber::Queen,
-    CardNumber::King,
-};
 
 
 }

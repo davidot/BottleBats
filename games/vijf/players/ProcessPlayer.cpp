@@ -16,7 +16,8 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
     std::size_t timeTaken = 0;
     auto ready_response = temp_process.sendAndWaitForResponse("game 0 vijf\n", 1500, &timeTaken);
     if (!ready_response.has_value()) {
-        std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf' for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
+        m_slow_start = true;
+//        std::cout << "Started to slow or did not output anything in response to: 'game 0 vijf' for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
         return;
     }
 
@@ -24,6 +25,7 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
 //        std::cout << "WARN: Slow startup took " << timeTaken << " ms for " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
 
     if (*ready_response != "ready\n") {
+        m_invalid_start = true;
         std::cout << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
         return;
     }
@@ -33,6 +35,14 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
 
 CardNumber ProcessPlayer::take_turn(GameState const& game_state, std::size_t your_position)
 {
+    if (m_slow_start) {
+        add_event(game_state.events[your_position], EventType::ProcessPlayerToSlowToPlay);
+        m_slow_start = false;
+    } else if (m_invalid_start) {
+        add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
+        m_invalid_start = false;
+    }
+
     //        std::cout << "Process player taking turn now!\n";
     if (m_process) {
         auto result_or_failed = play_turn(game_state, your_position);
@@ -68,7 +78,8 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     auto val = std::move(*message.rdbuf()).str();
     auto result = m_process->sendAndWaitForResponse(val, 100, &timeTaken);
     if (!result.has_value()) {
-        std::cerr << "ProcessPlayer '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "' sent no response!\n";
+//        std::cerr << "ProcessPlayer '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "' sent no response!\n";
+        add_event(game_state.events[your_position], EventType::ProcessPlayerToSlowToPlay);
         return std::nullopt;
     }
 
@@ -82,6 +93,7 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     if (view.find("play ") != 0 || view.size() < 6) {
         std::cout << "Player response from '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "'does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
         std::cout << "When given: " << val;
+        add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
         return std::nullopt;
     }
 
@@ -94,6 +106,7 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     }
 
     std::cout << "Player response does not map to a card got '" << card_character << "' which is not known.\n";
+    add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
     return std::nullopt;
 }
 
