@@ -262,11 +262,10 @@ StartData generate_random_start(EngineType& rng)
     return data;
 }
 
-template<>
-StartData generate_random_start<std::mt19937>(std::mt19937& rng);
+template StartData generate_random_start<std::mt19937>(std::mt19937& rng);
 
-template<>
-StartData generate_random_start<std::default_random_engine>(std::default_random_engine& rng);
+
+template StartData generate_random_start<std::default_random_engine>(std::default_random_engine& rng);
 
 
 }

@@ -5,7 +5,8 @@
 
 namespace Vijf {
 
-StartData generate_random_start(std::default_random_engine& rng);
+template<typename EngineType>
+StartData generate_random_start(EngineType& rng);
 
 StartData generate_random_start_no_died(std::default_random_engine& rng);
 
