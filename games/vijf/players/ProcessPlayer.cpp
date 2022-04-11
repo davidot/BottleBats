@@ -26,7 +26,7 @@ ProcessPlayer::ProcessPlayer(std::vector<std::string> command)
 
     if (*ready_response != "ready\n") {
         m_invalid_start = true;
-        std::cout << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
+        std::cerr << "Did not get correct ready response, got _" << *ready_response << "_ from " << m_command[0] << ' ' << m_command[m_command.size() - 1] << '\n';
         return;
     }
 
@@ -94,8 +94,8 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
     view.remove_suffix(1);
 
     if (view.find("play ") != 0 || view.size() < 6) {
-        std::cout << "Player response from '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "'does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
-        std::cout << "When given: " << val;
+        std::cerr << "Player response from '" << m_command[0] << ' ' << m_command[m_command.size() - 1] << "'does not start with 'play ' or there is nothing after the space. Got _" << view << "_\n";
+        std::cerr << "When given: " << val;
         add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
         return std::nullopt;
     }
@@ -108,7 +108,7 @@ std::optional<CardNumber> ProcessPlayer::play_turn(GameState const& game_state, 
         }
     }
 
-    std::cout << "Player response does not map to a card got '" << card_character << "' which is not known.\n";
+    std::cerr << "Player response does not map to a card got '" << card_character << "' which is not known.\n";
     add_event(game_state.events[your_position], EventType::ProcessPlayerMisbehaved);
     return std::nullopt;
 }
