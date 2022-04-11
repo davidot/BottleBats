@@ -18,8 +18,8 @@
     <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
       Log in / Register
     </NavBarButton>
-    <span v-else class="nav-button login-side">
-      <a @click="logOut">
+    <span v-else class="nav-button login-side" @click="logOut">
+      <a>
         Logout
       </a>
     </span>
