@@ -13,8 +13,6 @@ bool silent = true;
 Results play_game(StartData data, std::array<std::string_view, player_count> const& player_commands)
 {
 
-//    auto start_time = std::chrono::high_resolution_clock::now();
-
     CardStack discarded_cards = data.discarded;
     OrderedCardStack deck { std::move(data.deck) };
     ASSERT(deck.five_count() > 0);
@@ -31,12 +29,15 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
         player_count, player_count, {}, discarded_cards, deck, results.events, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
     };
 
+    uint8_t next_rank = 1;
+
     auto kill_player = [&](std::size_t index) {
         if (!silent)
             std::cout << "Somebody is going to die now " << index << '\n';
 
         ASSERT(players[index].alive);
         players[index].alive = false;
+        results.final_rank[index] = next_rank++;
         --state.players_alive;
         discarded_cards.take_cards(players[index].hand);
         players[index].engine.reset();
@@ -52,6 +53,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
             --state.players_alive;
             players[i].alive = false;
             results.instadied[i] = true;
+            results.final_rank[i] = next_rank++;
 
             if (!silent)
                 std::cout << "Player " << i << " died from initial double five\n";
@@ -80,8 +82,6 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
             ASSERT(turn < player_count);
         } while (!players[turn].alive);
     };
-
-//    auto initial_time = std::chrono::high_resolution_clock::now();
 
     while (state.players_alive >= 2) {
         ASSERT(state.players_alive <= deck.five_count() + 1);
@@ -189,10 +189,13 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
     }
 
     ASSERT(state.players_alive == 1);
+    ASSERT(std::count_if(players.begin(), players.end(), [](Player const& player) { return player.alive; }) == 1);
 
     for (auto i = 0u; i < players.size(); ++i) {
         if (players[i].alive) {
             results.player = i;
+            ASSERT(next_rank == 5);
+            results.final_rank[i] = next_rank;
             if (players[i].hand.total_cards() == 0)
                 add_event(results.events[turn], EventType::WonWithNoCards);
             break;
@@ -200,18 +203,11 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
     }
     results.rounds_played = state.round_number;
 
-//    auto done_time = std::chrono::high_resolution_clock::now();
-//
-//    auto duration_in_ms = [&](auto end_time) {
-//        auto duration = end_time - start_time;
-//        return duration_cast<std::chrono::milliseconds>(duration).count();
-//    };
-
-//    std::cerr << "Ran game in " << duration_in_ms(done_time) << " with init taking: " << duration_in_ms(initial_time) << '\n';
     return results;
 }
 
-StartData generate_random_start(std::default_random_engine& rng)
+template<typename EngineType>
+StartData generate_random_start(EngineType& rng)
 {
     constexpr int initial_hand_size = 3;
 
@@ -265,6 +261,12 @@ StartData generate_random_start(std::default_random_engine& rng)
 
     return data;
 }
+
+template<>
+StartData generate_random_start<std::mt19937>(std::mt19937& rng);
+
+template<>
+StartData generate_random_start<std::default_random_engine>(std::default_random_engine& rng);
 
 
 }

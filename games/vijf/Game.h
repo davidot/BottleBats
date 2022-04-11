@@ -52,6 +52,7 @@ struct Results {
     int rounds_played = 0;
     std::array<bool, player_count> instadied { false, false, false, false, false };
     std::vector<CardNumber> moves_made;
+    std::array<uint8_t, player_count> final_rank {};
 
     std::array<EventType, player_count> events;
 };
