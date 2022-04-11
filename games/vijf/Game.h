@@ -26,6 +26,11 @@ enum class EventType : uint32_t {
 std::vector<EventType> all_types_in(EventType type);
 void add_event(EventType& val, EventType extra);
 
+template<EventType check>
+bool has_event(EventType val) {
+    return (static_cast<std::underlying_type_t<EventType>>(val) & static_cast<std::underlying_type_t<EventType>>(check)) != 0;
+}
+
 struct GameState {
     std::size_t players_alive;
     std::size_t round_number;
