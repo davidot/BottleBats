@@ -10,6 +10,7 @@
 namespace BBServer {
 
 constexpr char const* const COOKIE_AUTH_NAME = "BB_Login";
+constexpr char const* const COOKIE_AUTH_CLEAR_DATA = "; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/; HttpOnly; SameSite=Strict";
 
 struct BaseMiddleware {
     struct context {
@@ -43,7 +44,7 @@ struct BaseMiddleware {
         }
 
         // Log out because else we might get weird stuff
-        cookies.set_cookie(COOKIE_AUTH_NAME, "this-cookie-should-be-deleted; expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        cookies.set_cookie(COOKIE_AUTH_NAME, COOKIE_AUTH_CLEAR_DATA);
     }
 
     void after_handle(crow::request&, crow::response&, context& ctx);
@@ -55,7 +56,7 @@ struct AuthGuard : crow::ILocalMiddleware {
     };
 
     template <typename AllContext>
-    void before_handle(crow::request& req, crow::response& res, context&, AllContext& all_ctx)
+    void before_handle(crow::request&, crow::response& res, context&, AllContext& all_ctx)
     {
         BaseMiddleware::context& auth_context = all_ctx.template get<BaseMiddleware>();
 

@@ -7,7 +7,7 @@ void add_authentication(ServerType& app)
 {
     // FIXME: Do not hardcode the max-age
     //
-    static std::string cookie_extra_data = "; Max-Age: 360000; HttpOnly";
+    static std::string cookie_extra_data = "; Expires: Thu, 14 Apr 2022 00:00:01 GMT; HttpOnly; Path=/; SameSite=Strict";
     CROW_ROUTE(app, "/api/auth/login")([&](crow::request& req, crow::response& resp){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         if (base_context.user.logged_in)
@@ -89,7 +89,7 @@ void add_authentication(ServerType& app)
     .middlewares<ServerType, BBServer::AuthGuard>()
     ([&](crow::request const& req) {
         auto& cookies = app.get_context<crow::CookieParser>(req);
-        cookies.set_cookie(COOKIE_AUTH_NAME, "this-cookie-should-be-deleted; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+        cookies.set_cookie(COOKIE_AUTH_NAME, COOKIE_AUTH_CLEAR_DATA);
         return "Logged out";
     });
 
