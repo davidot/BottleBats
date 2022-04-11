@@ -137,9 +137,9 @@ export default {
   min-width: 100px;
   max-width: 50%;
   min-height: 40px;
-  border: 2px solid black;
-  border-radius: 10px;
-  background-color: lightblue;
+  /*border: 2px solid black;*/
+  /*border-radius: 10px;*/
+  background-color: #b6b8f5;
 
   display: flex;
   justify-content: center;
@@ -148,7 +148,7 @@ export default {
 }
 
 .file-drop-zone.active {
-  border-color: blue;
-  background-color: #5dd9e8;
+  /*border-color: blue;*/
+  background-color: #5156bf;
 }
 </style>

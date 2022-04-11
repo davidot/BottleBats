@@ -1,7 +1,7 @@
 <template>
   <div class="bb-nav">
-    <LogoSVG style="float: left; height: 100%; background: purple; z-index: 1; border: 0;"/>
-    <span class="nav-button" style="background: purple; color: black; border-left-width: 0;">
+    <LogoSVG class="logo-nav" style="float: left; height: 100%; z-index: 1; border: 0;"/>
+    <span class="nav-button logo-nav" style="border-left-width: 0;">
       Bottle Bats
     </span>
 
@@ -18,7 +18,7 @@
     <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
       Log in / Register
     </NavBarButton>
-    <span v-else class="nav-button login-side" @click="logOut">
+    <span v-else class="nav-button login-side" style="border-right: 0;" @click="logOut">
       <a>
         Logout
       </a>
@@ -73,7 +73,7 @@ export default {
   float: left;
 
   height: 100%;
-  background: #2831f3;
+  background: #5156bf;
   border: 1px solid white;
   border-top: 0;
   border-bottom: 0;
@@ -105,6 +105,15 @@ export default {
   background-color: gray;
   text-decoration: line-through;
   pointer-events: none;
+}
+
+.logo-nav {
+  background-color: #ebffcf;
+  cursor: default;
+}
+
+.logo-nav:hover {
+  background-color: #ebffcf;
 }
 
 </style>
