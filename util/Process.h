@@ -21,6 +21,12 @@ namespace util {
     public:
         constexpr static uint32_t BufferSize = 4096;
 
+        enum class StderrState {
+            Ignored,
+            Forwarded,
+            Readable
+        };
+
         ~SubProcess();
 
         SubProcess() = default;
@@ -31,7 +37,7 @@ namespace util {
         SubProcess(SubProcess&&) = default;
         SubProcess& operator=(SubProcess&&) = default;
 
-        static std::unique_ptr<SubProcess> create(std::vector<std::string> command);
+        static std::unique_ptr<SubProcess> create(std::vector<std::string> command, StderrState state = StderrState::Ignored);
 
         bool writeTo(std::string_view) const;
         bool readLine(std::string&) const;
@@ -49,7 +55,7 @@ namespace util {
 
         ProcessExit stop();
     private:
-        static bool setup(SubProcess& process, std::vector<std::string> command);
+        static bool setup(SubProcess& process, std::vector<std::string> command, StderrState state);
 
         mutable bool running = false;
 
@@ -64,6 +70,9 @@ namespace util {
         int m_std_out = -1;
 
         std::optional<int> m_exitCode;
+
+        StderrState m_stderr_state = StderrState::Ignored;
+
 #elif defined(WINDOWS_PROCESS)
         HANDLE m_childProc { nullptr };
 

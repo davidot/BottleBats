@@ -255,7 +255,7 @@ namespace util {
     constexpr int pipeWrite = 1;
     constexpr int maxCommandSize = 64;
 
-    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command) {
+    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, SubProcess::StderrState state) {
         if (command.size() >= maxCommandSize || command.empty()) {
             ASSERT_NOT_REACHED();
             return false;
@@ -296,7 +296,21 @@ namespace util {
         posix_spawn_file_actions_addclose(&actions, outPipe[pipeRead]);
 
         posix_spawn_file_actions_adddup2(&actions, inPipe[pipeRead], STDIN_FILENO);
-        posix_spawn_file_actions_adddup2(&actions, outPipe[pipeWrite], STDOUT_FILENO);
+
+        if (state == StderrState::Readable) {
+            // Ignore stdout
+            posix_spawn_file_actions_addopen (&actions, STDOUT_FILENO, "/dev/null", O_WRONLY|O_APPEND, 0);
+            posix_spawn_file_actions_adddup2(&actions, outPipe[pipeWrite], STDERR_FILENO);
+        } else {
+            posix_spawn_file_actions_adddup2(&actions, outPipe[pipeWrite], STDOUT_FILENO);
+        }
+
+        if (state == StderrState::Ignored) {
+            posix_spawn_file_actions_addopen(&actions, STDERR_FILENO, "/dev/null", O_WRONLY|O_APPEND, 0);
+        }
+
+        // Forward is default behavior
+
 
         pid_t pid;
         if (posix_spawnp(&pid, command[0].c_str(), &actions, nullptr, args, environ)) {
