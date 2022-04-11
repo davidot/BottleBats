@@ -182,9 +182,14 @@ int main()
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::work transaction {*base_context.database_connection};
 
+        base_context.database_connection->prepare("SELECT 1 FROM vijf_bots WHERE user_id = $1 and name = $2");
+        auto has_result = transaction.exec_prepared("", base_context.user.id, trimmed_name);
+        if (!has_result.empty())
+            return BBServer::fail_response_with_message(resp, 400, "You already have a bot with that name");
+
         base_context.database_connection->prepare("INSERT INTO vijf_bots(name, user_id, command)  VALUES ($1, $2, $3) RETURNING bot_id");
         auto result = transaction.exec_prepared1("", trimmed_name, base_context.user.id, file_name);
-        uint32_t bot_id = result[0].as<uint32_t>();
+        auto bot_id = result[0].as<uint32_t>();
 
         transaction.commit();
 
