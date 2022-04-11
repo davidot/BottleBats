@@ -3,12 +3,8 @@
     <NavBar />
     <div class="main-content">
       <RouterView />
-      <input
-          type="file"
-          ref="fileInput"
-          @change="onFilePicked"/>
-      <VijfGame :start="start" :moves="moves" />
-      <LogoSVG style="width: 400px"/>
+<!--      <VijfGame :start="start" :moves="moves" />-->
+<!--      <LogoSVG style="width: 400px"/>-->
     </div>
   </main>
 </template>
@@ -56,29 +52,6 @@ provide("userDetails", {
 
 updateUserDetails();
 
-
-
-const fileInput = ref(null)
-
-function onFilePicked() {
-  console.log('File picked!');
-  const files = fileInput.value.files;
-  console.log(files);
-
-  const data = new FormData();
-  data.append("file", files[0]);
-  // data.append("filename", files[0].name);
-
-  endpoint
-    .post("/multipart", data, {
-      // headers: {
-      //   "Content-Type": "multipart/form-data; boundary=--------abd",
-      // },
-    })
-    .then((done) => {
-      console.log("axios done", done);
-    });
-}
 </script>
 
 <style>
