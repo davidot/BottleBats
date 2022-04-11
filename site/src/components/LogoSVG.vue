@@ -1,5 +1,5 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" class="logo-svg-main">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" :class="['logo-svg-main', animating && 'animating', (pop) && 'popping']">
     <g>
       <g id="bb-logo">
         <!--            <rect class="cls-1" width="299.12" height="299.12"/>-->
@@ -116,6 +116,16 @@
 <script>
 export default {
   name: "Logo-SVG",
+  props: {
+    animating: {
+      default: false,
+      type: Boolean
+    },
+    popping: {
+      default: false,
+      type: Boolean
+    }
+  }
 };
 </script>
 
@@ -125,7 +135,7 @@ export default {
   fill: #57965d;
 }
 
-.logo-svg-main:hover .wing-top {
+.logo-svg-main.animating .wing-top {
   transform-box: fill-box;
   transform-origin: left bottom;
   animation: flap linear 1s infinite;
@@ -150,7 +160,7 @@ export default {
   fill: #3e6c40;
 }
 
-.logo-svg-main:hover .wing-bottom {
+.logo-svg-main.animating .wing-bottom {
   transform-box: fill-box;
   transform-origin: right top;
   animation: aflap linear 1s infinite;
@@ -199,7 +209,7 @@ export default {
   opacity: 0.48;
 }
 
-.logo-svg-main:hover .bottle-top {
+.logo-svg-main.popping .bottle-top {
   animation: pop 1s linear infinite;
   transform-box: content-box;
 }
