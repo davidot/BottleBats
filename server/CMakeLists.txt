@@ -5,6 +5,7 @@ add_executable(BBServer
         crowtest.cpp
         database/ConnectionPool.cpp
         database/User.cpp
+        GamePlayer.cpp
         )
 
 find_package(Crow)
