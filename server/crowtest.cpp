@@ -10,10 +10,14 @@
 
 #include <boost/asio.hpp>
 #include <pqxx/transaction>
+#include <pqxx/result>
+#include <pqxx/row>
+#include <filesystem>
 
 #include "auth/Authenticator.h"
 #include "database/ConnectionPool.h"
 #include "BasicServer.h"
+#include "BotCreator.h"
 
 boost::asio::io_service io_service;
 boost::posix_time::milliseconds interval(200);
@@ -64,15 +68,24 @@ void tick(const boost::system::error_code& /*e*/) {
     timer.async_wait(tick);
 }
 
+std::string trim(const std::string& str)
+{
+    size_t first = str.find_first_not_of(' ');
+    if (std::string::npos == first)
+    {
+        return str;
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
 int main()
 {
     srand(time(nullptr));
-    scoreboard.insert({"ik", {0, 0}});
-    scoreboard.insert({"jij", {0, 0}});
+    scoreboard.insert({"<div>ik</div>", {0, 0}});
+    scoreboard.insert({"<script>alert(1)</script>jij", {0, 0}});
     scoreboard.insert({"drij", {0, 0}});
     scoreboard.insert({"vijr", {0, 0}});
-
-
 
     try {
         BBServer::ConnectionPool::initialize_pool(4, "postgresql://postgres:passwrd@localhost:6543/postgres");
@@ -87,20 +100,102 @@ int main()
 
     add_authentication(app);
 
+    CROW_ROUTE(app, "/api/vijf/bots")
+    .CROW_MIDDLEWARES(app, BBServer::AuthGuard)
+    ([&app](crow::request const& req){
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::read_transaction transaction {*base_context.database_connection};
+
+        base_context.database_connection->prepare("SELECT name, enabled, state FROM vijf_bots WHERE user_id = $1 ORDER BY created DESC LIMIT 50");
+
+        auto results = transaction.exec_prepared("", base_context.user.id);
+
+        std::vector<crow::json::wvalue> bots;
+        bots.reserve(results.size());
+
+        for (auto row : results) {
+            bots.push_back({
+                { "name", row[0].c_str() },
+                { "playingGames", row[1].as<bool>() },
+                { "state", row[2].c_str() }
+            });
+        }
+
+        return crow::json::wvalue(bots);
+    });
+
     CROW_ROUTE(app, "/api/vijf/upload")
     .methods(crow::HTTPMethod::POST)
     .CROW_MIDDLEWARES(app, BBServer::AuthGuard)
-    ([](const crow::request& req) {
+    ([&app](crow::request& req, crow::response& resp) {
         crow::multipart::message msg(req);
-        CROW_LOG_INFO << "body of the first part " << msg.get_part_by_name("file").body;
-        for (auto& [key, value] : msg.get_part_by_name("file").headers) {
-            CROW_LOG_INFO << "key: " << key << " --> " << value.value << '\n';
-            for (auto& [kkey, kvalue] : value.params) {
-                CROW_LOG_INFO << "    key:" << kkey << " -> " << kvalue << '\n';
-            }
-        }
 
-        return "it works!";
+        auto file_it = msg.part_map.find("file");
+
+        if (file_it == msg.part_map.end())
+            return BBServer::fail_response_with_message(resp, 400, "No file for bot");
+
+        auto name_it = msg.part_map.find("name");
+
+        if (name_it == msg.part_map.end())
+            return BBServer::fail_response_with_message(resp, 400, "No name for bot");
+
+        auto& file_part = file_it->second;
+        auto& name_part = name_it->second;
+
+        auto trimmed_name = trim(name_part.body);
+
+        if (trimmed_name.empty())
+            return BBServer::fail_response_with_message(resp, 400, "Invalid name for bot");
+
+//        CROW_LOG_INFO << "body file" << file_part.body;
+//        CROW_LOG_INFO << "name body" << name_part.body;
+
+        auto content_details = file_part.headers.find("Content-Disposition");
+        if (content_details == file_part.headers.end() || !content_details->second.params.contains("filename"))
+            return BBServer::fail_response_with_message(resp, 400, "No file name given");
+
+        auto& file_name = content_details->second.params["filename"];
+
+        if (file_name.find('.') == std::string::npos)
+            return BBServer::fail_response_with_message(resp, 400, "File must have extension");
+
+//        CROW_LOG_INFO << "file name " << file_name;
+
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::work transaction {*base_context.database_connection};
+
+        base_context.database_connection->prepare("INSERT INTO vijf_bots(name, user_id, command)  VALUES ($1, $2, $3) RETURNING bot_id");
+        auto result = transaction.exec_prepared1("", trimmed_name, base_context.user.id, file_name);
+        uint32_t bot_id = result[0].as<uint32_t>();
+
+        transaction.commit();
+
+        auto file_path = std::string("bots-data/") + std::to_string(bot_id) + std::string("/");
+
+        if (!std::filesystem::create_directories(file_path))
+            return BBServer::fail_response_with_message(resp, 500, "Could not create bot folder");
+
+        file_path += file_name;
+
+        CROW_LOG_INFO << "Writing bot " << bot_id << " to " << file_path << " name: " << trimmed_name << " file name: " << file_name;
+        std::ofstream file{ file_path };
+
+        if (!file.is_open())
+            return BBServer::fail_response_with_message(resp, 500, "Could not open file for writing");
+
+        file << file_part.body;
+
+        if (!file.good())
+            return BBServer::fail_response_with_message(resp, 500, "Failed to write file?");
+
+        file.close();
+
+        io_service.post([bot_id]{
+            BBServer::create_bot_in_container(bot_id);
+        });
+
+        resp.end("Bot uploaded");
     });
 
     CROW_ROUTE(app, "/api/vijf/leaderboard")
