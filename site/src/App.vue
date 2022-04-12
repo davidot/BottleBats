@@ -88,7 +88,7 @@ main {
   /*top: 50px;*/
   background-color: #efefef;
   padding: 10px;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 70px);
 }
 
 </style>

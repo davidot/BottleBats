@@ -1,13 +1,7 @@
 <template>
   <div>
-    <div style="display: flex; flex-direction: row">
-<!--      <div style="display: flex; place-items: center;">-->
-<!--        <button @click="addMe">Click</button>-->
-<!--        <button @click="removeMe">Remove</button>-->
-<!--        <button @click="shuffle">Shuffle</button>-->
-<!--        {{ oldRanks }}-->
-<!--      </div>-->
-      <div style="height: 500px; width: 500px; overflow-y: scroll; overflow-x: hidden">
+    <div style="">
+      <div style="">
         <div style="width: 80%; margin: auto; display: flex; flex-direction: column">
           <div v-if="connectionLost" style="color: red; position: relative; top: 0; width: 100%; text-align: center;">
             Connection to server lost!
