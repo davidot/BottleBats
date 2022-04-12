@@ -110,6 +110,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
         if (!silent)
             std::cout << "Player " << turn << " played " << card_to_char_repr(played) << " from " << current_player.hand.to_string_repr() << '\n';
         current_player.hand.play_card(played);
+        discarded_cards.add_card(played);
         CardNumber lowest = CardNumber::King;
         if (current_player.hand.total_cards() > 0)
             lowest = current_player.hand.get_lowest_card();
