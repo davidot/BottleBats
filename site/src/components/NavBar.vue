@@ -14,6 +14,9 @@
     <NavBarButton :to="{name: 'bots'}" :enabled="loggedIn">
       Bots
     </NavBarButton>
+    <NavBarButton :to="{name: 'rules'}">
+      Regels
+    </NavBarButton>
 
     <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
       Log in / Register
