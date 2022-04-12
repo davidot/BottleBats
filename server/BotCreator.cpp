@@ -15,7 +15,7 @@ namespace BBServer {
 
 static constexpr std::string_view random_player_command = "internal:random";
 
-void create_bot_in_container(uint32_t id) {
+bool create_bot_in_container(uint32_t id) {
 
     std::string filename;
     auto start_status = ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) -> std::string {
@@ -35,12 +35,12 @@ void create_bot_in_container(uint32_t id) {
 
     if (start_status.empty()) {
         std::cerr << "Bot " << id << " does not exist?\n";
-        return;
+        return false;
     }
 
     if (start_status != "Added to database") {
         std::cerr << "Work is/was already done on bot " << id << '\n';
-        return;
+        return false;
     }
 
     ASSERT(!filename.empty());
@@ -66,13 +66,13 @@ void create_bot_in_container(uint32_t id) {
 
     if (!std::filesystem::exists(absolute_path)) {
         update_status("File upload failed :(");
-        return;
+        return false;
     }
 
     auto last_dot = filename.find_last_of('.');
     if (last_dot == std::string::npos) {
         update_status("No extension: " + filename);
-        return;
+        return false;
     }
 
     auto extension = filename.substr(last_dot + 1);
@@ -81,7 +81,7 @@ void create_bot_in_container(uint32_t id) {
 
     if (!std::filesystem::exists("bots-scripts/" + extension + "/")) {
         update_status("Unknown filetype: " + extension);
-        return;
+        return false;
     }
 
     update_status("Building bot in container", false);
@@ -91,7 +91,7 @@ void create_bot_in_container(uint32_t id) {
 
     if (!process) {
         update_status("Failed to run build script");
-        return;
+        return false;
     }
 
     std::vector<std::string> output;
@@ -110,7 +110,7 @@ void create_bot_in_container(uint32_t id) {
         update_status(fail_output);
 
         std::cerr << "Failed to build bot " << id << " with message:\n" << fail_output;
-        return;
+        return false;
     }
 
     auto engine = std::default_random_engine{ 0xb0d1234 };
@@ -145,14 +145,14 @@ void create_bot_in_container(uint32_t id) {
 
         if (Vijf::has_event<Vijf::EventType::ProcessPlayerMisbehaved>(player_events)) {
             update_status("Made illegal move or gave wrong\nGame: " + initial_data.to_string());
-            return;
+            return false;
         }
 
         if (Vijf::has_event<Vijf::EventType::ProcessPlayerTooSlowToPlay>(player_events) || Vijf::has_event<Vijf::EventType::ProcessPlayerTooSlowToStart>(player_events)) {
             slow_games++;
             if (slow_games >= max_slow_games) {
                 update_status("You were too slow to respond in 5 games.");
-                return;
+                return false;
             }
         }
 
@@ -169,6 +169,7 @@ void create_bot_in_container(uint32_t id) {
         transaction.commit();
     });
 
+    return true;
 }
 
 }
