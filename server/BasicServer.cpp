@@ -93,6 +93,18 @@ void add_authentication(ServerType& app)
         return "Logged out";
     });
 
+    CROW_ROUTE(app, "/api/auth/rename")
+    .methods(crow::HTTPMethod::POST)
+    .middlewares<ServerType, BBServer::AuthGuard>()
+    ([&](crow::request const& req) {
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        base_context.database_connection->prepare("UPDATE users SET display_name = $1 WHERE user_id = $2");
+        pqxx::work trans{*base_context.database_connection};
+        trans.exec_prepared("", req.body, base_context.user.id);
+        trans.commit();
+        return "renamed to " + req.body;
+    });
+
 }
 
 void fail_response_with_message(crow::response& resp, int code, std::string const& message)
