@@ -161,8 +161,17 @@
       <li><a href="examples/example.java" download>Java</a></li>
       <li><a href="examples/example.py" download>Python</a></li>
       <li><a href="examples/example.cpp" download>C++</a></li>
-      <li><a href="examples/test-vijf.exe" download>Test programm</a></li>
+      <li><a href="examples/test-vijf.exe" download>Test programma</a></li>
     </ul>
+
+    <h3>
+      Test programma
+    </h3>
+    <div>
+      Run als <code>test-vijf.exe COMMANDO OM TE RUNNEN HIER</code>
+      Bijvoorbeeld
+      <code>test-vijf.exe python.exe run.py</code>
+    </div>
   </div>
 </template>
 
