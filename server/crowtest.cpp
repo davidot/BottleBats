@@ -21,21 +21,60 @@
 #include "GamePlayer.h"
 
 boost::asio::io_service io_service;
-boost::posix_time::milliseconds interval(200);
+boost::posix_time::seconds interval(5);
 boost::asio::deadline_timer timer(io_service, interval);
 
 //std::string next_event;
 
-void tick(const boost::system::error_code& /*e*/) {
-//    ++i;
+void run_newest() {
+    auto start_data = BBServer::generate_random_start();
+    auto players = BBServer::new_players();
+    if (!players.has_value())
+        return;
+    BBServer::play_rotated_game(start_data, std::move(players.value()));
+}
 
-//    std::cout << "tick " << i << " expires next at " << timer.expires_at() << '\n';
+void run_top() {
+    auto start_data = BBServer::generate_random_start();
+    auto players = BBServer::top_players();
+    if (!players.has_value())
+        return;
+    BBServer::play_rotated_game(start_data, std::move(players.value()));
+}
 
-    // Reschedule the timer for 1 second in the future:
-    timer.expires_at(timer.expires_at() + interval + boost::posix_time::milliseconds(rand() % 100));
+void tick(const boost::system::error_code&) {
+//    std::cerr << "Failed? " << e.failed() << "  ? \n";
+//    if (e.failed())
+//        return;
+
+    std::cerr << "Flushing results!\n";
+    BBServer::flush_results_to_database();
+
+    io_service.post([]{
+        run_newest();
+    });
+
+    io_service.post([]{
+        run_newest();
+    });
+
+    io_service.post([]{
+        run_newest();
+    });
+
+    io_service.post([]{
+        run_newest();
+    });
+
+
+    io_service.post([]{
+        run_top();
+    });
+
+    timer.expires_at(timer.expires_at() + interval);
 
 //    next_event = to_iso_extended_string(timer.expires_at());
-    // Posts the timer event
+
     timer.async_wait(tick);
 }
 
@@ -182,7 +221,11 @@ int main()
         file.close();
 
         io_service.post([bot_id]{
-            BBServer::create_bot_in_container(bot_id);
+            if (BBServer::create_bot_in_container(bot_id)) {
+                io_service.post([bot_id] {
+                    BBServer::play_initial_random_games(bot_id);
+                });
+            }
         });
 
         resp.end("Bot uploaded");
@@ -250,6 +293,68 @@ int main()
         return crow::json::wvalue(values);
     });
 
+//    CROW_ROUTE(app, "/api/vijf/games")
+//    ([&](crow::request const& req) {
+//        struct GameResult {
+//            std::string name;
+//            long bot_id;
+//            long played;
+//            long won;
+//
+//            crow::json::wvalue to_wvalue(int rank) {
+//                return {
+//                    {"name", name},
+//                    {"itemId", "id-" + std::to_string(bot_id) },
+//                    {"played", played},
+//                    {"won", won},
+//                    {"rank", rank}
+//                };
+//            }
+//
+//            int percentage_won() const {
+//                if (played == 0)
+//                    return 0;
+//                return (100 * won) / played;
+//            }
+//
+//            bool operator<(PlayerResult const& rhs) const
+//            {
+//                return (percentage_won()) > (rhs.percentage_won());
+//            }
+//        };
+//
+//        std::vector<PlayerResult> results;
+//
+//
+//        {
+//            auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+//            pqxx::read_transaction transaction{*base_context.database_connection};
+//
+//            auto db_results = transaction.exec("SELECT vijf_bots.name, vijf_bots.bot_id,  COUNT(*) as played, COUNT(*) filter ( where vgp.game_result = 5 ) as won\n"
+//                                               "FROM vijf_bots INNER JOIN vijf_game_players vgp on vijf_bots.bot_id = vgp.bot_id\n"
+//                                               "WHERE enabled\n"
+//                                               "GROUP BY vijf_bots.bot_id\n"
+//                                               "HAVING count(*) > 5\n"
+//                                               "ORDER BY won DESC\n"
+//                                               "LIMIT 100");
+//
+//            for (auto row : db_results) {
+//                results.emplace_back(PlayerResult{row[0].c_str(), row[1].as<long>(), row[2].as<long>(), row[3].as<long>()});
+//            }
+//        }
+//
+//
+//
+//        std::sort(results.begin(), results.end());
+//        std::vector<crow::json::wvalue> values;
+//        values.reserve(results.size());
+//
+//        for (auto i = 0u; i < results.size(); ++i)
+//            values.push_back(results[i].to_wvalue(i));
+//
+//        return crow::json::wvalue(values);
+//    });
+
     auto running = app.port(18080)
         .bindaddr("127.0.0.1")
         .concurrency(4)
@@ -262,10 +367,25 @@ int main()
         io_service.run();
     }};
 
+    std::thread t2 {[&]{
+        io_service.run();
+    }};
+
+    std::thread t3 {[&]{
+        io_service.run();
+    }};
+
+    std::thread t4 {[&]{
+        io_service.run();
+    }};
+
     running.wait();
     app.stop();
     io_service.stop();
 
     t.join();
+    t2.join();
+    t3.join();
+    t4.join();
 
 }
