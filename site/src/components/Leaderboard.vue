@@ -7,7 +7,10 @@
             Connection to server lost!
           </div>
           <div v-if="items == null">
-            No data / Loading
+            Loading
+          </div>
+          <div v-else-if="items.length === 0">
+            No data
           </div>
           <TransitionGroup v-else name="alist" move-class="moving-item">
             <component :is="'vijf-leaderboard-item'" v-for="(item, index) in orderedItems"
