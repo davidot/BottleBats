@@ -15,6 +15,9 @@ print('ready', flush=True)
 
 while True:
     command = sys.stdin.readline()
+
+    sys.stderr.write('&gt; ' + command)
+
     if command.startswith('died'):
         # sys.stderr.write('Oh no we died (but we might have won :)) :(\n')
         break
@@ -43,7 +46,8 @@ while True:
     #     sys.stdin.readline()
 
     state = [sys.stdin.readline() for i in range(lines_to_read)]
-    # sys.stderr.write('Got ' + str(state) + '\n')
+
+    sys.stderr.write('\n'.join('&gt; ' + s.strip() for s in state) + '\n')
 
     own_hand = state[player_index].strip()
     # if own_hand[0] == '0':
@@ -52,4 +56,5 @@ while True:
     cards = own_hand.split(' ')[1].strip()
     card_to_play_index = random.randrange(0, len(cards))
     card_to_play = cards[card_to_play_index]
+    sys.stderr.write('&lt; ' + card_to_play + '\n')
     print('play ' + card_to_play, flush=True)
