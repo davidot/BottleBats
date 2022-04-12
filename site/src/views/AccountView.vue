@@ -81,7 +81,7 @@ export default {
           })
           .then(() => {
             this.userDetails.updateUserDetails();
-            this.$router.push({ name: "home" });
+            this.$router.push({ name: "rules" });
           })
           .catch(({ response }) => {
             this.errorText = response.data;
