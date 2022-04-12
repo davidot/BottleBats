@@ -26,7 +26,7 @@ Results play_game(StartData data, std::array<std::string_view, player_count> con
     std::array<Player, player_count> players {};
     Results results {};
     GameState state {
-        player_count, player_count, {}, discarded_cards, deck, results.events, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
+        player_count, 0, {}, discarded_cards, deck, results.events, std::minstd_rand {static_cast<uint32_t>(rand() ^ 0x55555555)}
     };
 
     uint8_t next_rank = 1;
