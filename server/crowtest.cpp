@@ -238,6 +238,7 @@ int main()
             long bot_id;
             long played;
             long won;
+            std::string by;
 
             crow::json::wvalue to_wvalue(int rank) {
                 return {
@@ -245,7 +246,8 @@ int main()
                     {"itemId", "id-" + std::to_string(bot_id) },
                     {"played", played},
                     {"won", won},
-                    {"rank", rank}
+                    {"rank", rank},
+                    {"user", by}
                 };
             }
 
@@ -268,16 +270,16 @@ int main()
             auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
             pqxx::read_transaction transaction{*base_context.database_connection};
 
-            auto db_results = transaction.exec("SELECT vijf_bots.name, vijf_bots.bot_id,  COUNT(*) as played, COUNT(*) filter ( where vgp.game_result = 5 ) as won\n"
-                                               "FROM vijf_bots INNER JOIN vijf_game_players vgp on vijf_bots.bot_id = vgp.bot_id\n"
+            auto db_results = transaction.exec("SELECT vijf_bots.name, vijf_bots.bot_id,  COUNT(*) as played, COUNT(*) filter ( where vgp.game_result = 5 ) as won, u.display_name\n"
+                                               "FROM vijf_bots INNER JOIN vijf_game_players vgp on vijf_bots.bot_id = vgp.bot_id INNER JOIN users u on vijf_bots.user_id = u.user_id\n"
                                                "WHERE enabled\n"
-                                               "GROUP BY vijf_bots.bot_id\n"
+                                               "GROUP BY vijf_bots.bot_id, u.user_id\n"
                                                "HAVING count(*) > 5\n"
                                                "ORDER BY won DESC\n"
                                                "LIMIT 100");
 
             for (auto row : db_results) {
-                results.emplace_back(PlayerResult{row[0].c_str(), row[1].as<long>(), row[2].as<long>(), row[3].as<long>()});
+                results.emplace_back(PlayerResult{row[0].c_str(), row[1].as<long>(), row[2].as<long>(), row[3].as<long>(), row[4].c_str()});
             }
         }
 
