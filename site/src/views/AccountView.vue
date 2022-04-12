@@ -21,6 +21,11 @@
       <div class="login-errors" v-show="errorText">
         {{ errorText }}
       </div>
+
+      <div v-if="loggedIn">
+        <label>Nieuwe naam?</label><input type="text" v-model="newname">
+        <button @click="rename">Ga nu snel</button>
+      </div>
     </div>
   </div>
 </template>
@@ -38,6 +43,7 @@ export default {
       errorText: null,
       username: "",
       token: "",
+      newname: "",
     };
   },
   computed: {
@@ -45,8 +51,26 @@ export default {
       return this.username.length > 0 && this.token.length > 0
           && !this.username.includes(':') && !this.token.includes(':');
     },
+    loggedIn() {
+      return this.userDetails.values.value.displayName != null;
+    },
   },
   methods: {
+    rename() {
+      if (!this.newname)
+        return;
+
+      const name = this.newname;
+      endpoint
+          .post("/auth/rename", name)
+          .then(() => {
+            this.userDetails.updateUserDetails();
+            this.$router.push({ name: "home" });
+          })
+          .catch(({ response }) => {
+            this.errorText = response.data;
+          });
+    },
     login() {
       if (!this.hasValues) return;
 
