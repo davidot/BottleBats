@@ -8,7 +8,7 @@
     <NavBarButton :to="{name: 'home'}">
       LeaderBoard
     </NavBarButton>
-    <NavBarButton :to="{name: 'games'}" :enabled="false">
+    <NavBarButton :to="{name: 'games'}">
       Games
     </NavBarButton>
     <NavBarButton :to="{name: 'bots'}" :enabled="loggedIn">

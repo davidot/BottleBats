@@ -48,7 +48,7 @@
           :type="card.type"
           class="player-cards"
           :style="{
-            top: '70%',
+            top: (pIndex % 2 === 0) ? '70%' : '50%',
             left: 'calc(' + (15 + pIndex * 15) + '% + ' + index * 25 + 'px)',
             visibility: 'visible',
           }"

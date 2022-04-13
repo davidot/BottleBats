@@ -3,6 +3,7 @@ import Leaderboard from "@/components/Leaderboard.vue";
 import AccountView from "@/views/AccountView.vue";
 import BotView from "@/views/BotView.vue";
 import ExplainView from "@/views/ExplainView.vue";
+import GameView from "@/views/GameView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -20,7 +21,7 @@ const router = createRouter({
     {
       path: "/login",
       name: "games",
-      component: AccountView,
+      component: GameView,
     },
     {
       path: "/rules",
