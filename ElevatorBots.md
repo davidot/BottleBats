@@ -15,17 +15,36 @@
 
 
 ### MVP
-Initial building has:
+_Italics means nice but not actually needed for mvp_
+
+#### building
 - floors, just amount necessary evenly spaced with one unit between them
 - elevators just amount, all can reach all floors
 
-Rules:
+####Rules:
 * travelling between floors takes 1, open + close etc. takes 1
 
-Commands from runner:
-Call made, with floor for every person -> sends just floor
-Elevator has reached and cycled floor -> sends current floor, all selected floors within
+####Commands from runner:
+- Call made, with floor for every person -> sends just floor
+- Elevator has reached and cycled floor -> sends current floor, all selected floors within
 
-Commands from algo:
-Move elevator to floor (+ cycle doors)
-Done
+#### Commands from algo:
+- Move elevator to floor (+ cycle doors), if elevator already moving overwrite
+- Done
+
+
+#### Tracking:
+- Wait times until on elevator
+- Total wait + travel time
+- Extra travel time
+- Total elevator travel distance
+- Total elevator door open + close times
+- _Rollercoaster event (reversing direction of elevator)_
+- _Elevator moving with no one inside_
+
+Compute: 
+- max waiting time
+- avg waiting time
+- avg extra travel
+- max extra travel
+- _Power usage: total elevator travel distance + doors opening + (moving without anyone extra here??)_
