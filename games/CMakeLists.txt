@@ -12,3 +12,6 @@ target_include_directories(LibVijf INTERFACE .)
 
 add_executable(VijfTemp vijf/main.cpp)
 target_link_libraries(VijfTemp PUBLIC LibVijf)
+
+add_executable(test-vijf vijf/vijf-test.cpp)
+target_link_libraries(test-vijf PUBLIC LibVijf)
