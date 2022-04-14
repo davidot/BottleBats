@@ -6,5 +6,9 @@
 #ifndef NDEBUG
 #define ASSERT_NOT_REACHED() assert(false)
 #else
+#ifndef WIN32
 #define ASSERT_NOT_REACHED() __builtin_unreachable()
+#else
+#define ASSERT_NOT_REACHED() __assume(0)
+#endif
 #endif
