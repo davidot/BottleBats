@@ -260,7 +260,7 @@ namespace util {
 
     static size_t unique_id = 0;
 
-    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command) {
+    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, StderrState stderr_state) {
         assert(!command.empty());
 
         bool done = false;
@@ -330,9 +330,13 @@ namespace util {
         startupInfo.cb = sizeof(STARTUPINFO);
         startupInfo.hStdOutput = child_proc_pipe_end;
         startupInfo.hStdInput = child_proc_pipe_end;
-        // Forwarding stderr
-        startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
         startupInfo.dwFlags = STARTF_USESTDHANDLES;
+
+        // Forwarding stderr
+        if (stderr_state == StderrState::Forwarded)
+            startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+        else if (stderr_state == StderrState::Readable)
+            std::cerr << "WARNING DO NOT SUPPORT READABLE STDERR ON WINDOWS YET!\n";
 
         auto quoteIfSpaces = [](const std::string& str) {
             if (auto space = std::find(str.begin(), str.end(), ' '); space != str.end() &&
