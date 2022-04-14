@@ -49,3 +49,12 @@ Compute:
 - avg extra travel
 - max extra travel
 - _Power usage: total elevator travel distance + doors opening + (moving without anyone extra here??)_
+
+
+### Bot structure
+- Run in container
+- No internet
+- Can theoretically store files? no memory for now
+- No root (different user even?)
+- Must be linux based
+- Must have entrypoint set
