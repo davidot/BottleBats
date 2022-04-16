@@ -12,6 +12,7 @@
 - Must open doors on every send command
 - All elevators can reach all floors
 - Just info that a button is pressed on floor
+- No reactive generation of request!!! (complicates lots of things **:(** )
 
 
 ### MVP
