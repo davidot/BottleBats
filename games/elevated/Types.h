@@ -68,11 +68,12 @@ public:
     {
     }
 
-    [[nodiscard]] std::optional<Time> next_event_at() const;
-    State current_state() const { return m_state; }
-    Height target_height() const { return m_target_height; }
-    Height height() const { return m_height; }
+    [[nodiscard]] std::optional<Time> time_until_next_event() const;
+    [[nodiscard]] State current_state() const { return m_state; }
+    [[nodiscard]] Height target_height() const { return m_target_height; }
+    [[nodiscard]] Height height() const { return m_height; }
     void take_on_passengers(std::vector<Passenger>& waiting_passengers);
+    void dropoff_passengers();
 
 private:
     Height m_height;
@@ -90,29 +91,7 @@ private:
         return steps;
     }
 
-    [[nodiscard]] Height distance_to_travel() const;
-
     void move_to_target(Height distance);
-};
-
-class BuildingState {
-
-    std::optional<Time> next_event_at() const;
-
-    void add_request(Passenger passenger);
-    void send_elevator(ElevatorID, Height target);
-    void update_until(Time target_time);
-private:
-    std::unordered_map<Height, std::vector<Passenger>> m_floors;
-    std::vector<ElevatorState> m_elevators;
-    std::unordered_map<ElevatorID, ElevatorState&> m_elevator_by_id;
-
-    Time m_current_time;
-
-#ifndef NDEBUG
-    std::unordered_map<GroupID, std::unordered_set<Height>> m_group_reachable;
-#endif
-
 };
 
 }

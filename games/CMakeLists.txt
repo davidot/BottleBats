@@ -32,6 +32,7 @@ endif ()
 
 add_library(LibElevated
         elevated/Types.cpp
+        elevated/Building.cpp
         )
 
 target_include_directories(LibElevated INTERFACE .)
