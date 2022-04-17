@@ -109,12 +109,18 @@ void ElevatorState::set_target(Height floor)
     }
 }
 
-void ElevatorState::take_on_passengers(std::vector<Passenger>& waiting_passengers)
+void ElevatorState::dropoff_passengers()
 {
-    ASSERT(m_state == State::DoorsOpen);
-    m_state = State::DoorsClosing;
-    m_time_until_next_state = door_closing_time;
+    auto at_arrival = [height= m_height](TravellingPassenger const& passenger) {
+        return passenger.to == height;
+    };
 
+    auto reached_destination = std::partition(m_passengers.begin(), m_passengers.end(), at_arrival);
+    m_passengers.erase(reached_destination, m_passengers.end());
+}
+
+void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers)
+{
     auto in_group = [&](Passenger const& passenger) {
         return passenger.group == group_id;
     };
@@ -135,6 +141,16 @@ void ElevatorState::take_on_passengers(std::vector<Passenger>& waiting_passenger
     }
 
     waiting_passengers.erase(start, end);
+}
+
+void ElevatorState::transfer_passengers(std::vector<Passenger>& waiting_passengers)
+{
+    ASSERT(m_state == State::DoorsOpen);
+    m_state = State::DoorsClosing;
+    m_time_until_next_state = door_closing_time;
+
+    dropoff_passengers();
+    pickup_passengers(waiting_passengers);
 }
 
 

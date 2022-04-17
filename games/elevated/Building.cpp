@@ -17,7 +17,7 @@ void BuildingState::update_until(Time target_time)
             ASSERT(m_floors.contains(elevator.height()));
             if (result == ElevatorState::ElevatorUpdateResult::DoorsOpened) {
                 auto& floor_stopped_at = m_floors[elevator.height()];
-                elevator.take_on_passengers(floor_stopped_at);
+                elevator.transfer_passengers(floor_stopped_at);
             } else {
                 elevators_closed_doors.push_back(elevator.id);
             }

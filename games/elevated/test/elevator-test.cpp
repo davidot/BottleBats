@@ -168,7 +168,7 @@ TEST_CASE("Elevators state", "[elevators]") {
 
         WHEN("Picking up from empty floor") {
             std::vector<Elevated::Passenger> line;
-            elevator.take_on_passengers(line);
+            elevator.transfer_passengers(line);
 
             THEN("No passengers were picked up and doors are closing") {
                 REQUIRE(line.empty());
@@ -187,7 +187,7 @@ TEST_CASE("Elevators state", "[elevators]") {
 
             REQUIRE(line.size() == count);
 
-            elevator.take_on_passengers(line);
+            elevator.transfer_passengers(line);
 
             THEN("No passengers were picked up and doors are closing") {
                 CAPTURE(line.size(), elevator.passengers().size());
@@ -209,7 +209,7 @@ TEST_CASE("Elevators state", "[elevators]") {
             for (auto i = 0u; i < count; ++i)
                 line.push_back(Elevated::Passenger{i, 0, 1, group_id});
 
-            elevator.take_on_passengers(line);
+            elevator.transfer_passengers(line);
 
             THEN("Picks up all passengers and doors are closing") {
                 REQUIRE(line.empty());
@@ -239,7 +239,7 @@ TEST_CASE("Elevators state", "[elevators]") {
                 {6, 0, 1, other_group_id},
             };
 
-            elevator.take_on_passengers(line);
+            elevator.transfer_passengers(line);
 
             THEN("Picks up all passengers and doors are closing") {
                 REQUIRE(line.size() == 4);
@@ -277,7 +277,7 @@ TEST_CASE("Elevators state", "[elevators]") {
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpen);
             REQUIRE_FALSE(elevator.time_until_next_event().has_value());
             std::vector<Elevated::Passenger> line;
-            elevator.take_on_passengers(line);
+            elevator.transfer_passengers(line);
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
             REQUIRE(elevator.passengers().empty());
         }
@@ -321,6 +321,36 @@ TEST_CASE("Elevators state", "[elevators]") {
                 REQUIRE(elevator.time_until_next_event().has_value());
                 REQUIRE(elevator.target_height() == 10);
             }
+        }
+    }
+
+    GIVEN("An elevator filled with passengers") {
+
+        auto generate_filled_elevator = [&](std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passenger_list) {
+            Elevated::ElevatorState elevator {0, 0, 0};
+            elevator.set_target(0);
+
+            REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
+            auto steps = elevator.time_until_next_event();
+            REQUIRE(steps.has_value());
+            auto result = elevator.update(steps.value());
+            REQUIRE(result == Elevated::ElevatorState::ElevatorUpdateResult::DoorsOpened);
+            REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpen);
+            REQUIRE_FALSE(elevator.time_until_next_event().has_value());
+            std::vector<Elevated::Passenger> line;
+            for (auto [id, to] : passenger_list)
+                line.push_back(Elevated::Passenger{id, 0, to, 0});
+
+            elevator.transfer_passengers(line);
+            REQUIRE(elevator.passengers().size() == passenger_list.size());
+            REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
+            REQUIRE(elevator.passengers().empty());
+
+            return elevator;
+        };
+
+        WHEN("The doors are opened on that floor") {
+
         }
     }
 }
