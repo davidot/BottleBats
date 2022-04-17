@@ -14,7 +14,7 @@ else ()
 endif ()
 
 if (MSVC)
-    add_compile_options(/W2 /WX)
+    add_compile_options(/W2)
     add_compile_options(/Zc:preprocessor)
 else()
     add_compile_options(-Wall)
@@ -51,4 +51,8 @@ else()
 endif()
 
 add_subdirectory(games)
+if (WIN32)
+
+else()
 add_subdirectory(server)
+endif()
