@@ -23,6 +23,8 @@ struct Passenger {
     Height from;
     Height to;
     GroupID group;
+
+    bool operator==(Passenger const& rhs) const = default;
 };
 
 }
