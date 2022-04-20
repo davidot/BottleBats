@@ -109,17 +109,21 @@ void ElevatorState::set_target(Height floor)
     }
 }
 
-void ElevatorState::dropoff_passengers()
+void ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
 {
     auto not_at_arrival = [height= m_height](TravellingPassenger const& passenger) {
         return passenger.to != height;
     };
 
     auto reached_destination = std::partition(m_passengers.begin(), m_passengers.end(), not_at_arrival);
+
+    transferred.dropped_off_passengers.reserve(std::distance(reached_destination, m_passengers.end()));
+    std::move(reached_destination, m_passengers.end(), std::back_inserter(transferred.dropped_off_passengers));
+
     m_passengers.erase(reached_destination, m_passengers.end());
 }
 
-void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers)
+void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers& transferred)
 {
     auto in_group = [&](Passenger const& passenger) {
         return passenger.group == group_id;
@@ -133,6 +137,7 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
 
     for (auto it = start; it != end; ++it) {
         if (in_group(*it)) {
+            transferred.picked_up_passengers.emplace_back(*it);
             m_passengers.push_back({it->id, it->to});
         } else {
             *start = *it;
@@ -143,14 +148,18 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
     waiting_passengers.erase(start, end);
 }
 
-void ElevatorState::transfer_passengers(std::vector<Passenger>& waiting_passengers)
+ElevatorState::TransferredPassengers ElevatorState::transfer_passengers(std::vector<Passenger>& waiting_passengers)
 {
     ASSERT(m_state == State::DoorsOpen);
     m_state = State::DoorsClosing;
     m_time_until_next_state = door_closing_time;
 
-    dropoff_passengers();
-    pickup_passengers(waiting_passengers);
+    TransferredPassengers transferred;
+
+    dropoff_passengers(transferred);
+    pickup_passengers(waiting_passengers, transferred);
+
+    return transferred;
 }
 
 

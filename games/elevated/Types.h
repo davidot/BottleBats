@@ -72,7 +72,13 @@ public:
     [[nodiscard]] State current_state() const { return m_state; }
     [[nodiscard]] Height target_height() const { return m_target_height; }
     [[nodiscard]] Height height() const { return m_height; }
-    void transfer_passengers(std::vector<Passenger>& waiting_passengers);
+
+    struct TransferredPassengers {
+        std::vector<TravellingPassenger> dropped_off_passengers;
+        std::vector<Passenger> picked_up_passengers;
+    };
+
+    TransferredPassengers transfer_passengers(std::vector<Passenger>& waiting_passengers);
 
 private:
     Height m_height;
@@ -90,8 +96,8 @@ private:
         return steps;
     }
 
-    void pickup_passengers(std::vector<Passenger>& waiting_passengers);
-    void dropoff_passengers();
+    void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&);
+    void dropoff_passengers(TransferredPassengers&);
     void move_to_target(Height distance);
 };
 
