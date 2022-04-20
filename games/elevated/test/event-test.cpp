@@ -73,7 +73,7 @@ public:
 
 TEST_CASE("Events", "[event]") {
 
-    GIVEN("A building with floors") {
+    GIVEN("A building with just floors") {
         BuildingState building {BuildingBlueprint {
             {{0u, 5u, 10u, 15u}},
             {{0}}
@@ -81,6 +81,44 @@ TEST_CASE("Events", "[event]") {
 
         std::shared_ptr<StoringEventListener> listener = std::make_shared<StoringEventListener>();
         building.add_listener(listener);
+
+        WHEN("The building is updated") {
+            Time time = GENERATE(1, 2, 5, 10, 20);
+
+            building.update_until(time);
+
+            THEN("Elevator stopped events are generated") {
+                REQUIRE(listener->elevator_stopped_events.size() == 1);
+                auto event = listener->elevator_stopped_events.front();
+                REQUIRE(std::get<0>(event) == time);
+                REQUIRE(std::get<1>(event) == time);
+
+                REQUIRE(std::get<2>(event).id == 0);
+                REQUIRE(std::get<2>(event).group_id == 0);
+            }
+        }
+
+        WHEN("The building is updated twice") {
+            Time first_time = GENERATE(1, 2, 5, 10, 20);
+            Time second_time = GENERATE(1, 2, 5, 10, 20);
+            Time total_time = first_time + second_time;
+
+            building.update_until(first_time);
+            listener->clear_events();
+
+            building.update_until(total_time);
+
+
+            THEN("Elevator stopped events are generated") {
+                REQUIRE(listener->elevator_stopped_events.size() == 1);
+                auto event = listener->elevator_stopped_events.front();
+                REQUIRE(std::get<0>(event) == total_time);
+                REQUIRE(std::get<1>(event) == second_time);
+
+                REQUIRE(std::get<2>(event).id == 0);
+                REQUIRE(std::get<2>(event).group_id == 0);
+            }
+        }
 
         WHEN("A request is generated on any floor") {
             Passenger request {1, GENERATE(0u, 5u, 10u), 15, 0};
