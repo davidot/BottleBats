@@ -10,13 +10,16 @@
 
 namespace Elevated {
 
-    class BuildingState {
+class BuildingState {
 
     std::optional<Time> next_event_at() const;
 
     void add_request(Passenger passenger);
     void send_elevator(ElevatorID, Height target);
     void update_until(Time target_time);
+
+    void add_listener(std::shared_ptr<EventListener> listener) { m_distributor.add_listener(std::move(listener)); }
+    bool remove_listener(EventListener* listener) { return m_distributor.remove_listener(listener); }
 
 private:
     std::unordered_map<Height, std::vector<Passenger>> m_floors;
