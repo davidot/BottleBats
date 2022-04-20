@@ -111,11 +111,11 @@ void ElevatorState::set_target(Height floor)
 
 void ElevatorState::dropoff_passengers()
 {
-    auto at_arrival = [height= m_height](TravellingPassenger const& passenger) {
-        return passenger.to == height;
+    auto not_at_arrival = [height= m_height](TravellingPassenger const& passenger) {
+        return passenger.to != height;
     };
 
-    auto reached_destination = std::partition(m_passengers.begin(), m_passengers.end(), at_arrival);
+    auto reached_destination = std::partition(m_passengers.begin(), m_passengers.end(), not_at_arrival);
     m_passengers.erase(reached_destination, m_passengers.end());
 }
 

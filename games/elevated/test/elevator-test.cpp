@@ -180,7 +180,7 @@ TEST_CASE("Elevators state", "[elevators]") {
 
         WHEN("Picking up from line with no passengers of matching group id") {
             std::vector<Elevated::Passenger> line;
-            auto count = GENERATE(1, 2, 10);
+            auto count = GENERATE(1u, 2u, 10u);
             CAPTURE(count);
             for (auto i = 0u; i < count; ++i)
                 line.push_back(Elevated::Passenger{i, 0, 1, other_group_id});
@@ -204,7 +204,7 @@ TEST_CASE("Elevators state", "[elevators]") {
 
         WHEN("Picking up from line with only passengers of matching group id") {
             std::vector<Elevated::Passenger> line;
-            auto count = GENERATE(1, 2, 10);
+            auto count = GENERATE(1u, 2u, 10u);
             CAPTURE(count);
             for (auto i = 0u; i < count; ++i)
                 line.push_back(Elevated::Passenger{i, 0, 1, group_id});
@@ -215,7 +215,7 @@ TEST_CASE("Elevators state", "[elevators]") {
                 REQUIRE(line.empty());
                 REQUIRE(elevator.passengers().size() == count);
 
-                for (auto i = 0; i < count; ++i) {
+                for (auto i = 0u; i < count; ++i) {
                     CAPTURE(i);
                     REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(),
                                  [&](Elevated::ElevatorState::TravellingPassenger const &p) {
@@ -245,7 +245,7 @@ TEST_CASE("Elevators state", "[elevators]") {
                 REQUIRE(line.size() == 4);
                 REQUIRE(elevator.passengers().size() == 3);
 
-                for (auto i : {0, 3, 4}) {
+                for (auto i : {0u, 3u, 4u}) {
                     CAPTURE(i);
                     REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(),
                                          [&](Elevated::ElevatorState::TravellingPassenger const &p) {
@@ -326,9 +326,11 @@ TEST_CASE("Elevators state", "[elevators]") {
 
     GIVEN("An elevator filled with passengers") {
 
-        auto generate_filled_elevator = [&](std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passenger_list) {
-            Elevated::ElevatorState elevator {0, 0, 0};
-            elevator.set_target(0);
+        auto generate_filled_elevator = [&](std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passenger_list, Elevated::Height get_in_floor = 0) {
+            CAPTURE(get_in_floor);
+            CAPTURE(passenger_list);
+            Elevated::ElevatorState elevator {0, 0, get_in_floor};
+            elevator.set_target(get_in_floor);
 
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
             auto steps = elevator.time_until_next_event();
@@ -336,21 +338,75 @@ TEST_CASE("Elevators state", "[elevators]") {
             auto result = elevator.update(steps.value());
             REQUIRE(result == Elevated::ElevatorState::ElevatorUpdateResult::DoorsOpened);
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpen);
-            REQUIRE_FALSE(elevator.time_until_next_event().has_value());
+
             std::vector<Elevated::Passenger> line;
-            for (auto [id, to] : passenger_list)
-                line.push_back(Elevated::Passenger{id, 0, to, 0});
+            for (auto [id, to] : passenger_list) {
+                REQUIRE(get_in_floor != to);
+                line.push_back(Elevated::Passenger { id, get_in_floor, to, 0 });
+            }
 
             elevator.transfer_passengers(line);
+            REQUIRE(line.empty());
             REQUIRE(elevator.passengers().size() == passenger_list.size());
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
-            REQUIRE(elevator.passengers().empty());
+
+            auto steps_to_close = elevator.time_until_next_event();
+            REQUIRE(steps_to_close.has_value());
+            auto result_closing = elevator.update(steps_to_close.value());
+            REQUIRE(result_closing == Elevated::ElevatorState::ElevatorUpdateResult::DoorsClosed);
 
             return elevator;
         };
 
-        WHEN("The doors are opened on that floor") {
+        auto move_to_floor_and_transfer_with_empty = [&](Elevated::ElevatorState& elevator, Elevated::Height target) {
+            elevator.set_target(target);
+            auto steps = elevator.time_until_next_event();
+            REQUIRE(steps.has_value());
+            auto result = elevator.update(steps.value());
+            REQUIRE(result == Elevated::ElevatorState::ElevatorUpdateResult::DoorsOpened);
+            std::vector<Elevated::Passenger> empty_line;
+            elevator.transfer_passengers(empty_line);
+            REQUIRE(empty_line.empty());
+        };
 
+        auto elevator_has_passengers_with_id = [](Elevated::ElevatorState const& elevator, std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passengers) {
+            for (auto passenger : passengers) {
+                auto id = passenger.id;
+                auto to = passenger.to;
+                CAPTURE(id, to);
+                REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(),
+                            [&](Elevated::ElevatorState::TravellingPassenger const &p) {
+                                return p.id == id && p.to == to;
+                            }) != elevator.passengers().end());
+            }
+            REQUIRE(elevator.passengers().size() == passengers.size());
+        };
+
+        WHEN("Elevator transfers passengers on floor with passengers with that as a destination") {
+            auto elevator = generate_filled_elevator({{1, 0}, {2, 0}}, 1);
+            move_to_floor_and_transfer_with_empty(elevator, 0);
+
+            THEN("All passengers got off and did not join the line") {
+                REQUIRE(elevator.passengers().size() == 0);
+            }
+        }
+
+        WHEN("Elevator has no passengers with the target destination floor") {
+            auto elevator = generate_filled_elevator({{1, 2}, {2, 3}, {3, 4}, {4, 6}}, 0);
+            move_to_floor_and_transfer_with_empty(elevator, GENERATE(0, 1, 5));
+
+            THEN("None got off the elevator") {
+                elevator_has_passengers_with_id(elevator, {{1, 2}, {2, 3}, {3, 4}, {4, 6}});
+            }
+        }
+
+        WHEN("Elevator some passengers with the target destination floor") {
+            auto elevator = generate_filled_elevator({{1, 2}, {2, 3}, {3, 4}, {4, 6}}, 0);
+            move_to_floor_and_transfer_with_empty(elevator, 4);
+
+            THEN("None got off the elevator") {
+                elevator_has_passengers_with_id(elevator, {{1, 2}, {2, 3}, {4, 6}});
+            }
         }
     }
 }
