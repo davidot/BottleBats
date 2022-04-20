@@ -60,8 +60,8 @@ public:
     TransferredPassengers transfer_passengers(std::vector<Passenger>& waiting_passengers);
 
 private:
-    Height m_height;
-    Height m_target_height;
+    Height m_height{0};
+    Height m_target_height{0};
     State m_state = State::Stopped;
     std::vector<TravellingPassenger> m_passengers;
 

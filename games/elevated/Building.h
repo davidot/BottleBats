@@ -11,6 +11,8 @@
 namespace Elevated {
 
 class BuildingState {
+public:
+    explicit BuildingState(BuildingBlueprint blueprint);
 
     std::optional<Time> next_event_at() const;
 
@@ -24,14 +26,10 @@ class BuildingState {
 private:
     std::unordered_map<Height, std::vector<Passenger>> m_floors;
     std::vector<ElevatorState> m_elevators;
-    std::unordered_map<ElevatorID, ElevatorState&> m_elevator_by_id;
+    std::vector<std::unordered_set<Height>> m_group_reachable;
 
     Time m_current_time{0};
     EventDistributor m_distributor;
-
-#ifndef NDEBUG
-    std::unordered_map<GroupID, std::unordered_set<Height>> m_group_reachable;
-#endif
 };
 
 }

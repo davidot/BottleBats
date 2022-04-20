@@ -1,7 +1,35 @@
+#include <set>
 #include "Building.h"
 #include "../../util/Assertions.h"
 
 namespace Elevated {
+
+BuildingState::BuildingState(BuildingBlueprint blueprint)
+{
+    std::set<Height> floors;
+
+    std::vector<Height> start_floors;
+    start_floors.reserve(blueprint.reachable_per_group.size());
+    for (auto& reachable_floors : blueprint.reachable_per_group) {
+        ASSERT(!reachable_floors.empty());
+        start_floors.emplace_back(*std::min_element(reachable_floors.begin(), reachable_floors.end()));
+        floors.insert(reachable_floors.begin(), reachable_floors.end());
+    }
+
+    m_floors.reserve(floors.size());
+    for (auto floor : floors)
+        m_floors.insert({floor, {}});
+
+
+    ElevatorID id {0};
+
+    for (auto& elevator : blueprint.elevators) {
+        ASSERT(elevator.group < blueprint.reachable_per_group.size());
+        m_elevators.emplace_back(id++, elevator.group, start_floors[elevator.group]);
+    }
+
+    m_group_reachable = std::move(blueprint.reachable_per_group);
+}
 
 void BuildingState::update_until(Time target_time)
 {
@@ -46,7 +74,11 @@ void BuildingState::add_request(Passenger passenger)
 {
     ASSERT(m_floors.contains(passenger.from));
     ASSERT(m_floors.contains(passenger.to));
+    ASSERT(passenger.group < m_group_reachable.size());
     ASSERT(m_group_reachable[passenger.group].contains(passenger.from));
+
+    if (passenger.group >= m_group_reachable.size() || !m_group_reachable[passenger.group].contains(passenger.from))
+        return; // FIXME: We might want to warn or fail here?
 
     m_distributor.on_request_created(m_current_time, passenger);
     m_floors[passenger.from].emplace_back(passenger);
@@ -54,9 +86,8 @@ void BuildingState::add_request(Passenger passenger)
 
 void BuildingState::send_elevator(ElevatorID id, Height target)
 {
-    auto it = m_elevator_by_id.find(id);
-    ASSERT(it != m_elevator_by_id.end());
-    auto& elevator = it->second;
+    ASSERT(id < m_elevators.size());
+    auto& elevator = m_elevators[id];
     m_distributor.on_elevator_set_target(m_current_time, target, elevator);
     elevator.set_target(target);
 }
