@@ -27,12 +27,12 @@ ElevatorState::ElevatorUpdateResult ElevatorState::update(Time steps)
 {
     // We should never be in the doors open state as the building should have cleared us from that
     ASSERT(m_state != State::DoorsOpen);
-    ASSERT(steps <= time_until_next_event());
     if (m_state == State::Stopped) {
         ASSERT(m_height == m_target_height);
         return ElevatorUpdateResult::Nothing;
     }
 
+    ASSERT(steps <= time_until_next_event());
     ASSERT(m_time_until_next_state > 0);
 
     if (m_state == State::Travelling) {

@@ -22,6 +22,16 @@ TEST_CASE("Elevators state", "[elevators]") {
         THEN("It is stopped") {
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::Stopped);
         }
+
+        WHEN("It is updated") {
+            auto result = elevator.update(GENERATE(0u, 1u, 5u, 100u, 250u));
+            THEN("Nothing happened") {
+                REQUIRE(result == Elevated::ElevatorState::ElevatorUpdateResult::Nothing);
+                REQUIRE(elevator.passengers().empty());
+                REQUIRE(elevator.height() == initial_height);
+                REQUIRE(elevator.target_height() == initial_height);
+            }
+        }
     }
 
 
