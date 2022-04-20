@@ -31,7 +31,7 @@ if (NOT catch_POPULATED)
 endif ()
 
 add_library(LibElevated
-        elevated/Types.cpp
+        elevated/Elevator.cpp
         elevated/Building.cpp
         elevated/stats/Listener.cpp
         )
@@ -41,5 +41,6 @@ target_include_directories(LibElevated INTERFACE .)
 add_executable(elevated-test
         elevated/test/test-main.cpp
         elevated/test/elevator-test.cpp
+        elevated/test/event-test.cpp
         )
 target_link_libraries(elevated-test PUBLIC Catch2::Catch2 LibElevated)

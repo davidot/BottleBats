@@ -1,5 +1,4 @@
-#include <algorithm>
-#include "Types.h"
+#include "Elevator.h"
 #include "../../util/Assertions.h"
 
 namespace Elevated {
@@ -118,7 +117,9 @@ void ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
     auto reached_destination = std::partition(m_passengers.begin(), m_passengers.end(), not_at_arrival);
 
     transferred.dropped_off_passengers.reserve(std::distance(reached_destination, m_passengers.end()));
-    std::move(reached_destination, m_passengers.end(), std::back_inserter(transferred.dropped_off_passengers));
+    std::transform(reached_destination, m_passengers.end(), std::back_inserter(transferred.dropped_off_passengers), [](TravellingPassenger const& passenger) {
+        return passenger.id;
+    });
 
     m_passengers.erase(reached_destination, m_passengers.end());
 }

@@ -1,5 +1,6 @@
 #include <catch2/catch.hpp>
 #include <elevated/Types.h>
+#include "elevated/Elevator.h"
 
 TEST_CASE("Elevators state", "[elevators]") {
     GIVEN("An initialized elevator") {
@@ -417,8 +418,8 @@ TEST_CASE("Elevators state", "[elevators]") {
                 for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{1, 0}, {2, 0}}) {
                     CAPTURE(passenger.id, passenger.to);
                     REQUIRE(std::find_if(transferred.dropped_off_passengers.begin(), transferred.dropped_off_passengers.end(),
-                                [&](Elevated::ElevatorState::TravellingPassenger const &p) {
-                                    return p.id == passenger.id && p.to == passenger.to;
+                                [&](Elevated::ElevatorID id) {
+                                    return id == passenger.id;
                                 }) != transferred.dropped_off_passengers.end());
                 }
             }
@@ -443,8 +444,8 @@ TEST_CASE("Elevators state", "[elevators]") {
                 for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{3, 4}}) {
                     CAPTURE(passenger.id, passenger.to);
                     REQUIRE(std::find_if(transferred.dropped_off_passengers.begin(), transferred.dropped_off_passengers.end(),
-                                [&](Elevated::ElevatorState::TravellingPassenger const &p) {
-                                    return p.id == passenger.id && p.to == passenger.to;
+                                [&](Elevated::ElevatorID id) {
+                                    return id == passenger.id;
                                 }) != transferred.dropped_off_passengers.end());
                 }
             }
