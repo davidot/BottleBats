@@ -37,6 +37,7 @@ void BuildingState::update_until(Time target_time)
     ASSERT(target_time <= next_event_at().value_or(target_time));
 
     Time steps = target_time - m_current_time;
+    m_current_time = target_time;
 
     std::vector<ElevatorID> elevators_closed_doors;
 
