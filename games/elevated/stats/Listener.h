@@ -1,6 +1,7 @@
 #pragma once
 #include "../Elevator.h"
 #include "../Types.h"
+#include "../generation/Generation.h"
 #include <memory>
 #include <vector>
 
@@ -10,17 +11,17 @@ class EventListener {
 public:
     virtual ~EventListener() = default;
 
-    //        virtual void on_initial_building(Building::Blueprint const& blueprint) {}
+    virtual void on_initial_building(BuildingBlueprint const&) { }
 
-    virtual void on_request_created(Time at, Passenger const& passenger);
-    virtual void on_passenger_enter_elevator(Time at, Passenger const& passenger, ElevatorID);
-    virtual void on_passenger_leave_elevator(Time at, PassengerID, Height);
+    virtual void on_request_created(Time, Passenger const&) { }
+    virtual void on_passenger_enter_elevator(Time, Passenger const&, ElevatorID) { }
+    virtual void on_passenger_leave_elevator(Time, PassengerID, Height) { }
 
-    virtual void on_elevator_opened_doors(Time at, ElevatorState const& elevator);
-    virtual void on_elevator_closed_doors(Time at, ElevatorState const& elevator);
+    virtual void on_elevator_opened_doors(Time, ElevatorState const&) { }
+    virtual void on_elevator_closed_doors(Time, ElevatorState const&) { }
 
-    virtual void on_elevator_set_target(Time at, Height new_target, ElevatorState const& elevator);
-    virtual void on_elevator_stopped(Time at, Time duration, ElevatorState const& elevator);
+    virtual void on_elevator_set_target(Time, [[maybe_unused]] Height new_target, ElevatorState const&) { }
+    virtual void on_elevator_stopped([[maybe_unused]] Time at, [[maybe_unused]] Time duration, ElevatorState const&) { }
 };
 
 class EventDistributor final : public EventListener {

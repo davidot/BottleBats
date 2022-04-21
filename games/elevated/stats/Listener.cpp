@@ -3,34 +3,6 @@
 
 namespace Elevated {
 
-void EventListener::on_request_created(Time, Passenger const&)
-{
-}
-
-void EventListener::on_passenger_enter_elevator(Time, Passenger const&, ElevatorID)
-{
-}
-
-void EventListener::on_passenger_leave_elevator(Time, PassengerID, Height)
-{
-}
-
-void EventListener::on_elevator_opened_doors(Time, ElevatorState const&)
-{
-}
-
-void EventListener::on_elevator_closed_doors(Time, ElevatorState const&)
-{
-}
-
-void EventListener::on_elevator_set_target(Time, Height, ElevatorState const&)
-{
-}
-
-void EventListener::on_elevator_stopped(Time, Time, ElevatorState const&)
-{
-}
-
 void EventDistributor::add_listener(std::shared_ptr<EventListener> listener) {
     ASSERT(listener.get() != this);
     ASSERT(std::find_if(m_listeners.begin(), m_listeners.end(), [&](std::shared_ptr<EventListener> const& l) {
