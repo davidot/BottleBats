@@ -2,7 +2,7 @@
 #include <elevated/Types.h>
 #include "elevated/Elevator.h"
 
-TEST_CASE("Elevators state", "[elevators]") {
+TEST_CASE("Elevators state", "[elevators][state]") {
     GIVEN("An initialized elevator") {
         Elevated::ElevatorID id = GENERATE(0, 2, 20);
         Elevated::GroupID group_id = GENERATE(0, 2, 20);

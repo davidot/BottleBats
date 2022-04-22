@@ -83,7 +83,7 @@ public:
     }
 };
 
-TEST_CASE("Events", "[event]") {
+TEST_CASE("Events", "[building][event]") {
 
     GIVEN("A building with floors and single elevator") {
         BuildingState building {BuildingBlueprint {
