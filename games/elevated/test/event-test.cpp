@@ -135,7 +135,7 @@ TEST_CASE("Events", "[event]") {
         }
 
         WHEN("A request is generated on any floor") {
-            Passenger request {1, GENERATE(0u, 5u, 10u), 15, 0};
+            PassengerBlueprint request {GENERATE(0u, 5u, 10u), 15, 0};
 
             Time time = GENERATE(0, 1, 10);
             if (time != 0)
@@ -149,7 +149,9 @@ TEST_CASE("Events", "[event]") {
                 REQUIRE(listener->request_created_events.size() == 1);
                 auto event = listener->request_created_events.front();
                 REQUIRE(event.first == time);
-                REQUIRE(event.second == request);
+                REQUIRE(event.second.from == request.from);
+                REQUIRE(event.second.to == request.to);
+                REQUIRE(event.second.group == request.group);
                 listener->request_created_events.clear();
                 REQUIRE(listener->no_events());
             }
@@ -240,8 +242,8 @@ TEST_CASE("Events", "[event]") {
             Time initial_time = GENERATE(0u, 1u, 5u);
             Height target = GENERATE(0u, 5u, 15u);
             CAPTURE(initial_time, target);
-            Passenger passenger {
-                    1, target, 10, 0
+            PassengerBlueprint passenger {
+                    target, 10, 0
             };
             building.add_request(passenger);
 
@@ -259,7 +261,9 @@ TEST_CASE("Events", "[event]") {
                 REQUIRE(listener->passenger_enter_events.size() == 1);
                 auto& [time, entered_passenger, elevatorID] = listener->passenger_enter_events.front();
                 REQUIRE(time == open_time.value());
-                REQUIRE(entered_passenger == passenger);
+                REQUIRE(entered_passenger.from == passenger.from);
+                REQUIRE(entered_passenger.to == passenger.to);
+                REQUIRE(entered_passenger.group == passenger.group);
                 REQUIRE(elevatorID == 0);
                 listener->passenger_enter_events.clear();
                 REQUIRE(listener->elevator_opened_events.size() <= 1);
@@ -273,10 +277,13 @@ TEST_CASE("Events", "[event]") {
             Time initial_time = GENERATE(0u, 1u, 5u);
             Height target = GENERATE(0u, 5u, 15u);
             CAPTURE(initial_time, target);
-            Passenger passenger {
-                    1, target, 10, 0
+            PassengerBlueprint passenger {
+                    target, 10, 0
             };
             building.add_request(passenger);
+
+            REQUIRE(listener->request_created_events.size() == 1);
+            auto generated_passenger_id = listener->request_created_events.front().second.id;
 
             if (initial_time > 0)
                 building.update_until(initial_time);
@@ -306,7 +313,7 @@ TEST_CASE("Events", "[event]") {
                 REQUIRE(listener->passenger_leave_events.size() == 1);
                 auto& [time, passenger_id, left_height] = listener->passenger_leave_events.front();
                 REQUIRE(time == open_time.value());
-                REQUIRE(passenger_id == passenger.id);
+                REQUIRE(passenger_id == generated_passenger_id);
                 REQUIRE(left_height == 10);
                 listener->passenger_leave_events.clear();
                 REQUIRE(listener->elevator_opened_events.size() <= 1);

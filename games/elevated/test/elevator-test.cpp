@@ -196,7 +196,7 @@ TEST_CASE("Elevators state", "[elevators]") {
             auto count = GENERATE(1u, 2u, 10u);
             CAPTURE(count);
             for (auto i = 0u; i < count; ++i)
-                line.push_back(Elevated::Passenger{i, 0, 1, other_group_id});
+                line.push_back(Elevated::Passenger{i, {0, 1, other_group_id}});
 
             REQUIRE(line.size() == count);
 
@@ -223,7 +223,7 @@ TEST_CASE("Elevators state", "[elevators]") {
             auto count = GENERATE(1u, 2u, 10u);
             CAPTURE(count);
             for (auto i = 0u; i < count; ++i)
-                line.push_back(Elevated::Passenger{i, 0, 1, group_id});
+                line.push_back(Elevated::Passenger{i, {0, 1, group_id}});
 
             auto transferred = elevator.transfer_passengers(line);
 
@@ -254,13 +254,13 @@ TEST_CASE("Elevators state", "[elevators]") {
 
         WHEN("Picking up from a mixed line of waiting passengers") {
             std::vector<Elevated::Passenger> line {
-                {0, 0, 1, group_id},
-                {1, 0, 1, other_group_id},
-                {2, 0, 1, other_group_id},
-                {3, 0, 1, group_id},
-                {4, 0, 1, group_id},
-                {5, 0, 1, other_group_id},
-                {6, 0, 1, other_group_id},
+                {0, {0, 1, group_id}},
+                {1, {0, 1, other_group_id}},
+                {2, {0, 1, other_group_id}},
+                {3, {0, 1, group_id}},
+                {4, {0, 1, group_id}},
+                {5, {0, 1, other_group_id}},
+                {6, {0, 1, other_group_id}},
             };
 
             auto transferred = elevator.transfer_passengers(line);
@@ -374,7 +374,7 @@ TEST_CASE("Elevators state", "[elevators]") {
             std::vector<Elevated::Passenger> line;
             for (auto [id, to] : passenger_list) {
                 REQUIRE(get_in_floor != to);
-                line.push_back(Elevated::Passenger { id, get_in_floor, to, 0 });
+                line.push_back(Elevated::Passenger { id, {get_in_floor, to, 0 }});
             }
 
             auto transferred = elevator.transfer_passengers(line);

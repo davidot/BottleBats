@@ -72,7 +72,7 @@ void BuildingState::update_until(Time target_time)
 }
 
 
-void BuildingState::add_request(Passenger passenger)
+void BuildingState::add_request(PassengerBlueprint passenger)
 {
     ASSERT(m_floors.contains(passenger.from));
     ASSERT(m_floors.contains(passenger.to));
@@ -82,8 +82,9 @@ void BuildingState::add_request(Passenger passenger)
     if (passenger.group >= m_group_reachable.size() || !m_group_reachable[passenger.group].contains(passenger.from))
         return; // FIXME: We might want to warn or fail here?
 
-    m_distributor.on_request_created(m_current_time, passenger);
-    m_floors[passenger.from].emplace_back(passenger);
+    ASSERT(m_next_passenger_id != 0);
+    auto& new_passenger = m_floors[passenger.from].emplace_back(m_next_passenger_id++, passenger);
+    m_distributor.on_request_created(m_current_time, new_passenger);
 }
 
 void BuildingState::send_elevator(ElevatorID id, Height target)

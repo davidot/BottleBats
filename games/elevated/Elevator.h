@@ -4,11 +4,31 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <optional>
+#include "generation/Generation.h"
 #include "Types.h"
 
 namespace Elevated {
 
-class ElevatorState {
+
+struct Passenger {
+    PassengerID id;
+    Height from;
+    Height to;
+    GroupID group;
+
+    Passenger(PassengerID id_, PassengerBlueprint blueprint)
+        : id(id_)
+        , from(blueprint.from)
+        , to(blueprint.to)
+        , group(blueprint.group)
+    {
+    }
+
+    bool operator==(Passenger const& rhs) const = default;
+};
+
+
+    class ElevatorState {
 public:
     struct TravellingPassenger {
         PassengerID id;

@@ -20,6 +20,11 @@ struct BuildingBlueprint {
 //    Time time_to_close_doors; FIXME: Fixed per building (or all really) for now?
 };
 
+struct PassengerBlueprint {
+    Height from;
+    Height to;
+    GroupID group;
+};
 
 BuildingBlueprint generate_building();
 

@@ -16,7 +16,7 @@ public:
 
     std::optional<Time> next_event_at() const;
 
-    void add_request(Passenger passenger);
+    void add_request(PassengerBlueprint passenger);
     void send_elevator(ElevatorID, Height target);
     void update_until(Time target_time);
 
@@ -30,6 +30,7 @@ private:
 
     Time m_current_time{0};
     EventDistributor m_distributor;
+    PassengerID m_next_passenger_id{1};
 };
 
 }

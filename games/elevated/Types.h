@@ -18,13 +18,4 @@ constexpr Height distance_between(Height one, Height two) {
 
 static_assert(uint32_t{} == 0);
 
-struct Passenger {
-    PassengerID id;
-    Height from;
-    Height to;
-    GroupID group;
-
-    bool operator==(Passenger const& rhs) const = default;
-};
-
 }
