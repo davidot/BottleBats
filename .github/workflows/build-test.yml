@@ -1,0 +1,71 @@
+name: build-test
+on:
+  push
+
+jobs:
+  build-test:
+    name: Build & Test (${{ matrix.build_type }} mode)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build_type: Debug
+            extra-flags: '-fno-omit-frame-pointer -fsanitize=address,undefined'
+          - build_type: Release
+            extra-flags: ''
+    env:
+      build_folder_location: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Prepare useful stamps
+        id: stamps
+        shell: cmake -P {0}
+        run: |
+          string(TIMESTAMP current_date "%Y_%m_%d_%H_%M_%S" UTC)
+          message("  set-output name=time::${current_date}")
+          message("::set-output name=time::${current_date}")
+
+      - name: Install Dependencies (Ubuntu)
+        run: |
+          sudo apt-get install -y g++-11 ninja-build ccache
+          g++-11 --version && cmake --version && ninja --version && ccache --version
+
+      - name: Cache CCache
+        uses: actions/cache@v2
+        with:
+          path: /home/runner/.ccache
+          key: ubuntu-ccache-${{ matrix.build_type }}-gcc-11-time-${{ steps.stamps.outputs.time }}
+          restore-keys: |
+            ubuntu-ccache-${{ matrix.build_type }}-gcc-11-time-
+
+      - name: Configure CCache limit
+        run: |
+          ccache -M 750M
+          ccache -s
+
+      - name: Make build folder
+        run: mkdir -p ${{ env.build_folder_location }}
+
+      - name: Setup build
+        run: >
+          cmake -S . -B ${{ env.build_folder_location }} -G Ninja
+          -DCMAKE_CXX_COMPILER="g++-11"
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          -DCMAKE_CXX_FLAGS="${{ matrix.extra-flags }}"
+
+      - name: Build
+        timeout-minutes: 30
+        run: cmake --build ${{ env.build_folder_location }}
+
+      - name: Post-build ccache
+        if: startsWith(matrix.config.os, 'ubuntu')
+        run: ccache -s
+
+      - name: Run tests
+        timeout-minutes: 15
+        run: |
+          cd ${{ env.build_folder_location }}
+          ctest --verbose
+
