@@ -26,6 +26,34 @@ struct PassengerBlueprint {
     GroupID group;
 };
 
-BuildingBlueprint generate_building();
+struct NextRequests {
+    enum class Type {
+        Done,
+        Unknown,
+        At,
+    };
+
+    static NextRequests done();
+    static NextRequests unknown();
+    static NextRequests at(Time time);
+
+    std::strong_ordering operator<=>(NextRequests const& other) const;
+    bool operator==(NextRequests const& other) const = default;
+    bool operator!=(NextRequests const& other) const = default;
+    bool operator<(NextRequests const& other) const = default;
+
+    Type type = Type::Done;
+    Time next_request_time {0};
+};
+
+class ScenarioGenerator {
+public:
+    virtual ~ScenarioGenerator() = default;
+
+    virtual BuildingBlueprint generate_building() = 0;
+
+    virtual NextRequests next_requests_at() = 0;
+    virtual std::vector<PassengerBlueprint> requests_at(Time time) = 0;
+};
 
 }
