@@ -73,7 +73,7 @@ public:
 
 TEST_CASE("Events", "[event]") {
 
-    GIVEN("A building with just floors") {
+    GIVEN("A building with floors and single elevator") {
         BuildingState building {BuildingBlueprint {
             {{0u, 5u, 10u, 15u}},
             {{0}}
@@ -109,7 +109,7 @@ TEST_CASE("Events", "[event]") {
             building.update_until(total_time);
 
 
-            THEN("Elevator stopped events are generated") {
+            THEN("Elevator stopped events are generated with specified durations") {
                 REQUIRE(listener->elevator_stopped_events.size() == 1);
                 auto event = listener->elevator_stopped_events.front();
                 REQUIRE(std::get<0>(event) == total_time);
