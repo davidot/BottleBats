@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
 
     std::string command = "raw:";
 
-    int position = 4;
+    size_t position = 4;
 
     bool in_flags = true;
 
@@ -29,12 +29,13 @@ int main(int argc, char** argv) {
                     std::cerr << "Must give position after -p\n";
                 i++;
                 std::string val = argv[i];
-                position = std::stoi(val);
-                if (position < 0 || position > 4) {
+                int temp = std::stoi(val);
+                if (temp < 0 || temp > 4) {
                     std::cerr << "Position must be between 0 and 4 not " << position << '\n';
                     return 1;
                 }
 
+                position = temp;
                 std::cerr << "Putting your bot at position " << position << '\n';
                 continue;
             }
