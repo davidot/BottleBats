@@ -112,5 +112,14 @@ std::optional<Time> BuildingState::next_event_at() const
     return first_time;
 }
 
+std::vector<Passenger> const &BuildingState::passengers_at(Height height) const {
+    ASSERT(m_floors.contains(height));
+    return m_floors.find(height)->second;
+}
+
+ElevatorState const &BuildingState::elevator(ElevatorID id) const {
+    ASSERT(id < m_elevators.size());
+    return m_elevators[id];
+}
 
 }

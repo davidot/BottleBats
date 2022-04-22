@@ -14,11 +14,14 @@ class BuildingState {
 public:
     explicit BuildingState(BuildingBlueprint blueprint);
 
-    std::optional<Time> next_event_at() const;
+    [[nodiscard]] std::optional<Time> next_event_at() const;
 
     void add_request(PassengerBlueprint passenger);
     void send_elevator(ElevatorID, Height target);
     void update_until(Time target_time);
+
+    [[nodiscard]] std::vector<Passenger> const& passengers_at(Height) const;
+    [[nodiscard]] ElevatorState const& elevator(ElevatorID) const;
 
     void add_listener(std::shared_ptr<EventListener> listener) { m_distributor.add_listener(std::move(listener)); }
     bool remove_listener(EventListener* listener) { return m_distributor.remove_listener(listener); }

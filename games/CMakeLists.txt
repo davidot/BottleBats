@@ -43,5 +43,6 @@ add_executable(elevated-test
         elevated/test/test-main.cpp
         elevated/test/elevator-test.cpp
         elevated/test/event-test.cpp
+        elevated/test/building-test.cpp
         )
 target_link_libraries(elevated-test PUBLIC Catch2::Catch2 LibElevated)
