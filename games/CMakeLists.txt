@@ -16,20 +16,6 @@ target_link_libraries(VijfTemp PUBLIC LibVijf)
 add_executable(test-vijf vijf/vijf-test.cpp)
 target_link_libraries(test-vijf PUBLIC LibVijf)
 
-include(FetchContent)
-
-fetchcontent_declare(
-        catch
-        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-        GIT_TAG v2.13.9
-)
-
-FetchContent_GetProperties(catch)
-if (NOT catch_POPULATED)
-    FetchContent_Populate(catch)
-    add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR} EXCLUDE_FROM_ALL)
-endif ()
-
 add_library(LibElevated
         elevated/Elevator.cpp
         elevated/Building.cpp
@@ -46,4 +32,7 @@ add_executable(elevated-test
         elevated/test/building-test.cpp
         elevated/test/gen-test.cpp
         )
+
 target_link_libraries(elevated-test PUBLIC Catch2::Catch2 LibElevated)
+
+add_test(NAME ElevatedUnitTests COMMAND elevated-test)

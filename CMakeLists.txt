@@ -38,6 +38,7 @@ target_sources(SubProcess PUBLIC util/Process_Base.cpp)
 if (UNIX)
     target_compile_definitions(SubProcess INTERFACE POSIX_PROCESS=1)
     target_sources(SubProcess INTERFACE util/Process_Unix.cpp)
+    target_link_libraries(SubProcess INTERFACE pthread)
 elseif(WIN32)
     target_compile_definitions(SubProcess INTERFACE WINDOWS_PROCESS=1 WIN32_WINNT=0x0A00 WIN32_LEAN_AND_MEAN=1)
     target_sources(SubProcess INTERFACE util/Process_Windows.cpp)
@@ -50,9 +51,25 @@ else()
     message(ERROR "Don't know this operating system.")
 endif()
 
-add_subdirectory(games)
-if (WIN32)
+enable_testing()
 
-else()
-add_subdirectory(server)
+include(FetchContent)
+
+fetchcontent_declare(
+        catch
+        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+        GIT_TAG v2.13.9
+)
+
+FetchContent_GetProperties(catch)
+if (NOT catch_POPULATED)
+    FetchContent_Populate(catch)
+    add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif ()
+
+add_subdirectory(games)
+
+set(BUILD_SERVER OFF)
+if (BUILD_SERVER)
+    add_subdirectory(server)
 endif()
