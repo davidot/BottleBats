@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <memory>
 #include "../Types.h"
 namespace Elevated {
 
@@ -13,7 +14,7 @@ struct BuildingBlueprint {
 //        Height speed; FIXME: Ignored for now!
     };
 
-    std::vector<std::unordered_set<Height>> reachable_per_group;
+    std::vector<std::unordered_set<Height>> reachable_per_group; // FIXME: Without differentiating elevators this can actually be pair<number_elevators, floors>
     std::vector<Elevator> elevators;
 
 //    Time time_to_open_doors; FIXME: Fixed per building (or all really) for now?
@@ -37,6 +38,8 @@ struct NextRequests {
     static NextRequests unknown();
     static NextRequests at(Time time);
 
+    NextRequests(Time time) : next_request_time(time) { type = Type::At; }
+
     std::strong_ordering operator<=>(NextRequests const& other) const;
     bool operator==(NextRequests const& other) const = default;
     bool operator!=(NextRequests const& other) const = default;
@@ -44,16 +47,67 @@ struct NextRequests {
 
     Type type = Type::Done;
     Time next_request_time {0};
+private:
+    NextRequests(Type type_) : type(type_), next_request_time(0) {}
+};
+
+class BuildingGenerationResult {
+public:
+    BuildingGenerationResult(BuildingBlueprint blueprint)
+        : m_blueprint(std::move(blueprint))
+    {
+    }
+
+    void add_error(std::string s) const { m_errors.emplace_back(std::move(s)); }
+    bool has_error() const { return !m_errors.empty(); }
+    std::vector<std::string> const& errors() const { return m_errors; }
+
+    explicit operator bool() const { return !has_error(); }
+
+    BuildingBlueprint const& blueprint() { return m_blueprint; }
+
+    BuildingBlueprint&& extract_blueprint();
+private:
+    BuildingBlueprint m_blueprint;
+    mutable std::vector<std::string> m_errors;
 };
 
 class ScenarioGenerator {
 public:
     virtual ~ScenarioGenerator() = default;
 
-    virtual BuildingBlueprint generate_building() = 0;
+    virtual BuildingGenerationResult generate_building() = 0;
 
     virtual NextRequests next_requests_at() = 0;
     virtual std::vector<PassengerBlueprint> requests_at(Time time) = 0;
+};
+
+class RequestGenerator {
+public:
+    ~RequestGenerator() = default;
+
+    virtual void accept_building(BuildingGenerationResult const& result) {}
+
+    virtual NextRequests next_requests_at() = 0;
+    virtual std::vector<PassengerBlueprint> requests_at(Time time) = 0;
+};
+
+class BuildingGenerator {
+public:
+    ~BuildingGenerator() = default;
+
+    virtual BuildingGenerationResult generate_building() = 0;
+};
+
+class SplitGenerator : public ScenarioGenerator {
+public:
+    virtual BuildingGenerationResult generate_building();
+
+    virtual NextRequests next_requests_at();
+    virtual std::vector<PassengerBlueprint> requests_at(Time time);
+private:
+    std::unique_ptr<BuildingGenerator> m_building_generator;
+    std::unique_ptr<RequestGenerator> m_request_generator;
 };
 
 }

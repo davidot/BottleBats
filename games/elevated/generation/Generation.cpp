@@ -5,15 +5,15 @@
 namespace Elevated {
 
 NextRequests NextRequests::done() {
-    return {Type::Done, 0};
+    return {Type::Done};
 }
 
 NextRequests NextRequests::unknown() {
-    return {Type::Unknown, 0};
+    return {Type::Unknown};
 }
 
 NextRequests NextRequests::at(Time time) {
-    return {Type::At, time};
+    return time;
 }
 
 std::strong_ordering NextRequests::operator<=>(NextRequests const& rhs) const {
@@ -33,6 +33,25 @@ std::strong_ordering NextRequests::operator<=>(NextRequests const& rhs) const {
 
     ASSERT(rhs.type == Type::Done);
     return std::strong_ordering::less;
+}
+
+BuildingGenerationResult SplitGenerator::generate_building() {
+    BuildingGenerationResult result = m_building_generator->generate_building();
+    m_request_generator->accept_building(result);
+    return result;
+}
+
+NextRequests SplitGenerator::next_requests_at() {
+    return m_request_generator->next_requests_at();
+}
+
+std::vector<PassengerBlueprint> SplitGenerator::requests_at(Time time) {
+    return m_request_generator->requests_at(time);
+}
+
+BuildingBlueprint&& BuildingGenerationResult::extract_blueprint() {
+    ASSERT(!has_error());
+    return std::move(m_blueprint);
 }
 
 }
