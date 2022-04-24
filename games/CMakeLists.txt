@@ -19,6 +19,7 @@ target_link_libraries(test-vijf PUBLIC LibVijf)
 add_library(LibElevated
         elevated/Elevator.cpp
         elevated/Building.cpp
+        elevated/generation/FullGenerators.cpp
         elevated/generation/Generation.cpp
         elevated/stats/Listener.cpp
         )
