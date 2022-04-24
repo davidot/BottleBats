@@ -86,7 +86,7 @@ class RequestGenerator {
 public:
     ~RequestGenerator() = default;
 
-    virtual void accept_building(BuildingGenerationResult const& result) {}
+    virtual void accept_building(BuildingGenerationResult const&) {}
 
     virtual NextRequests next_requests_at() = 0;
     virtual std::vector<PassengerBlueprint> requests_at(Time time) = 0;
