@@ -22,6 +22,7 @@ add_library(LibElevated
         elevated/generation/FullGenerators.cpp
         elevated/generation/Generation.cpp
         elevated/stats/Listener.cpp
+        elevated/algorithm/Algorithm.cpp
         )
 
 target_include_directories(LibElevated INTERFACE .)
