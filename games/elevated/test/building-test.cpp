@@ -6,10 +6,11 @@ using namespace Elevated;
 
 TEST_CASE("Building state", "[building][state]") {
     GIVEN("A building") {
+        EventListener listener;
         BuildingState building {BuildingBlueprint {
                 {{0u, 5u, 10u, 15u}, {5u, 15u}},
                 {{0}, {1}}
-        }};
+        }, &listener};
 
         THEN("All floors have no passengers") {
             REQUIRE(building.passengers_at(0u).empty());

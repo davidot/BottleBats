@@ -12,7 +12,9 @@ namespace Elevated {
 
 class BuildingState {
 public:
-    explicit BuildingState(BuildingBlueprint blueprint);
+    explicit BuildingState(BuildingBlueprint blueprint, EventListener* event_listener);
+
+    BuildingState() = default;
 
     [[nodiscard]] std::optional<Time> next_event_at() const;
 
@@ -23,16 +25,13 @@ public:
     [[nodiscard]] std::vector<Passenger> const& passengers_at(Height) const;
     [[nodiscard]] ElevatorState const& elevator(ElevatorID) const;
 
-    void add_listener(std::shared_ptr<EventListener> listener) { m_distributor.add_listener(std::move(listener)); }
-    bool remove_listener(EventListener* listener) { return m_distributor.remove_listener(listener); }
-
 private:
     std::unordered_map<Height, std::vector<Passenger>> m_floors;
     std::vector<ElevatorState> m_elevators;
     std::vector<std::unordered_set<Height>> m_group_reachable;
 
     Time m_current_time{0};
-    EventDistributor m_distributor;
+    EventListener* m_event_listener{nullptr};
     PassengerID m_next_passenger_id{1};
 };
 

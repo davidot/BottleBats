@@ -86,15 +86,14 @@ public:
 TEST_CASE("Events", "[building][event]") {
 
     GIVEN("A building with floors and single elevator") {
+        StoringEventListener listener;
+        
         BuildingState building {BuildingBlueprint {
             {{0u, 5u, 10u, 15u}},
             {{0}}
-        }};
+        }, &listener};
 
-        std::shared_ptr<StoringEventListener> listener = std::make_shared<StoringEventListener>();
-        building.add_listener(listener);
-
-        REQUIRE(listener->no_events());
+        REQUIRE(listener.no_events());
 
         WHEN("The building is updated") {
             Time time = GENERATE(1, 2, 5, 10, 20);
@@ -102,8 +101,8 @@ TEST_CASE("Events", "[building][event]") {
             building.update_until(time);
 
             THEN("Elevator stopped events are generated") {
-                REQUIRE(listener->elevator_stopped_events.size() == 1);
-                auto event = listener->elevator_stopped_events.front();
+                REQUIRE(listener.elevator_stopped_events.size() == 1);
+                auto event = listener.elevator_stopped_events.front();
                 REQUIRE(std::get<0>(event) == time);
                 REQUIRE(std::get<1>(event) == time);
 
@@ -118,14 +117,14 @@ TEST_CASE("Events", "[building][event]") {
             Time total_time = first_time + second_time;
 
             building.update_until(first_time);
-            listener->clear_events();
+            listener.clear_events();
 
             building.update_until(total_time);
 
 
             THEN("Elevator stopped events are generated with specified durations") {
-                REQUIRE(listener->elevator_stopped_events.size() == 1);
-                auto event = listener->elevator_stopped_events.front();
+                REQUIRE(listener.elevator_stopped_events.size() == 1);
+                auto event = listener.elevator_stopped_events.front();
                 REQUIRE(std::get<0>(event) == total_time);
                 REQUIRE(std::get<1>(event) == second_time);
 
@@ -141,19 +140,19 @@ TEST_CASE("Events", "[building][event]") {
             if (time != 0)
                 building.update_until(time);
 
-            listener->clear_events();
+            listener.clear_events();
 
             building.add_request(request);
 
             THEN("One request event is generated") {
-                REQUIRE(listener->request_created_events.size() == 1);
-                auto event = listener->request_created_events.front();
+                REQUIRE(listener.request_created_events.size() == 1);
+                auto event = listener.request_created_events.front();
                 REQUIRE(event.first == time);
                 REQUIRE(event.second.from == request.from);
                 REQUIRE(event.second.to == request.to);
                 REQUIRE(event.second.group == request.group);
-                listener->request_created_events.clear();
-                REQUIRE(listener->no_events());
+                listener.request_created_events.clear();
+                REQUIRE(listener.no_events());
             }
         }
         
@@ -161,22 +160,22 @@ TEST_CASE("Events", "[building][event]") {
             Time initial_time = GENERATE(0u, 1u, 5u);
             if (initial_time > 0)
                 building.update_until(initial_time);
-            listener->clear_events();
+            listener.clear_events();
 
             Height target = GENERATE(0u, 5u, 10u, 15u);
             CAPTURE(target);
             building.send_elevator(0, target);
 
             THEN("A elevator target event is generated") {
-                REQUIRE(listener->elevator_set_target_events.size() == 1);
-                auto& [time, height, elevatorState] = listener->elevator_set_target_events.front();
+                REQUIRE(listener.elevator_set_target_events.size() == 1);
+                auto& [time, height, elevatorState] = listener.elevator_set_target_events.front();
                 REQUIRE(time == initial_time);
                 REQUIRE(height == target);
                 REQUIRE(elevatorState.group_id == 0);
                 REQUIRE(elevatorState.id == 0);
                 REQUIRE(elevatorState.target_height() == elevatorState.height());
-                listener->elevator_set_target_events.clear();
-                REQUIRE(listener->no_events());
+                listener.elevator_set_target_events.clear();
+                REQUIRE(listener.no_events());
             }
         }
 
@@ -187,23 +186,23 @@ TEST_CASE("Events", "[building][event]") {
             if (initial_time > 0)
                 building.update_until(initial_time);
             building.send_elevator(0, target);
-            listener->clear_events();
+            listener.clear_events();
 
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
 
             THEN("An elevator opened door event was generated") {
-                REQUIRE(listener->elevator_opened_events.size() == 1);
-                auto& [time, elevatorState] = listener->elevator_opened_events.front();
+                REQUIRE(listener.elevator_opened_events.size() == 1);
+                auto& [time, elevatorState] = listener.elevator_opened_events.front();
                 REQUIRE(time == open_time.value());
                 REQUIRE(elevatorState.group_id == 0);
                 REQUIRE(elevatorState.id == 0);
                 REQUIRE(elevatorState.target_height() == elevatorState.height());
                 REQUIRE(elevatorState.height() == target);
                 REQUIRE(elevatorState.current_state() == ElevatorState::State::DoorsOpen);
-                listener->elevator_opened_events.clear();
-                REQUIRE(listener->no_events());
+                listener.elevator_opened_events.clear();
+                REQUIRE(listener.no_events());
             }
         }
 
@@ -218,23 +217,23 @@ TEST_CASE("Events", "[building][event]") {
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
-            REQUIRE(listener->elevator_opened_events.size() == 1);
-            listener->clear_events();
+            REQUIRE(listener.elevator_opened_events.size() == 1);
+            listener.clear_events();
             auto close_time = building.next_event_at();
             REQUIRE(close_time.has_value());
             building.update_until(close_time.value());
 
             THEN("An elevator closed door event was generated") {
-                REQUIRE(listener->elevator_closed_events.size() == 1);
-                auto& [time, elevatorState] = listener->elevator_closed_events.front();
+                REQUIRE(listener.elevator_closed_events.size() == 1);
+                auto& [time, elevatorState] = listener.elevator_closed_events.front();
                 REQUIRE(time == close_time.value());
                 REQUIRE(elevatorState.group_id == 0);
                 REQUIRE(elevatorState.id == 0);
                 REQUIRE(elevatorState.target_height() == elevatorState.height());
                 REQUIRE(elevatorState.height() == target);
                 REQUIRE(elevatorState.current_state() == ElevatorState::State::Stopped);
-                listener->elevator_closed_events.clear();
-                REQUIRE(listener->no_events());
+                listener.elevator_closed_events.clear();
+                REQUIRE(listener.no_events());
             }
         }
 
@@ -251,25 +250,25 @@ TEST_CASE("Events", "[building][event]") {
                 building.update_until(initial_time);
             building.send_elevator(0, target);
 
-            listener->clear_events();
+            listener.clear_events();
 
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
 
             THEN("A passenger enter event is generated") {
-                REQUIRE(listener->passenger_enter_events.size() == 1);
-                auto& [time, entered_passenger, elevatorID] = listener->passenger_enter_events.front();
+                REQUIRE(listener.passenger_enter_events.size() == 1);
+                auto& [time, entered_passenger, elevatorID] = listener.passenger_enter_events.front();
                 REQUIRE(time == open_time.value());
                 REQUIRE(entered_passenger.from == passenger.from);
                 REQUIRE(entered_passenger.to == passenger.to);
                 REQUIRE(entered_passenger.group == passenger.group);
                 REQUIRE(elevatorID == 0);
-                listener->passenger_enter_events.clear();
-                REQUIRE(listener->elevator_opened_events.size() <= 1);
-                listener->elevator_opened_events.clear();
+                listener.passenger_enter_events.clear();
+                REQUIRE(listener.elevator_opened_events.size() <= 1);
+                listener.elevator_opened_events.clear();
 
-                REQUIRE(listener->no_events());
+                REQUIRE(listener.no_events());
             }
         }
 
@@ -282,8 +281,8 @@ TEST_CASE("Events", "[building][event]") {
             };
             building.add_request(passenger);
 
-            REQUIRE(listener->request_created_events.size() == 1);
-            auto generated_passenger_id = listener->request_created_events.front().second.id;
+            REQUIRE(listener.request_created_events.size() == 1);
+            auto generated_passenger_id = listener.request_created_events.front().second.id;
 
             if (initial_time > 0)
                 building.update_until(initial_time);
@@ -303,23 +302,23 @@ TEST_CASE("Events", "[building][event]") {
             }
 
             building.send_elevator(0, 10);
-            listener->clear_events();
+            listener.clear_events();
 
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
 
             THEN("A passenger leave event is generated") {
-                REQUIRE(listener->passenger_leave_events.size() == 1);
-                auto& [time, passenger_id, left_height] = listener->passenger_leave_events.front();
+                REQUIRE(listener.passenger_leave_events.size() == 1);
+                auto& [time, passenger_id, left_height] = listener.passenger_leave_events.front();
                 REQUIRE(time == open_time.value());
                 REQUIRE(passenger_id == generated_passenger_id);
                 REQUIRE(left_height == 10);
-                listener->passenger_leave_events.clear();
-                REQUIRE(listener->elevator_opened_events.size() <= 1);
-                listener->elevator_opened_events.clear();
+                listener.passenger_leave_events.clear();
+                REQUIRE(listener.elevator_opened_events.size() <= 1);
+                listener.elevator_opened_events.clear();
 
-                REQUIRE(listener->no_events());
+                REQUIRE(listener.no_events());
             }
         }
 
