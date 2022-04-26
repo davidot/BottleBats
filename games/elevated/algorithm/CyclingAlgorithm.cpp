@@ -23,7 +23,7 @@ ElevatedAlgorithm::ScenarioAccepted CyclingAlgorithm::accept_scenario_descriptio
     return ElevatedAlgorithm::ScenarioAccepted::Yes;
 }
 
-std::vector<AlgorithmResponse> CyclingAlgorithm::on_inputs(Time at, const BuildingState& building, std::vector<AlgorithmInput> inputs)
+std::vector<AlgorithmResponse> CyclingAlgorithm::on_inputs(Time, const BuildingState& building, std::vector<AlgorithmInput> inputs)
 {
     std::vector<AlgorithmResponse> responses;
 
