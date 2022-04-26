@@ -18,6 +18,16 @@ TEST_CASE("Events", "[building][event]") {
 
         REQUIRE(listener.no_events());
 
+        WHEN("The building is updated with 0 steps") {
+
+            building.update_until(0);
+
+            THEN("No elevator stopped events are generated") {
+                REQUIRE(listener.elevator_stopped_events.size() == 0);
+                REQUIRE(listener.no_events());
+            }
+        }
+
         WHEN("The building is updated") {
             Time time = GENERATE(1, 2, 5, 10, 20);
 
@@ -60,8 +70,7 @@ TEST_CASE("Events", "[building][event]") {
             PassengerBlueprint request {GENERATE(0u, 5u, 10u), 15, 0};
 
             Time time = GENERATE(0, 1, 10);
-            if (time != 0)
-                building.update_until(time);
+            building.update_until(time);
 
             listener.clear_events();
 
@@ -81,8 +90,7 @@ TEST_CASE("Events", "[building][event]") {
         
         WHEN("A target is set on the elevator") {
             Time initial_time = GENERATE(0u, 1u, 5u);
-            if (initial_time > 0)
-                building.update_until(initial_time);
+            building.update_until(initial_time);
             listener.clear_events();
 
             Height target = GENERATE(0u, 5u, 10u, 15u);
@@ -106,8 +114,8 @@ TEST_CASE("Events", "[building][event]") {
             Time initial_time = GENERATE(0u, 1u, 5u);
             Height target = GENERATE(0u, 5u, 15u);
             CAPTURE(initial_time, target);
-            if (initial_time > 0)
-                building.update_until(initial_time);
+            building.update_until(initial_time);
+
             building.send_elevator(0, target);
             listener.clear_events();
 
@@ -133,8 +141,8 @@ TEST_CASE("Events", "[building][event]") {
             Time initial_time = GENERATE(0u, 1u, 5u);
             Height target = GENERATE(0u, 5u, 15u);
             CAPTURE(initial_time, target);
-            if (initial_time > 0)
-                building.update_until(initial_time);
+            building.update_until(initial_time);
+
             building.send_elevator(0, target);
 
             auto open_time = building.next_event_at();
@@ -169,8 +177,7 @@ TEST_CASE("Events", "[building][event]") {
             };
             building.add_request(passenger);
 
-            if (initial_time > 0)
-                building.update_until(initial_time);
+            building.update_until(initial_time);
             building.send_elevator(0, target);
 
             listener.clear_events();
@@ -207,8 +214,7 @@ TEST_CASE("Events", "[building][event]") {
             REQUIRE(listener.request_created_events.size() == 1);
             auto generated_passenger_id = listener.request_created_events.front().second.id;
 
-            if (initial_time > 0)
-                building.update_until(initial_time);
+            building.update_until(initial_time);
             building.send_elevator(0, target);
 
             {
