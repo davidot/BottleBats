@@ -3,23 +3,23 @@
 
 namespace Elevated {
 
-static Passenger no_request{0, {}};
-
-AlgorithmInput AlgorithmInput::new_request(Passenger const& request) {
-    AlgorithmInput input{request};
+AlgorithmInput AlgorithmInput::new_request(Height at, size_t index) {
+    AlgorithmInput input;
     input.m_type = Type::NewRequestMade;
+    input.request_height = at;
+    input.request_index = index;
     return input;
 }
 
 AlgorithmInput AlgorithmInput::elevator_closed_doors(ElevatorID id) {
-    AlgorithmInput input{no_request};
+    AlgorithmInput input;
     input.m_type = Type::ElevatorClosedDoors;
     input.m_elevator_id = id;
     return input;
 }
 
 AlgorithmInput AlgorithmInput::timer_fired() {
-    AlgorithmInput input{no_request};
+    AlgorithmInput input;
     input.m_type = Type::TimerFired;
     return input;
 }
@@ -59,9 +59,11 @@ ElevatorID AlgorithmInput::elevator_id() const {
     return m_elevator_id;
 }
 
-Passenger const& AlgorithmInput::new_request() const {
+Passenger const& AlgorithmInput::request(BuildingState const& building) const {
     ASSERT(m_type == Type::NewRequestMade);
-    return m_request;
+    auto& queue = building.passengers_at(request_height);
+    ASSERT(request_index < queue.size());
+    return queue[request_index];
 }
 
 }

@@ -8,6 +8,11 @@ namespace Elevated {
 
 
 class AlgorithmInput {
+public:
+    static AlgorithmInput new_request(Height at, size_t index);
+    static AlgorithmInput elevator_closed_doors(ElevatorID);
+    static AlgorithmInput timer_fired();
+
     enum class Type {
         NewRequestMade,
         ElevatorClosedDoors,
@@ -15,25 +20,19 @@ class AlgorithmInput {
     };
 
     Type type() const { return m_type; }
-
-    static AlgorithmInput new_request(Passenger const&);
-    static AlgorithmInput elevator_closed_doors(ElevatorID);
-    static AlgorithmInput timer_fired();
-
     ElevatorID elevator_id() const;
-    Passenger const& new_request() const;
+    Passenger const& request(BuildingState const&) const;
 private:
-    AlgorithmInput(Passenger const& request)
-        : m_request(request)
-    {
-    }
+    AlgorithmInput() = default;
 
     Type m_type;
-    ElevatorID m_elevator_id;
-    Passenger const& m_request;
+    ElevatorID m_elevator_id = -1;
+    Height request_height = -1;
+    size_t request_index = -1;
 };
 
 class AlgorithmResponse {
+public:
     enum class Type {
         MoveElevator,
         SetTimer
@@ -60,7 +59,7 @@ private:
 
 
 class ElevatedAlgorithm {
-
+public:
     enum class ScenarioAccepted {
         Yes,
         No
