@@ -60,6 +60,8 @@ private:
 
 class ElevatedAlgorithm {
 public:
+    virtual ~ElevatedAlgorithm() = default;
+
     enum class ScenarioAccepted {
         Yes,
         No
