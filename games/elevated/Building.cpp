@@ -94,7 +94,7 @@ std::optional<size_t> BuildingState::add_request(PassengerBlueprint passenger)
 
     ASSERT(m_next_passenger_id != 0);
     auto& new_passenger = m_floors[passenger.from].emplace_back(m_next_passenger_id++, passenger);
-    m_event_listener->on_request_created(m_current_time, new_passenger);
+    m_event_listener->on_request_created(m_current_time + 1, new_passenger);
     return m_floors[passenger.from].size() - 1u;
 }
 

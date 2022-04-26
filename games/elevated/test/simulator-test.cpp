@@ -173,7 +173,7 @@ TEST_CASE("Simulator", "[simulator]") {
 
                 REQUIRE_FALSE(listener->no_events());
                 REQUIRE(listener->request_created_events.size() == 1);
-                REQUIRE(listener->request_created_events[0].first == 0); // FIXME: Should actually be time 1
+                REQUIRE(listener->request_created_events[0].first == 1);
             }
         }
     }

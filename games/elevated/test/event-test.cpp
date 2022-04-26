@@ -79,7 +79,7 @@ TEST_CASE("Events", "[building][event]") {
             THEN("One request event is generated") {
                 REQUIRE(listener.request_created_events.size() == 1);
                 auto event = listener.request_created_events.front();
-                REQUIRE(event.first == time);
+                REQUIRE(event.first == time + 1);
                 REQUIRE(event.second.from == request.from);
                 REQUIRE(event.second.to == request.to);
                 REQUIRE(event.second.group == request.group);
