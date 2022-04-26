@@ -64,7 +64,8 @@ public:
 
     explicit operator bool() const { return !has_error(); }
 
-    BuildingBlueprint const& blueprint() { return m_blueprint; }
+    BuildingBlueprint const& blueprint() const { return m_blueprint; }
+    BuildingBlueprint& blueprint() { return m_blueprint; }
 
     BuildingBlueprint&& extract_blueprint();
 private:
