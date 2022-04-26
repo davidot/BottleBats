@@ -24,6 +24,7 @@ add_library(LibElevated
         elevated/generation/Generation.cpp
         elevated/stats/Listener.cpp
         elevated/algorithm/Algorithm.cpp
+        elevated/algorithm/CyclingAlgorithm.cpp
         )
 
 target_include_directories(LibElevated INTERFACE .)

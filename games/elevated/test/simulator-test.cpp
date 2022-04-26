@@ -1,9 +1,10 @@
-#include <catch2/catch.hpp>
-#include <elevated/Types.h>
-#include <elevated/Simulation.h>
-#include "elevated/generation/FullGenerators.h"
 #include "StoringAlgorithm.h"
 #include "StoringEventListener.h"
+#include <catch2/catch.hpp>
+#include <elevated/Simulation.h>
+#include <elevated/Types.h>
+#include <elevated/algorithm/CyclingAlgorithm.h>
+#include <elevated/generation/FullGenerators.h>
 
 using namespace Elevated;
 
@@ -220,6 +221,71 @@ TEST_CASE("Simulator", "[simulator]") {
 
             THEN("Fails with did not move all passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::FailedToResolveAllRequests);
+            }
+        }
+    }
+
+    GIVEN("A simulation with the cycling algorithm and simple requests") {
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } },
+                                    {
+                                        { 0, { { 0, 10, 0 } } },
+                                        { 11, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 22, { { 0, 10, 0 } } },
+                                        { 33, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 44, { { 0, 10, 0 } } },
+                                        { 55, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 66, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 77, { { 0, 10, 0 } } },
+                                        { 88, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 99, { { 0, 10, 0 } } },
+                                        { 111, { { 10, 0, 0 } } },
+                                    }),
+            std::make_unique<CyclingAlgorithm>() };
+
+        auto listener = std::make_shared<StoringEventListener>();
+        simulation.add_listener(listener);
+
+        WHEN("The simulation is run") {
+
+            auto result = simulation.run();
+
+            THEN("It is successful and got all the passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
+                REQUIRE(listener->request_created_events.size() == 16);
+                REQUIRE(listener->passenger_enter_events.size() == 16);
+                REQUIRE(listener->passenger_leave_events.size() == 16);
+            }
+        }
+    }
+
+    GIVEN("A simulation with the cycling algorithm and simple requests and extra floors") {
+        Simulation simulation { hardcoded({ { 1, { 0, 5, 10, 100 } } },
+                                    {
+                                        { 0, { { 0, 10, 0 } } },
+                                        { 10, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 20, { { 0, 10, 0 } } },
+                                        { 30, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 40, { { 0, 100, 0 } } },
+                                        { 50, { { 0, 100, 0 }, { 10, 0, 0 } } },
+                                        { 60, { { 5, 100, 0 }, { 10, 0, 0 } } },
+                                        { 70, { { 0, 10, 0 } } },
+                                        { 80, { { 0, 10, 0 }, { 10, 0, 0 } } },
+                                        { 90, { { 100, 5, 0 } } },
+                                        { 100, { { 5, 100, 0 } } },
+                                    }),
+            std::make_unique<CyclingAlgorithm>() };
+
+        auto listener = std::make_shared<StoringEventListener>();
+        simulation.add_listener(listener);
+
+        WHEN("The simulation is run") {
+            auto result = simulation.run();
+
+            THEN("It is successful and got all the passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
+                REQUIRE(listener->request_created_events.size() == 16);
+                REQUIRE(listener->passenger_enter_events.size() == 16);
+                REQUIRE(listener->passenger_leave_events.size() == 16);
             }
         }
     }
