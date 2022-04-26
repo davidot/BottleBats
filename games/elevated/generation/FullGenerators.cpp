@@ -14,12 +14,28 @@ HardcodedScenarioGenerator::HardcodedScenarioGenerator(
     GroupID next_id {0};
     for (auto& [amount_of_elevators, reachable_heights] : building_description) {
         ASSERT(m_building.reachable_per_group.size() == next_id);
+
+        if (amount_of_elevators == 0) {
+            m_failed_string = "Elevator group has no elevators";
+            return;
+        }
+
+        if (reachable_heights.empty()) {
+            m_failed_string = "Elevator group has no floors";
+            return;
+        }
+
         m_building.reachable_per_group.emplace_back(reachable_heights.begin(), reachable_heights.end());
         all_floors.insert(reachable_heights.begin(), reachable_heights.end());
 
         for (size_t i = 0; i < amount_of_elevators; ++i)
             m_building.elevators.push_back(BuildingBlueprint::Elevator { next_id });
         ++next_id;
+    }
+
+    if (building_description.empty()) {
+        m_failed_string = "No elevator groups given";
+        return;
     }
 
     for (auto& [at, passenger_blueprints] : request_descriptions) {
@@ -43,6 +59,9 @@ HardcodedScenarioGenerator::HardcodedScenarioGenerator(
             return;
         }
     }
+
+    if (request_descriptions.empty())
+        m_failed_string = "No request given";
 
     std::sort(m_passengers.begin(), m_passengers.end(), [](PassengerBlueprintAndTime const& lhs, PassengerBlueprintAndTime const& rhs) {
         return lhs.arrival_time > rhs.arrival_time;
