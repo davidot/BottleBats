@@ -66,14 +66,12 @@ SimulatorResult Simulation::run()
 
     bool running = true;
     NextRequests next_request_time = m_generator->next_requests_at();
-//    Time last_request = 0;
+    Time last_requests = 0;
     std::optional<Time> next_timer = {};
 
-//    Time extra_time_after_last_request = 1000;
+    Time extra_time_after_last_request = 100000;
 
     while (running) {
-        // FIXME: Attempt to detect loops/long time without useful commands
-
         if (next_request_time.type == NextRequests::Type::Done && m_building.passengers_done())
             break;
 
@@ -89,12 +87,18 @@ SimulatorResult Simulation::run()
 
         auto running_until = *next_time_or_none;
 
+        if (next_request_time.type != NextRequests::Type::At && running_until > last_requests + extra_time_after_last_request) {
+            result->type = SimulatorResult::Type::FailedToResolveAllRequests;
+            return *result;
+        }
+
         auto elevators_closed = m_building.update_until(running_until);
         ASSERT(m_generator->next_requests_at() > running_until || next_request_time == running_until);
 
         std::vector<AlgorithmInput> inputs;
 
         if (next_request_time == running_until) {
+            last_requests = running_until;
             auto new_requests = m_generator->requests_at(running_until);
             inputs.reserve(new_requests.size() + elevators_closed.size());
             for (auto& new_request : new_requests) {
@@ -142,6 +146,10 @@ SimulatorResult Simulation::run()
         }
 
         next_request_time = m_generator->next_requests_at();
+        if (next_request_time < last_requests) {
+            result->type = SimulatorResult::Type::RequestGenerationFailed;
+            return *result;
+        }
     }
 
     return *result;

@@ -15,7 +15,7 @@ std::unique_ptr<ScenarioGenerator> hardcoded(std::vector<std::pair<size_t, std::
 TEST_CASE("Simulator", "[simulator]") {
 
     GIVEN("A simulation with a failing building generator") {
-        Simulation simulation{ hardcoded({}, {}), std::make_unique<StoringAlgorithm>()};
+        Simulation simulation { hardcoded({}, {}), std::make_unique<StoringAlgorithm>() };
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
 
@@ -34,7 +34,7 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with a valid building generator but rejecting algorithm") {
-        Simulation simulation{ hardcoded({{1, {0, 1}}}, {{10, {{0, 1, 0}}}}), std::make_unique<StoringAlgorithm>(false)};
+        Simulation simulation { hardcoded({ { 1, { 0, 1 } } }, { { 10, { { 0, 1, 0 } } } }), std::make_unique<StoringAlgorithm>(false) };
 
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
@@ -54,7 +54,7 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with a valid building generator and accepting algorithm") {
-        Simulation simulation{ hardcoded({{1, {0, 1}}}, {{10, {{0, 1, 0}}}}), std::make_unique<StoringAlgorithm>(true)};
+        Simulation simulation { hardcoded({ { 1, { 0, 1 } } }, { { 10, { { 0, 1, 0 } } } }), std::make_unique<StoringAlgorithm>(true) };
 
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
@@ -78,7 +78,7 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with a valid building generator and accepting algorithm") {
-        Simulation simulation{ hardcoded({{1, {0, 1}}}, {{10, {{0, 1, 0}}}}), std::make_unique<StoringAlgorithm>(true)};
+        Simulation simulation { hardcoded({ { 1, { 0, 1 } } }, { { 10, { { 0, 1, 0 } } } }), std::make_unique<StoringAlgorithm>(true) };
 
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
@@ -102,7 +102,7 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with a valid building generator and accepting algorithm with predefined responses") {
-        Simulation simulation{ hardcoded({{1, {0, 1}}}, {{10, {{0, 1, 0}}}}), std::make_unique<StoringAlgorithm>(true)};
+        Simulation simulation { hardcoded({ { 1, { 0, 1 } } }, { { 10, { { 0, 1, 0 } } } }), std::make_unique<StoringAlgorithm>(true) };
 
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
@@ -110,8 +110,8 @@ TEST_CASE("Simulator", "[simulator]") {
         REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
-        algorithm.add_response(10, {AlgorithmResponse::move_elevator_to(0, 0)});
-        algorithm.add_response(12, {AlgorithmResponse::move_elevator_to(0, 1)});
+        algorithm.add_response(10, { AlgorithmResponse::move_elevator_to(0, 0) });
+        algorithm.add_response(12, { AlgorithmResponse::move_elevator_to(0, 1) });
 
         WHEN("The simulation is run") {
             auto result = simulation.run();
@@ -129,7 +129,7 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with with time between responses") {
-        Simulation simulation{ hardcoded({{1, {0, 10}}}, {{0, {{0, 10, 0}}}}), std::make_unique<StoringAlgorithm>(true)};
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 0, { { 0, 10, 0 } } } }), std::make_unique<StoringAlgorithm>(true) };
 
         auto listener = std::make_shared<StoringEventListener>();
         simulation.add_listener(listener);
@@ -137,12 +137,11 @@ TEST_CASE("Simulator", "[simulator]") {
         REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
-
         WHEN("The simulation is run with timer events spread through out") {
-            algorithm.add_response(0, {AlgorithmResponse::set_timer_at(5)});
-            algorithm.add_response(5, {AlgorithmResponse::set_timer_at(10), AlgorithmResponse::move_elevator_to(0, 0)});
-            algorithm.add_response(7, {AlgorithmResponse::set_timer_at(10), AlgorithmResponse::move_elevator_to(0, 10)});
-            algorithm.add_response(10, {AlgorithmResponse::set_timer_at(20), AlgorithmResponse::move_elevator_to(0, 10)});
+            algorithm.add_response(0, { AlgorithmResponse::set_timer_at(5) });
+            algorithm.add_response(5, { AlgorithmResponse::set_timer_at(10), AlgorithmResponse::move_elevator_to(0, 0) });
+            algorithm.add_response(7, { AlgorithmResponse::set_timer_at(10), AlgorithmResponse::move_elevator_to(0, 10) });
+            algorithm.add_response(10, { AlgorithmResponse::set_timer_at(20), AlgorithmResponse::move_elevator_to(0, 10) });
 
             auto result = simulation.run();
 
@@ -179,16 +178,13 @@ TEST_CASE("Simulator", "[simulator]") {
     }
 
     GIVEN("A simulation with with time between responses") {
-        Simulation simulation{ hardcoded({{1, {0, 10}}}, {{0, {{0, 10, 0}}}}), std::make_unique<StoringAlgorithm>(true)};
-
-        auto listener = std::make_shared<StoringEventListener>();
-        simulation.add_listener(listener);
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 0, { { 0, 10, 0 } } } }), std::make_unique<StoringAlgorithm>(true) };
 
         REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
-        algorithm.add_response(0, {AlgorithmResponse::set_timer_at(5)});
-        algorithm.add_response(5, {AlgorithmResponse::set_timer_at(2)});
+        algorithm.add_response(0, { AlgorithmResponse::set_timer_at(5) });
+        algorithm.add_response(5, { AlgorithmResponse::set_timer_at(2) });
 
         WHEN("The simulation is run") {
             auto result = simulation.run();
@@ -199,5 +195,32 @@ TEST_CASE("Simulator", "[simulator]") {
         }
     }
 
+    GIVEN("Requests in wrong order") {
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 10, { { 0, 10, 0 } } }, { 0, { { 0, 10, 0 } } } }, true), std::make_unique<StoringAlgorithm>() };
 
+        WHEN("Simulation is run") {
+            auto result = simulation.run();
+
+            THEN("Fails with request generation") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::RequestGenerationFailed);
+            }
+        }
+    }
+
+    GIVEN("Simulation which is never solved") {
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 0, { { 0, 10, 0 } } } }), std::make_unique<StoringAlgorithm>() };
+
+        REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
+        auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
+        for (Time t = 0; t < 1000000; t += 1000)
+            algorithm.add_response(t, { AlgorithmResponse::set_timer_at(t + 1000) });
+
+        WHEN("Simulation is run") {
+            auto result = simulation.run();
+
+            THEN("Fails with did not move all passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::FailedToResolveAllRequests);
+            }
+        }
+    }
 }

@@ -16,6 +16,7 @@ struct SimulatorResult {
         AlgorithmRejected,
         AlgorithmMisbehaved,
         NoNextEvent,
+        FailedToResolveAllRequests
     };
 
     Type type = Type::SuccessFull;
