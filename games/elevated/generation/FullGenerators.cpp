@@ -7,7 +7,7 @@ namespace Elevated {
 
 HardcodedScenarioGenerator::HardcodedScenarioGenerator(
         std::vector<std::pair<size_t, std::vector<Height>>> building_description,
-        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions) {
+        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions, bool hide_errors) {
 
     std::unordered_set<Height> all_floors;
 
@@ -63,9 +63,17 @@ HardcodedScenarioGenerator::HardcodedScenarioGenerator(
     if (request_descriptions.empty())
         m_failed_string = "No request given";
 
-    std::sort(m_passengers.begin(), m_passengers.end(), [](PassengerBlueprintAndTime const& lhs, PassengerBlueprintAndTime const& rhs) {
-        return lhs.arrival_time > rhs.arrival_time;
-    });
+    std::reverse(m_passengers.begin(), m_passengers.end());
+
+    if (!std::is_sorted(m_passengers.begin(), m_passengers.end(),
+            [](PassengerBlueprintAndTime const& lhs, PassengerBlueprintAndTime const& rhs) {
+                return lhs.arrival_time > rhs.arrival_time;
+            })) {
+        m_failed_string = "Request are not in order";
+    }
+
+    if (hide_errors)
+        m_failed_string = "";
 }
 
 BuildingGenerationResult Elevated::HardcodedScenarioGenerator::generate_building() {
@@ -91,8 +99,6 @@ std::vector<PassengerBlueprint> HardcodedScenarioGenerator::requests_at(Elevated
         blueprints.emplace_back(m_passengers.back().blueprint);
         m_passengers.pop_back();
     }
-
-    ASSERT(m_passengers.empty() || m_passengers.back().arrival_time > time);
 
     return blueprints;
 }

@@ -7,8 +7,9 @@
 
 using namespace Elevated;
 
-std::unique_ptr<ScenarioGenerator> hardcoded(std::vector<std::pair<size_t, std::vector<Height>>> building, std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> requests) {
-    return std::make_unique<HardcodedScenarioGenerator>(building, requests);
+std::unique_ptr<ScenarioGenerator> hardcoded(std::vector<std::pair<size_t, std::vector<Height>>> building, std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> requests, bool hide_errors = false)
+{
+    return std::make_unique<HardcodedScenarioGenerator>(std::move(building), std::move(requests), hide_errors);
 }
 
 TEST_CASE("Simulator", "[simulator]") {
