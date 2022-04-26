@@ -34,7 +34,7 @@ BuildingState::BuildingState(BuildingBlueprint blueprint, EventListener* event_l
     ASSERT(m_event_listener);
 }
 
-void BuildingState::update_until(Time target_time)
+std::vector<ElevatorID> BuildingState::update_until(Time target_time)
 {
     ASSERT(m_event_listener);
     ASSERT(target_time >= m_current_time);
@@ -76,10 +76,12 @@ void BuildingState::update_until(Time target_time)
             break;
         }
     }
+
+    return elevators_closed_doors;
 }
 
 
-void BuildingState::add_request(PassengerBlueprint passenger)
+std::optional<size_t> BuildingState::add_request(PassengerBlueprint passenger)
 {
     ASSERT(m_event_listener);
     ASSERT(m_floors.contains(passenger.from));
@@ -88,20 +90,31 @@ void BuildingState::add_request(PassengerBlueprint passenger)
     ASSERT(m_group_reachable[passenger.group].contains(passenger.from));
 
     if (passenger.group >= m_group_reachable.size() || !m_group_reachable[passenger.group].contains(passenger.from))
-        return; // FIXME: We might want to warn or fail here?
+        return {};
 
     ASSERT(m_next_passenger_id != 0);
     auto& new_passenger = m_floors[passenger.from].emplace_back(m_next_passenger_id++, passenger);
     m_event_listener->on_request_created(m_current_time, new_passenger);
+    return m_floors[passenger.from].size() - 1u;
 }
 
-void BuildingState::send_elevator(ElevatorID id, Height target)
+bool BuildingState::send_elevator(ElevatorID id, Height target)
 {
     ASSERT(m_event_listener);
     ASSERT(id < m_elevators.size());
+
+    if (id >= m_elevators.size())
+        return false;
+
     auto& elevator = m_elevators[id];
+
+    if (!m_group_reachable[elevator.group_id].contains(target))
+        return false;
+
     m_event_listener->on_elevator_set_target(m_current_time, target, elevator);
     elevator.set_target(target);
+
+    return true;
 }
 
 std::optional<Time> BuildingState::next_event_at() const
@@ -129,6 +142,15 @@ std::vector<Passenger> const &BuildingState::passengers_at(Height height) const 
 ElevatorState const &BuildingState::elevator(ElevatorID id) const {
     ASSERT(id < m_elevators.size());
     return m_elevators[id];
+}
+
+bool BuildingState::passengers_done()
+{
+    return std::all_of(m_floors.begin(), m_floors.end(), [&](const auto& item){
+        return item.second.empty();
+    }) && std::all_of(m_elevators.begin(), m_elevators.end(), [&](ElevatorState const& elevator_state) {
+        return elevator_state.passengers().empty();
+    });
 }
 
 }

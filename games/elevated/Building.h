@@ -18,12 +18,15 @@ public:
 
     [[nodiscard]] std::optional<Time> next_event_at() const;
 
-    void add_request(PassengerBlueprint passenger);
-    void send_elevator(ElevatorID, Height target);
-    void update_until(Time target_time);
+    std::optional<size_t> add_request(PassengerBlueprint passenger);
+    bool send_elevator(ElevatorID, Height target);
+    std::vector<ElevatorID> update_until(Time target_time);
 
     [[nodiscard]] std::vector<Passenger> const& passengers_at(Height) const;
     [[nodiscard]] ElevatorState const& elevator(ElevatorID) const;
+    [[nodiscard]] Time current_time() const { return m_current_time; }
+
+    bool passengers_done();
 
 private:
     std::unordered_map<Height, std::vector<Passenger>> m_floors;
