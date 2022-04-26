@@ -1,6 +1,8 @@
-#include <iostream>
 #include "Simulation.h"
 #include "../../util/Assertions.h"
+#include <algorithm>
+#include <iostream>
+#include <string>
 
 namespace Elevated {
 
