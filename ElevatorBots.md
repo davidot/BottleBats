@@ -58,3 +58,25 @@ Compute:
 - No root (different user even?)
 - Must be linux based
 - Must have entrypoint set
+
+Protocol:
+```
+> elevated
+> setting capacity on|off
+> setting info low|high|min|max
+> setting commands basic|routing|...
+> building [n] <- groups
+> [group_id] [#elevators] [#floors] [...floors...]
+> [...elevators...] [elevator_id] [speed] [capacity] [door_open_time] [door_close_time]
+> done
+< ready | reject
+> events [time] [#events]
+ > timer
+ > closed [elevator_id] [group_id] [current_height] [#target floors] [...targets...] {extra_info1}
+ > request [height] [group_id] {extra_info2}
+ 
+info low -> 
+        {extra_info2} = [direction = up|down]
+
+< Second
+``` 
