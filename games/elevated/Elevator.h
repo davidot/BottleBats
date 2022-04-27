@@ -15,12 +15,14 @@ struct Passenger {
     Height from;
     Height to;
     GroupID group;
+    Capacity capacity;
 
     Passenger(PassengerID id_, PassengerBlueprint blueprint)
         : id(id_)
         , from(blueprint.from)
         , to(blueprint.to)
         , group(blueprint.group)
+        , capacity(blueprint.capacity)
     {
     }
 
@@ -33,6 +35,7 @@ public:
     struct TravellingPassenger {
         PassengerID id;
         Height to;
+        Capacity capacity;
     };
 
     enum class State {
@@ -46,6 +49,7 @@ public:
 
     ElevatorID const id;
     GroupID const group_id;
+    Capacity const max_capacity;
     constexpr static Time door_opening_time = 1;
     constexpr static Time door_closing_time = 1;
 
@@ -62,8 +66,12 @@ public:
         return m_passengers;
     }
 
-    ElevatorState(ElevatorID id_, GroupID group_id_, Height initial_height)
-        : id(id_), group_id(group_id_), m_height(initial_height), m_target_height(initial_height)
+    ElevatorState(ElevatorID id_, GroupID group_id_, Capacity max_capacity_, Height initial_height)
+        : id(id_)
+        , group_id(group_id_)
+        , max_capacity(max_capacity_)
+        , m_height(initial_height)
+        , m_target_height(initial_height)
     {
     }
 
@@ -95,8 +103,8 @@ private:
         return steps;
     }
 
-    void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&);
-    void dropoff_passengers(TransferredPassengers&);
+    void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&, Capacity capacity_left);
+    Capacity dropoff_passengers(TransferredPassengers&);
     void move_to_target(Height distance);
 };
 

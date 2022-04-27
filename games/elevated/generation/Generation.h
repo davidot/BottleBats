@@ -11,6 +11,7 @@ struct BuildingBlueprint {
 
     struct Elevator {
         GroupID group;
+        Capacity max_capacity{1};
 //        Height speed; FIXME: Ignored for now!
     };
 
@@ -25,6 +26,7 @@ struct PassengerBlueprint {
     Height from;
     Height to;
     GroupID group;
+    Capacity capacity{0};
 };
 
 struct NextRequests {
@@ -68,9 +70,12 @@ public:
     BuildingBlueprint& blueprint() { return m_blueprint; }
 
     BuildingBlueprint&& extract_blueprint();
+
+    bool has_infinite_capacity() const { return m_infinite_capacity; }
 private:
     BuildingBlueprint m_blueprint;
     mutable std::vector<std::string> m_errors;
+    bool m_infinite_capacity {false};
 };
 
 class ScenarioGenerator {

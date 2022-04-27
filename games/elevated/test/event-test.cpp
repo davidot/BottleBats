@@ -67,7 +67,7 @@ TEST_CASE("Events", "[building][event]") {
         }
 
         WHEN("A request is generated on any floor") {
-            PassengerBlueprint request {GENERATE(0u, 5u, 10u), 15, 0};
+            PassengerBlueprint request {GENERATE(0u, 5u, 10u), 15, 0, GENERATE(0u, 1u, 10u)};
 
             Time time = GENERATE(0, 1, 10);
             building.update_until(time);
@@ -83,6 +83,7 @@ TEST_CASE("Events", "[building][event]") {
                 REQUIRE(event.second.from == request.from);
                 REQUIRE(event.second.to == request.to);
                 REQUIRE(event.second.group == request.group);
+                REQUIRE(event.second.capacity == request.capacity);
                 listener.request_created_events.clear();
                 REQUIRE(listener.no_events());
             }

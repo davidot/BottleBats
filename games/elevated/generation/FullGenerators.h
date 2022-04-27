@@ -5,7 +5,9 @@ namespace Elevated {
 
 class HardcodedScenarioGenerator : public ScenarioGenerator {
 public:
-    HardcodedScenarioGenerator(std::vector<std::pair<size_t, std::vector<Height>>> building_description, std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions, bool hide_errors = false);
+    HardcodedScenarioGenerator(std::vector<std::pair<size_t, std::vector<Height>>> building_description,
+        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions,
+        Capacity elevator_capacity = 1u, bool hide_errors = false);
 
     BuildingGenerationResult generate_building() override;
 

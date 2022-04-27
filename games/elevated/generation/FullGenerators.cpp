@@ -7,7 +7,9 @@ namespace Elevated {
 
 HardcodedScenarioGenerator::HardcodedScenarioGenerator(
         std::vector<std::pair<size_t, std::vector<Height>>> building_description,
-        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions, bool hide_errors) {
+        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> request_descriptions,
+        Capacity elevator_capacity,
+    bool hide_errors) {
 
     std::unordered_set<Height> all_floors;
 
@@ -29,7 +31,7 @@ HardcodedScenarioGenerator::HardcodedScenarioGenerator(
         all_floors.insert(reachable_heights.begin(), reachable_heights.end());
 
         for (size_t i = 0; i < amount_of_elevators; ++i)
-            m_building.elevators.push_back(BuildingBlueprint::Elevator { next_id });
+            m_building.elevators.push_back(BuildingBlueprint::Elevator { next_id, elevator_capacity });
         ++next_id;
     }
 

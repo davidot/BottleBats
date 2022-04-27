@@ -1,7 +1,8 @@
 #include "Elevator.h"
+#include "../../util/Assertions.h"
 #include <algorithm>
 #include <iterator>
-#include "../../util/Assertions.h"
+#include <numeric>
 
 namespace Elevated {
 
@@ -110,7 +111,7 @@ void ElevatorState::set_target(Height floor)
     }
 }
 
-void ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
+Capacity ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
 {
     auto not_at_arrival = [height= m_height](TravellingPassenger const& passenger) {
         return passenger.to != height;
@@ -124,9 +125,13 @@ void ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
     });
 
     m_passengers.erase(reached_destination, m_passengers.end());
+    return std::accumulate(m_passengers.begin(), m_passengers.end(), Capacity {0},
+        [](Capacity accumulator, TravellingPassenger const& passenger) {
+            return accumulator + passenger.capacity;
+        });
 }
 
-void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers& transferred)
+void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers& transferred, Capacity capacity_left)
 {
     auto in_group = [&](Passenger const& passenger) {
         return passenger.group == group_id;
@@ -139,9 +144,10 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
         return;
 
     for (auto it = start; it != end; ++it) {
-        if (in_group(*it)) {
+        if (in_group(*it) && it->capacity <= capacity_left) {
             transferred.picked_up_passengers.emplace_back(*it);
             m_passengers.push_back({it->id, it->to});
+            capacity_left -= it->capacity;
         } else {
             *start = *it;
             ++start;
@@ -159,8 +165,9 @@ ElevatorState::TransferredPassengers ElevatorState::transfer_passengers(std::vec
 
     TransferredPassengers transferred;
 
-    dropoff_passengers(transferred);
-    pickup_passengers(waiting_passengers, transferred);
+    Capacity used_capacity = dropoff_passengers(transferred);
+    ASSERT(used_capacity <= max_capacity);
+    pickup_passengers(waiting_passengers, transferred, max_capacity - used_capacity);
 
     return transferred;
 }

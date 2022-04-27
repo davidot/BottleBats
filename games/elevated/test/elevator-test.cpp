@@ -2,13 +2,16 @@
 #include <elevated/Types.h>
 #include "elevated/Elevator.h"
 
+using namespace Elevated;
+
 TEST_CASE("Elevators state", "[elevators][state]") {
     GIVEN("An initialized elevator") {
-        Elevated::ElevatorID id = GENERATE(0, 2, 20);
-        Elevated::GroupID group_id = GENERATE(0, 2, 20);
-        Elevated::Height initial_height = GENERATE(0, 2, 20);
+        Elevated::ElevatorID id = GENERATE(0, 2);
+        Elevated::GroupID group_id = GENERATE(0, 2);
+        Elevated::Height initial_height = GENERATE(0, 2);
+        Elevated::Capacity max_capacity = GENERATE(0, 1);
         CAPTURE(id, group_id, initial_height);
-        Elevated::ElevatorState elevator{id, group_id, initial_height};
+        Elevated::ElevatorState elevator{id, group_id, max_capacity, initial_height};
 
         THEN("It has no passengers") {
             REQUIRE(elevator.passengers().empty());
@@ -38,7 +41,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
     GIVEN("An elevator starting on 0 height floor") {
         Elevated::Height initial_height = GENERATE(0, 2, 20);
         CAPTURE(initial_height);
-        Elevated::ElevatorState elevator{0, 0, initial_height};
+        Elevated::ElevatorState elevator{0, 0, 1, initial_height};
 
         REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::Stopped);
 
@@ -78,7 +81,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
 
     GIVEN("An elevator travelling to another floor") {
         Elevated::Height initial_height = 0;
-        Elevated::ElevatorState elevator{0, 0, initial_height};
+        Elevated::ElevatorState elevator{0, 0, 1, initial_height};
 
         Elevated::Height target_height = 10;
         elevator.set_target(target_height);
@@ -166,7 +169,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         Elevated::GroupID other_group_id = GENERATE(1, 4);
         CAPTURE(group_id, other_group_id);
 
-        Elevated::ElevatorState elevator {0, group_id, 0};
+        Elevated::ElevatorState elevator {0, group_id, 1, 0};
         elevator.set_target(0);
 
         REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
@@ -295,7 +298,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
     }
 
     GIVEN("An elevator which has just picked up passengers and is now closing doors") {
-        Elevated::ElevatorState elevator {0, 0, 0};
+        Elevated::ElevatorState elevator {0, 0, 1, 0};
         elevator.set_target(0);
 
         {
@@ -361,7 +364,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         auto generate_filled_elevator = [&](std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passenger_list, Elevated::Height get_in_floor = 0) {
             CAPTURE(get_in_floor);
             CAPTURE(passenger_list);
-            Elevated::ElevatorState elevator {0, 0, get_in_floor};
+            Elevated::ElevatorState elevator {0, 0, 1, get_in_floor};
             elevator.set_target(get_in_floor);
 
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
@@ -372,7 +375,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpen);
 
             std::vector<Elevated::Passenger> line;
-            for (auto [id, to] : passenger_list) {
+            for (auto [id, to, _] : passenger_list) {
                 REQUIRE(get_in_floor != to);
                 line.push_back(Elevated::Passenger { id, {get_in_floor, to, 0 }});
             }
@@ -458,6 +461,109 @@ TEST_CASE("Elevators state", "[elevators][state]") {
                                     return id == passenger.id;
                                 }) != transferred.dropped_off_passengers.end());
                 }
+            }
+        }
+    }
+
+
+    GIVEN("An elevator with a capacity limit") {
+        GroupID group_id = GENERATE(0, 2, 3);
+        GroupID other_group_id = GENERATE(1, 4);
+        Capacity max_capacity = 5;
+        CAPTURE(group_id, other_group_id);
+
+        ElevatorState elevator {0, group_id, max_capacity, 0};
+        elevator.set_target(0);
+
+        REQUIRE(elevator.current_state() == ElevatorState::State::DoorsOpening);
+        auto steps = elevator.time_until_next_event();
+        REQUIRE(steps.has_value());
+        auto result = elevator.update(steps.value());
+        REQUIRE(result == ElevatorState::ElevatorUpdateResult::DoorsOpened);
+        REQUIRE(elevator.current_state() == ElevatorState::State::DoorsOpen);
+        REQUIRE_FALSE(elevator.time_until_next_event().has_value());
+
+        WHEN("Picking up passengers with capacity") {
+            std::vector<Passenger> line {
+                {1, {0, 1, group_id, 1}},
+                {2, {0, 1, group_id, 1}},
+                {3, {0, 1, group_id, 1}},
+                {4, {0, 1, group_id, 1}},
+                {5, {0, 1, group_id, 1}},
+                {6, {0, 1, group_id, 1}},
+                {7, {0, 1, group_id, 1}},
+            };
+
+            REQUIRE(line.size() > max_capacity);
+
+            auto transferred = elevator.transfer_passengers(line);
+
+            THEN("Only picks up to the limit") {
+                REQUIRE(line.size() == 2);
+                REQUIRE(elevator.passengers().size() == 5);
+                REQUIRE(transferred.picked_up_passengers.size() == 5);
+                REQUIRE(transferred.dropped_off_passengers.empty());
+
+#define REQUIRE_PICKED_UP(...) \
+                for (auto i : { __VA_ARGS__ }) { \
+                    CAPTURE(i); \
+                    REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(), \
+                                [&](ElevatorState::TravellingPassenger const &p) { return p.id == i; }) != elevator.passengers().end()); \
+                                                    \
+                    REQUIRE(std::find_if(transferred.picked_up_passengers.begin(), transferred.picked_up_passengers.end(), \
+                                [&](Passenger const &p) { return p.id == i; }) != transferred.picked_up_passengers.end()); \
+                }
+#define REQUIRE_LEFT_IN_LINE(...) \
+                for (auto i : { __VA_ARGS__ }) { \
+                    CAPTURE(i); \
+                    REQUIRE(std::find_if(line.begin(), line.end(), \
+                                [&](Passenger const &p) { return p.id == i; }) != line.end()); \
+                } \
+                REQUIRE(std::is_sorted(line.begin(), line.end(),  \
+                    [&](Passenger const& lhs, Passenger const& rhs) { return lhs.id < rhs.id; }))
+
+                REQUIRE_PICKED_UP(1u, 2u, 3u, 4u, 5u)
+                REQUIRE_LEFT_IN_LINE(6u, 7u);
+            }
+        }
+
+        WHEN("Picking up passengers with other groups") {
+
+            std::vector<Passenger> line {
+                {1, {0, 1, group_id, max_capacity - 1}},
+                {2, {0, 1, other_group_id, 2}},
+                {3, {0, 1, other_group_id, 1}},
+                {4, {0, 1, group_id, 2}},
+                {5, {0, 1, other_group_id, 0}},
+                {6, {0, 1, group_id, 1}},
+                {7, {0, 1, group_id, 1}},
+            };
+
+            auto transferred = elevator.transfer_passengers(line);
+
+            THEN("Did not pick up any from the other group") {
+                REQUIRE_PICKED_UP(1u, 6u);
+                REQUIRE_LEFT_IN_LINE(2u, 3u, 4u, 5u, 7u);
+            }
+        }
+
+        WHEN("Picking up passengers capacity 0") {
+
+            std::vector<Passenger> line {
+                {1, {0, 1, group_id, max_capacity - 1}},
+                {2, {0, 1, group_id, 2}},
+                {3, {0, 1, group_id, 0}},
+                {4, {0, 1, group_id, 1}},
+                {5, {0, 1, group_id, 0}},
+                {6, {0, 1, group_id, 1}},
+                {7, {0, 1, group_id, 0}},
+            };
+
+            auto transferred = elevator.transfer_passengers(line);
+
+            THEN("Can fit all capacity 0 even if completely filled") {
+                REQUIRE_PICKED_UP(1u, 3u, 4u, 5u, 7u);
+                REQUIRE_LEFT_IN_LINE(2u, 6u);
             }
         }
     }
