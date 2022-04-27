@@ -252,7 +252,85 @@ TEST_CASE("Events", "[building][event]") {
             }
         }
 
+        WHEN("The elevator is moving") {
+            Height target = GENERATE(5u, 10u, 15u);
+            building.send_elevator(0, target);
+            listener.clear_events();
+            REQUIRE(building.elevator(0).height() == 0);
 
+            auto open_time = building.next_event_at();
+            REQUIRE(open_time.has_value());
+            building.update_until(open_time.value());
+            REQUIRE(building.elevator(0).height() == target);
+
+            THEN("An elevator moved event was generated") {
+                REQUIRE(listener.elevator_moved_events.size() == 1);
+                auto& [time, distance, elevator] = listener.elevator_moved_events.front();
+                REQUIRE(time == open_time.value());
+                REQUIRE(distance == target);
+                listener.elevator_moved_events.clear();
+                REQUIRE(listener.elevator_opened_events.size() <= 1);
+                listener.elevator_opened_events.clear();
+                
+                REQUIRE(listener.no_events());
+            }
+        }
+
+        WHEN("The elevator is moving in steps") {
+            Height target = 15u;
+            building.send_elevator(0, target);
+            listener.clear_events();
+
+            REQUIRE(building.elevator(0).height() == 0);
+
+            Time now = building.current_time();
+            auto open_time = building.next_event_at();
+            REQUIRE(open_time == 16);
+            building.update_until(4);
+            building.update_until(5);
+            building.update_until(12);
+            building.update_until(15);
+            building.update_until(16);
+            REQUIRE(building.elevator(0).height() == target);
+
+            THEN("An elevator moved event was generated") {
+                REQUIRE(listener.elevator_moved_events.size() == 4);
+
+                {
+                    auto& [time, distance, elevator] = listener.elevator_moved_events[0];
+                    REQUIRE(time == 4);
+                    REQUIRE(distance == 4);
+                    REQUIRE(elevator.height() == 4);
+                }
+
+                {
+                    auto& [time, distance, elevator] = listener.elevator_moved_events[1];
+                    REQUIRE(time == 5);
+                    REQUIRE(distance == 1);
+                    REQUIRE(elevator.height() == 5);
+                }
+
+                {
+                    auto& [time, distance, elevator] = listener.elevator_moved_events[2];
+                    REQUIRE(time == 12);
+                    REQUIRE(distance == 7);
+                    REQUIRE(elevator.height() == 12);
+                }
+
+                {
+                    auto& [time, distance, elevator] = listener.elevator_moved_events[3];
+                    REQUIRE(time == 15);
+                    REQUIRE(distance == 3);
+                    REQUIRE(elevator.height() == 15);
+                }
+
+                listener.elevator_moved_events.clear();
+                REQUIRE(listener.elevator_opened_events.size() <= 1);
+                listener.elevator_opened_events.clear();
+
+                REQUIRE(listener.no_events());
+            }
+        }
     }
 
 }

@@ -61,4 +61,10 @@ void EventDistributor::on_elevator_stopped(Time at, Time duration, const Elevato
         listener->on_elevator_stopped(at, duration, elevator);
 }
 
+void EventDistributor::on_elevator_moved(Time at, Height distance, const ElevatorState& elevator)
+{
+    for (auto& listener : m_listeners)
+        listener->on_elevator_moved(at, distance, elevator);
+}
+
 }

@@ -50,13 +50,20 @@ std::vector<ElevatorID> BuildingState::update_until(Time target_time)
     std::vector<ElevatorID> elevators_closed_doors;
 
     for (auto& elevator : m_elevators) {
+        Height current_height = elevator.height();
         auto result = elevator.update(steps);
         switch (result) {
         case ElevatorState::ElevatorUpdateResult::Nothing:
-            m_event_listener->on_elevator_stopped(m_current_time, steps, elevator);
+            if (auto new_height = elevator.height(); new_height != current_height)
+                m_event_listener->on_elevator_moved(m_current_time, distance_between(current_height, new_height), elevator);
+            else
+                m_event_listener->on_elevator_stopped(m_current_time, steps, elevator);
             break;
         case ElevatorState::ElevatorUpdateResult::DoorsOpened: {
             ASSERT(m_floors.contains(elevator.height()));
+            if (auto new_height = elevator.height(); new_height != current_height)
+                m_event_listener->on_elevator_moved(m_current_time, distance_between(current_height, new_height), elevator);
+
             m_event_listener->on_elevator_opened_doors(m_current_time, elevator);
 
             auto& floor_stopped_at = m_floors[elevator.height()];
@@ -70,6 +77,7 @@ std::vector<ElevatorID> BuildingState::update_until(Time target_time)
             break;
         }
         case ElevatorState::ElevatorUpdateResult::DoorsClosed:
+            ASSERT(current_height == elevator.height());
             ASSERT(m_floors.contains(elevator.height()));
             m_event_listener->on_elevator_closed_doors(m_current_time, elevator);
             elevators_closed_doors.push_back(elevator.id);

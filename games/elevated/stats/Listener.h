@@ -22,6 +22,7 @@ public:
 
     virtual void on_elevator_set_target(Time, [[maybe_unused]] Height new_target, ElevatorState const&) { }
     virtual void on_elevator_stopped([[maybe_unused]] Time at, [[maybe_unused]] Time duration, ElevatorState const&) { }
+    virtual void on_elevator_moved(Time, Height, ElevatorState const&) { }
 };
 
 class EventDistributor final : public EventListener {
@@ -42,6 +43,8 @@ public:
     virtual void on_elevator_set_target(Time at, Height new_target, const ElevatorState& elevator) override;
 
     virtual void on_elevator_stopped(Time at, Time duration, const ElevatorState& elevator) override;
+
+    virtual void on_elevator_moved(Time at, Height distance, const ElevatorState& elevator) override;
 
 private:
     std::vector<std::shared_ptr<EventListener>> m_listeners;
