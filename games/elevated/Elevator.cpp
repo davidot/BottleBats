@@ -146,7 +146,7 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
     for (auto it = start; it != end; ++it) {
         if (in_group(*it) && it->capacity <= capacity_left) {
             transferred.picked_up_passengers.emplace_back(*it);
-            m_passengers.push_back({it->id, it->to});
+            m_passengers.push_back({it->id, it->to, it->capacity});
             capacity_left -= it->capacity;
         } else {
             *start = *it;

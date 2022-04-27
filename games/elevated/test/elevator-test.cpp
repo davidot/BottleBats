@@ -422,13 +422,13 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         };
 
         WHEN("Elevator transfers passengers on floor with passengers with that as a destination") {
-            auto elevator = generate_filled_elevator({{1, 0}, {2, 0}}, 1);
+            auto elevator = generate_filled_elevator({{1, 0, 0}, {2, 0, 0}}, 1);
             auto transferred = move_to_floor_and_transfer_with_empty(elevator, 0);
 
             THEN("All passengers got off and did not join the line") {
                 REQUIRE(elevator.passengers().size() == 0);
                 REQUIRE(transferred.dropped_off_passengers.size() == 2);
-                for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{1, 0}, {2, 0}}) {
+                for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{1, 0, 0}, {2, 0, 0}}) {
                     CAPTURE(passenger.id, passenger.to);
                     REQUIRE(std::find_if(transferred.dropped_off_passengers.begin(), transferred.dropped_off_passengers.end(),
                                 [&](Elevated::ElevatorID id) {
@@ -439,22 +439,22 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         }
 
         WHEN("Elevator has no passengers with the target destination floor") {
-            auto elevator = generate_filled_elevator({{1, 2}, {2, 3}, {3, 4}, {4, 6}}, 0);
+            auto elevator = generate_filled_elevator({{1, 2, 0}, {2, 3, 0}, {3, 4, 0}, {4, 6, 0}}, 0);
             auto transferred = move_to_floor_and_transfer_with_empty(elevator, GENERATE(0, 1, 5));
 
             THEN("None got off the elevator") {
-                elevator_has_passengers_with_id(elevator, {{1, 2}, {2, 3}, {3, 4}, {4, 6}});
+                elevator_has_passengers_with_id(elevator, {{1, 2, 0}, {2, 3, 0}, {3, 4, 0}, {4, 6, 0}});
                 REQUIRE(transferred.dropped_off_passengers.empty());
             }
         }
 
         WHEN("Elevator some passengers with the target destination floor") {
-            auto elevator = generate_filled_elevator({{1, 2}, {2, 3}, {3, 4}, {4, 6}}, 0);
+            auto elevator = generate_filled_elevator({{1, 2, 0}, {2, 3, 0}, {3, 4, 0}, {4, 6, 0}}, 0);
             auto transferred = move_to_floor_and_transfer_with_empty(elevator, 4);
 
             THEN("None got off the elevator") {
-                elevator_has_passengers_with_id(elevator, {{1, 2}, {2, 3}, {4, 6}});
-                for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{3, 4}}) {
+                elevator_has_passengers_with_id(elevator, {{1, 2, 0}, {2, 3, 0}, {4, 6, 0}});
+                for (auto passenger : {Elevated::ElevatorState::TravellingPassenger{3, 4, 0}}) {
                     CAPTURE(passenger.id, passenger.to);
                     REQUIRE(std::find_if(transferred.dropped_off_passengers.begin(), transferred.dropped_off_passengers.end(),
                                 [&](Elevated::ElevatorID id) {

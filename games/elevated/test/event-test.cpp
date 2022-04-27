@@ -283,7 +283,6 @@ TEST_CASE("Events", "[building][event]") {
 
             REQUIRE(building.elevator(0).height() == 0);
 
-            Time now = building.current_time();
             auto open_time = building.next_event_at();
             REQUIRE(open_time == 16);
             building.update_until(4);
