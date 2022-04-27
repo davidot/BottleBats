@@ -25,9 +25,11 @@ add_library(LibElevated
         elevated/stats/Listener.cpp
         elevated/algorithm/Algorithm.cpp
         elevated/algorithm/CyclingAlgorithm.cpp
+        elevated/algorithm/ProcessAlgorithm.cpp
         )
 
 target_include_directories(LibElevated INTERFACE .)
+target_link_libraries(LibElevated PUBLIC SubProcess)
 
 add_executable(elevated-test
         elevated/test/test-main.cpp
