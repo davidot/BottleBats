@@ -225,6 +225,44 @@ TEST_CASE("Simulator", "[simulator]") {
         }
     }
 
+    GIVEN("A simulation with a failing algorithm") {
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 0, { { 0, 10, 0 } } } }), std::make_unique<StoringAlgorithm>() };
+
+        REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
+        auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
+        algorithm.add_response(0, { AlgorithmResponse::algorithm_failed({"Oh no", "Whoops"}) });
+
+        WHEN("Simulation is run") {
+            auto result = simulation.run();
+
+            THEN("Fails with did not move all passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmFailed);
+                REQUIRE(result.output_messages.size() == 2);
+                REQUIRE(result.output_messages[0] == "Oh no");
+                REQUIRE(result.output_messages[1] == "Whoops");
+            }
+        }
+    }
+
+    GIVEN("A simulation with a misbehaving algorithm") {
+        Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 0, { { 0, 10, 0 } } } }), std::make_unique<StoringAlgorithm>() };
+
+        REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
+        auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
+        algorithm.add_response(0, { AlgorithmResponse::algorithm_misbehaved({"Naughty", "Disable"}) });
+
+        WHEN("Simulation is run") {
+            auto result = simulation.run();
+
+            THEN("Fails with did not move all passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmMisbehaved);
+                REQUIRE(result.output_messages.size() == 2);
+                REQUIRE(result.output_messages[0] == "Naughty");
+                REQUIRE(result.output_messages[1] == "Disable");
+            }
+        }
+    }
+
     GIVEN("A simulation with the cycling algorithm and simple requests") {
         Simulation simulation { hardcoded({ { 1, { 0, 10 } } },
                                     {

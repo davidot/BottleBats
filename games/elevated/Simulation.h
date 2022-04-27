@@ -15,6 +15,7 @@ struct SimulatorResult {
         RequestGenerationFailed,
         AlgorithmRejected,
         AlgorithmMisbehaved,
+        AlgorithmFailed,
         NoNextEvent,
         FailedToResolveAllRequests
     };

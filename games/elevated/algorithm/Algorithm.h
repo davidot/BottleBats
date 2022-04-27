@@ -3,6 +3,7 @@
 #include "../Types.h"
 #include "../Elevator.h"
 #include "../Building.h"
+#include <variant>
 
 namespace Elevated {
 
@@ -35,11 +36,15 @@ class AlgorithmResponse {
 public:
     enum class Type {
         MoveElevator,
-        SetTimer
+        SetTimer,
+        AlgorithmFailed,
+        AlgorithmMisbehaved,
     };
 
     static AlgorithmResponse set_timer_at(Time timer_at);
     static AlgorithmResponse move_elevator_to(ElevatorID, Height);
+    static AlgorithmResponse algorithm_failed(std::vector<std::string> messages);
+    static AlgorithmResponse algorithm_misbehaved(std::vector<std::string> messages);
 
     Type type() const { return m_type; }
 
@@ -48,13 +53,17 @@ public:
     ElevatorID elevator_to_move() const;
     Height elevator_target() const;
 
+    std::vector<std::string> const& messages() const;
 private:
     AlgorithmResponse() = default;
 
-    Type m_type;
-    Time m_timer_at;
-    ElevatorID m_elevator_id;
-    Height m_target;
+    struct ElevatorMove {
+        ElevatorID id;
+        Height target;
+    };
+
+    Type m_type = Type::MoveElevator;
+    std::variant<Time, ElevatorMove, std::vector<std::string>> m_data;
 };
 
 

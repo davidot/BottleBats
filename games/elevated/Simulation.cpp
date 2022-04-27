@@ -139,6 +139,10 @@ SimulatorResult Simulation::run()
                         result->output_messages.emplace_back("Failing because: Command to set timer at: " + std::to_string(command.timer_should_fire_at()) + " which is in the past");
                         return *result;
                     }
+                } else if (command.type() == AlgorithmResponse::Type::AlgorithmFailed || command.type() == AlgorithmResponse::Type::AlgorithmMisbehaved) {
+                    result->type = command.type() == AlgorithmResponse::Type::AlgorithmFailed ? SimulatorResult::Type::AlgorithmFailed : SimulatorResult::Type::AlgorithmMisbehaved;
+                    result->output_messages.insert(result->output_messages.end(), command.messages().begin(), command.messages().end());
+                    return *result;
                 } else {
                     ASSERT_NOT_REACHED();
                 }

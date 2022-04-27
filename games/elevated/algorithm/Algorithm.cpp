@@ -27,31 +27,54 @@ AlgorithmInput AlgorithmInput::timer_fired() {
 AlgorithmResponse AlgorithmResponse::set_timer_at(Time timer_at) {
     AlgorithmResponse response{};
     response.m_type = Type::SetTimer;
-    response.m_timer_at = timer_at;
+    response.m_data = timer_at;
     return response;
 }
 
 AlgorithmResponse AlgorithmResponse::move_elevator_to(ElevatorID elevator_id, Height target) {
     AlgorithmResponse response{};
     response.m_type = Type::MoveElevator;
-    response.m_elevator_id = elevator_id;
-    response.m_target = target;
+    response.m_data = ElevatorMove { elevator_id, target };
+    return response;
+}
+
+AlgorithmResponse AlgorithmResponse::algorithm_failed(std::vector<std::string> messages) {
+    AlgorithmResponse response{};
+    response.m_type = Type::AlgorithmFailed;
+    response.m_data = std::move(messages);
+    return response;
+}
+
+AlgorithmResponse AlgorithmResponse::algorithm_misbehaved(std::vector<std::string> messages) {
+    AlgorithmResponse response{};
+    response.m_type = Type::AlgorithmMisbehaved;
+    response.m_data = std::move(messages);
     return response;
 }
 
 Time AlgorithmResponse::timer_should_fire_at() const {
     ASSERT(m_type == Type::SetTimer);
-    return m_timer_at;
+    ASSERT(std::holds_alternative<Time>(m_data));
+    return std::get<Time>(m_data);
 }
 
 ElevatorID AlgorithmResponse::elevator_to_move() const {
     ASSERT(m_type == Type::MoveElevator);
-    return m_elevator_id;
+    ASSERT(std::holds_alternative<ElevatorMove>(m_data));
+    return std::get<ElevatorMove>(m_data).id;
 }
 
 Height AlgorithmResponse::elevator_target() const {
     ASSERT(m_type == Type::MoveElevator);
-    return m_target;
+    ASSERT(std::holds_alternative<ElevatorMove>(m_data));
+    return std::get<ElevatorMove>(m_data).target;
+}
+
+std::vector<std::string> const& AlgorithmResponse::messages() const
+{
+    ASSERT(m_type == Type::AlgorithmFailed || m_type == Type::AlgorithmMisbehaved);
+    ASSERT(std::holds_alternative<std::vector<std::string>>(m_data));
+    return std::get<std::vector<std::string>>(m_data);
 }
 
 ElevatorID AlgorithmInput::elevator_id() const {
