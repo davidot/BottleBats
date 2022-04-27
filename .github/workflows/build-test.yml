@@ -29,6 +29,7 @@ jobs:
 
       - name: Install Dependencies (Ubuntu)
         run: |
+          sudo apt-get update
           sudo apt-get install -y g++-11 ninja-build ccache
           g++-11 --version && cmake --version && ninja --version && ccache --version
 
