@@ -296,6 +296,64 @@ TEST_CASE("Simulator", "[simulator]") {
         }
     }
 
+    GIVEN("A simulation with the cycling algorithm and a lot of requests") {
+        std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> requests = {
+            { 0, { { 0, 10, 0 }, {10, 0, 0}, {5, 15, 0}, {5, 10, 0}, {0, 15, 0} } },
+        };
+
+        requests.reserve(1667);
+        size_t total_requests = requests[0].second.size();
+        for (size_t t = 5; t < 100010; t += 43) {
+            std::vector<PassengerBlueprint> at;
+
+            if (t % 2 == 0)
+                at.push_back({0, 15, 0});
+
+            if (t % 3 == 0)
+                at.push_back({10, 5, 0});
+
+            if (t % 2 && t > 1000 && t < 6000)
+                at.push_back({5, 0, 0});
+
+            if (t % 4 == 0) {
+                at.push_back({10, 0, 0});
+                at.push_back({0, 10, 0});
+            }
+
+            total_requests += at.size();
+
+            if (!at.empty())
+                requests.emplace_back(t, std::move(at));
+        }
+
+        Simulation simulation { hardcoded({ { 3, { 0, 5, 10, 15 } } },
+                                    std::move(requests)),
+            std::make_unique<CyclingAlgorithm>() };
+
+        auto listener = std::make_shared<StoringEventListener>();
+        simulation.add_listener(listener);
+        // Hardcoded number to speed up the test
+        listener->request_created_events.reserve(total_requests);
+        listener->passenger_enter_events.reserve(total_requests);
+        listener->passenger_leave_events.reserve(total_requests);
+        listener->elevator_set_target_events.reserve(12000);
+        listener->elevator_moved_events.reserve(12000);
+        listener->elevator_opened_events.reserve(12000);
+        listener->elevator_closed_events.reserve(12000);
+        listener->elevator_stopped_events.reserve(45000);
+
+        WHEN("The simulation is run") {
+            auto result = simulation.run();
+
+            THEN("It is successful and got all the passengers") {
+                REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
+                REQUIRE(listener->request_created_events.size() == total_requests);
+                REQUIRE(listener->passenger_enter_events.size() == total_requests);
+                REQUIRE(listener->passenger_leave_events.size() == total_requests);
+            }
+        }
+    }
+
     GIVEN("A simulation with the cycling algorithm and simple requests and extra floors") {
         Simulation simulation { hardcoded({ { 1, { 0, 5, 10, 100 } } },
                                     {
