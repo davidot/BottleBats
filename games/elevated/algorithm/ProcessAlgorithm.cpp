@@ -1,5 +1,6 @@
 #include "ProcessAlgorithm.h"
 #include "../../../util/Assertions.h"
+#include <algorithm>
 #include <set>
 #include <sstream>
 
@@ -107,7 +108,8 @@ ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_descriptio
 
 void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std::ostringstream& stream)
 {
-    stream << elevator.id << ' ' << elevator.group_id
+    stream << elevator.id << ' '
+           << elevator.group_id << ' '
            << elevator.height();
     std::set<Height> targets;
     std::transform(elevator.passengers().begin(), elevator.passengers().end(),
