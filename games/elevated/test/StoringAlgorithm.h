@@ -18,7 +18,7 @@ public:
     {
         REQUIRE_FALSE(building_result.has_value());
         building_result = building;
-        return m_accepting_building ? ScenarioAccepted::Yes : ScenarioAccepted::No;
+        return m_accepting_building ? ScenarioAccepted::accepted() : ScenarioAccepted::rejected({"Supposed to fail"});
     }
 
     bool got_building() const { return building_result.has_value(); }

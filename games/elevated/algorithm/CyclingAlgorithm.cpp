@@ -7,7 +7,7 @@ namespace Elevated {
 ElevatedAlgorithm::ScenarioAccepted CyclingAlgorithm::accept_scenario_description(const BuildingGenerationResult& building)
 {
     if (building.blueprint().reachable_per_group.size() > 1)
-        return ElevatedAlgorithm::ScenarioAccepted::No;
+        return ScenarioAccepted::rejected({"Only supports single grouped buildings"});
 
     auto& all_floors = building.blueprint().reachable_per_group.front();
 
@@ -20,7 +20,7 @@ ElevatedAlgorithm::ScenarioAccepted CyclingAlgorithm::accept_scenario_descriptio
     for (auto i = 0u; i < sorted_floors.size() - 1u; ++i)
         m_next_height[sorted_floors[i]] = sorted_floors[i + 1];
 
-    return ElevatedAlgorithm::ScenarioAccepted::Yes;
+    return ElevatedAlgorithm::ScenarioAccepted::accepted();
 }
 
 std::vector<AlgorithmResponse> CyclingAlgorithm::on_inputs(Time, const BuildingState& building, std::vector<AlgorithmInput> inputs)

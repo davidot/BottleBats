@@ -71,9 +71,22 @@ class ElevatedAlgorithm {
 public:
     virtual ~ElevatedAlgorithm() = default;
 
-    enum class ScenarioAccepted {
-        Yes,
-        No
+    struct ScenarioAccepted {
+        enum class Type {
+            Accepted,
+            Rejected,
+            Failed
+        };
+        Type type;
+        std::vector<std::string> messages;
+
+        ScenarioAccepted() noexcept;
+
+        static ScenarioAccepted accepted();
+        static ScenarioAccepted failed(std::vector<std::string>);
+        static ScenarioAccepted rejected(std::vector<std::string>);
+    private:
+        ScenarioAccepted(Type, std::vector<std::string> messages);
     };
 
     virtual ScenarioAccepted accept_scenario_description(BuildingGenerationResult const& building) = 0;

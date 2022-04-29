@@ -3,6 +3,31 @@
 
 namespace Elevated {
 
+ElevatedAlgorithm::ScenarioAccepted ElevatedAlgorithm::ScenarioAccepted::accepted()
+{
+    return {};
+}
+
+ElevatedAlgorithm::ScenarioAccepted ElevatedAlgorithm::ScenarioAccepted::failed(std::vector<std::string> messages)
+{
+    return {Type::Failed, std::move(messages)};
+}
+ElevatedAlgorithm::ScenarioAccepted ElevatedAlgorithm::ScenarioAccepted::rejected(std::vector<std::string> messages)
+{
+    return {Type::Rejected, std::move(messages)};
+}
+
+ElevatedAlgorithm::ScenarioAccepted::ScenarioAccepted() noexcept
+    : type(Type::Accepted)
+{
+}
+
+ElevatedAlgorithm::ScenarioAccepted::ScenarioAccepted(Type type_, std::vector<std::string> messages_)
+    : type(type_)
+    , messages(std::move(messages_))
+{
+}
+
 AlgorithmInput AlgorithmInput::new_request(Height at, size_t index) {
     AlgorithmInput input;
     input.m_type = Type::NewRequestMade;

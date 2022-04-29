@@ -17,6 +17,9 @@ Simulation::Simulation(std::unique_ptr<ScenarioGenerator> generator, std::unique
 bool Simulation::setup_for_run()
 {
     auto building_result = m_generator->generate_building();
+    std::sort(building_result.blueprint().elevators.begin(), building_result.blueprint().elevators.end(), [](auto const& lhs, auto const& rhs) {
+        return lhs.group < rhs.group;
+    });
     if (building_result.has_error()) {
         result->type = SimulatorResult::Type::GenerationFailed;
         result->output_messages = building_result.errors();
@@ -25,9 +28,9 @@ bool Simulation::setup_for_run()
 
     auto accepted = m_algorithm->accept_scenario_description(building_result);
 
-    if (accepted != ElevatedAlgorithm::ScenarioAccepted::Yes) {
-        result->type = SimulatorResult::Type::AlgorithmRejected;
-        // FIXME: Add message here?
+    if (accepted.type != ElevatedAlgorithm::ScenarioAccepted::Type::Accepted) {
+        result->type = accepted.type == ElevatedAlgorithm::ScenarioAccepted::Type::Rejected ? SimulatorResult::Type::AlgorithmRejected : SimulatorResult::Type::AlgorithmFailed;
+        result->output_messages = std::move(accepted.messages);
         return false;
     }
 
