@@ -31,8 +31,8 @@ ElevatedAlgorithm::ScenarioAccepted::ScenarioAccepted(Type type_, std::vector<st
 AlgorithmInput AlgorithmInput::new_request(Height at, size_t index) {
     AlgorithmInput input;
     input.m_type = Type::NewRequestMade;
-    input.request_height = at;
-    input.request_index = index;
+    input.m_request_height = at;
+    input.m_request_index = index;
     return input;
 }
 
@@ -109,9 +109,21 @@ ElevatorID AlgorithmInput::elevator_id() const {
 
 Passenger const& AlgorithmInput::request(BuildingState const& building) const {
     ASSERT(m_type == Type::NewRequestMade);
-    auto& queue = building.passengers_at(request_height);
-    ASSERT(request_index < queue.size());
-    return queue[request_index];
+    auto& queue = building.passengers_at(m_request_height);
+    ASSERT(m_request_index < queue.size());
+    return queue[m_request_index];
+}
+
+Height AlgorithmInput::request_height() const
+{
+    ASSERT(m_type == Type::NewRequestMade);
+    return m_request_height;
+}
+
+size_t AlgorithmInput::request_index() const
+{
+    ASSERT(m_type == Type::NewRequestMade);
+    return m_request_index;
 }
 
 }

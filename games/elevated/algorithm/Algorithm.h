@@ -23,13 +23,15 @@ public:
     Type type() const { return m_type; }
     ElevatorID elevator_id() const;
     Passenger const& request(BuildingState const&) const;
+    Height request_height() const;
+    size_t request_index() const;
 private:
     AlgorithmInput() = default;
 
     Type m_type;
     ElevatorID m_elevator_id = -1;
-    Height request_height = -1;
-    size_t request_index = -1;
+    Height m_request_height = -1;
+    size_t m_request_index = -1;
 };
 
 class AlgorithmResponse {
