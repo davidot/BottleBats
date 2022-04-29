@@ -37,6 +37,7 @@ add_executable(elevated-test
         elevated/test/event-test.cpp
         elevated/test/building-test.cpp
         elevated/test/simulator-test.cpp
+        elevated/test/protocol-test.cpp
         elevated/test/gen-test.cpp
         )
 

@@ -2,18 +2,33 @@
 
 #include "../../../util/Process.h"
 #include "Algorithm.h"
+#include <sstream>
+
 namespace Elevated {
 
 class ProcessAlgorithm: public ElevatedAlgorithm {
 public:
-    explicit ProcessAlgorithm(std::vector<std::string> command);
+    enum class InfoLevel {
+        Full,
+        High,
+        Low,
+        Minimal
+    };
 
-    ScenarioAccepted accept_scenario_description(const BuildingGenerationResult& building) override;
-    std::vector<AlgorithmResponse> on_inputs(Time at, const BuildingState& building, std::vector<AlgorithmInput> inputs) override;
+    explicit ProcessAlgorithm(std::vector<std::string> command, InfoLevel);
+    ProcessAlgorithm(ProcessAlgorithm const&) = delete;
+    ProcessAlgorithm& operator=(ProcessAlgorithm const&) = delete;
+    ~ProcessAlgorithm();
+
+    ScenarioAccepted accept_scenario_description(BuildingGenerationResult const& building) override;
+    std::vector<AlgorithmResponse> on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs) override;
+
+    static void write_building(BuildingGenerationResult const& building, std::ostringstream& stream);
 
 private:
     std::unique_ptr<util::SubProcess> m_process;
     std::vector<std::string> m_command;
+    InfoLevel m_info_level;
 };
 
 }

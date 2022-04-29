@@ -50,6 +50,7 @@ public:
     ElevatorID const id;
     GroupID const group_id;
     Capacity const max_capacity;
+    constexpr static Height speed = 1;
     constexpr static Time door_opening_time = 1;
     constexpr static Time door_closing_time = 1;
 
@@ -96,11 +97,11 @@ private:
     Time m_time_until_next_state { 0 };
 
     constexpr static Time time_for_distance(Height distance) {
-        return distance;
+        return distance / speed;
     }
 
     constexpr static Time distance_for_time(Time steps) {
-        return steps;
+        return speed * steps;
     }
 
     void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&, Capacity capacity_left);
