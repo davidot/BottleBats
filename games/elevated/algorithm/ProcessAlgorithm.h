@@ -25,6 +25,7 @@ public:
 
     static void write_building(BuildingGenerationResult const& building, std::ostringstream& stream);
 
+    void write_elevator_closed(ElevatorState const&, std::ostringstream& stream);
 private:
     std::unique_ptr<util::SubProcess> m_process;
     std::vector<std::string> m_command;

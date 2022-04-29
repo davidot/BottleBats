@@ -10,6 +10,7 @@ ProcessAlgorithm::ProcessAlgorithm(std::vector<std::string> command, InfoLevel i
     , m_info_level(info_level)
 {
     ASSERT(!m_command.empty());
+    ASSERT(m_info_level == InfoLevel::Low);
 }
 
 ProcessAlgorithm::~ProcessAlgorithm()
@@ -104,9 +105,53 @@ ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_descriptio
     return ScenarioAccepted::failed( {"Process gave non reject/ready result, got:", *result} );
 }
 
-std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time, BuildingState const&, std::vector<AlgorithmInput>)
+void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std::ostringstream& stream)
 {
-    return {};
+    stream << elevator.id << ' ' << elevator.group_id
+           << elevator.height();
+    std::set<Height> targets;
+    std::transform(elevator.passengers().begin(), elevator.passengers().end(),
+        std::inserter(targets, targets.begin()), [](ElevatorState::TravellingPassenger const& passenger){
+            return passenger.to;
+        });
+
+    stream << ' ' << targets.size() << ' ';
+
+    bool first = true;
+    for (Height target : targets) {
+        if (!first)
+            stream << ',';
+        stream << target;
+        first = false;
+    }
+
+    if (targets.empty())
+        stream << '-';
+
+    ASSERT(m_info_level == InfoLevel::Low);
+    // FIXME: Give more info for higher levels.
+}
+
+std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs)
+{
+    std::ostringstream message;
+    message << "events " << at << ' ' << inputs.size() << '\n';
+    for (auto& input : inputs) {
+        switch (input.type()) {
+        case AlgorithmInput::Type::NewRequestMade:
+            break;
+        case AlgorithmInput::Type::ElevatorClosedDoors:
+            message << "closed ";
+            write_elevator_closed(building.elevator(input.elevator_id()), message);
+            break;
+        case AlgorithmInput::Type::TimerFired:
+            message << "timer";
+            break;
+        }
+        message << '\n';
+    }
+
+    message << "done\n";
 }
 
 

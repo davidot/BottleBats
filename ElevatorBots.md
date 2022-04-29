@@ -74,9 +74,10 @@ Protocol:
  > timer
  > closed [elevator_id] [group_id] [current_height] [#target floors] [...targets...] {extra_info1}
  > request [height] [group_id] {extra_info2}
- 
 info low -> 
         {extra_info2} = [direction = up|down]
+> done???
 
-< Second
+
+
 ``` 
