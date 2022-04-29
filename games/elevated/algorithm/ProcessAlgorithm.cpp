@@ -152,6 +152,8 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
     }
 
     message << "done\n";
+
+    return {};
 }
 
 
