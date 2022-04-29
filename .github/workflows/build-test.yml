@@ -4,18 +4,35 @@ on:
 
 jobs:
   build-test:
-    name: Build & Test (${{ matrix.build_type }} mode)
+    name: Build & Test (${{ matrix.build_type }} mode) on ${{ matrix.base.os }}
     strategy:
       fail-fast: false
       matrix:
+        build_type: [ Debug, Release ]
+        base:
+          - {
+              os: windows-latest,
+              cc: cl.exe,
+              extra-flags: '',
+              cache_dir: 'C:\Users\runneradmin\AppData\Roaming/ccache'
+          }
         include:
           - build_type: Debug
-            extra-flags: '-fno-omit-frame-pointer -fsanitize=address,undefined'
+            base: {
+              os: ubuntu-latest,
+              cc: g++-11,
+              extra-flags: '-fno-omit-frame-pointer -fsanitize=address,undefined'
+            }
           - build_type: Release
-            extra-flags: ''
+            base: {
+              os: ubuntu-latest,
+              cc: g++-11,
+              extra-flags: ''
+            }
+
     env:
       build_folder_location: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.base.os }}
     steps:
       - uses: actions/checkout@v2
 
@@ -28,18 +45,30 @@ jobs:
           message("::set-output name=time::${current_date}")
 
       - name: Install Dependencies (Ubuntu)
+        if: startsWith(matrix.base.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-11 ninja-build ccache
-          g++-11 --version && cmake --version && ninja --version && ccache --version
+          sudo apt-get install -y ${{ matrix.base.cc }} ninja-build ccache
+          ${{ matrix.base.cc }} --version && cmake --version && ninja --version && ccache --version
+
+      - name: Install Dependencies (Windows)
+        if: startsWith(matrix.base.os, 'windows')
+        run: |
+          pip install ninja
+          choco install -y ccache
+          ccache --version
+
+      - name: Configure MSVC console (Windows)
+        if: startsWith(matrix.base.os, 'windows') && contains(matrix.base.cc, 'exe')
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Cache CCache
         uses: actions/cache@v2
         with:
-          path: /home/runner/.ccache
-          key: ubuntu-ccache-${{ matrix.build_type }}-gcc-11-time-${{ steps.stamps.outputs.time }}
+          path: ${{ matrix.base.cache_dir || '/home/runner/.ccache' }}
+          key: ${{ matrix.base.os }}-ccache-${{ matrix.build_type }}-${{ matrix.base.cc }}-time-${{ steps.stamps.outputs.time }}
           restore-keys: |
-            ubuntu-ccache-${{ matrix.build_type }}-gcc-11-time-
+            ${{ matrix.base.os }}-ccache-${{ matrix.build_type }}-${{ matrix.base.cc }}-time-
 
       - name: Configure CCache limit
         run: |
@@ -52,9 +81,10 @@ jobs:
       - name: Setup build
         run: >
           cmake -S . -B ${{ env.build_folder_location }} -G Ninja
-          -DCMAKE_CXX_COMPILER="g++-11"
+          -DCMAKE_CXX_COMPILER="${{ matrix.base.cc }}"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-          -DCMAKE_CXX_FLAGS="${{ matrix.extra-flags }}"
+          -DCMAKE_CXX_FLAGS="${{ matrix.base.extra-flags }}"
+          -DDISABLE_ZI_DEBUG=ON
 
       - name: Build
         timeout-minutes: 30
