@@ -65,9 +65,9 @@ Protocol:
 > setting capacity on|off
 > setting info low|high|min|max
 > setting commands basic|routing|...
-> building [n] <- groups
-> [group_id] [#elevators] [#floors] [...floors...]
-> [...elevators...] [elevator_id] [speed] [capacity] [door_open_time] [door_close_time]
+> building [#groups] [#elevators]
+ > group [group_id] [#floors] [...floors...] * #groups
+ > elevator [elevator_id] [group_id] [speed] [capacity] [door_open_time] [door_close_time] * #elevators
 > done
 < ready | reject
 > events [time] [#events]
