@@ -23,7 +23,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
     }
 
     SECTION("Elevator closed message") {
-        GIVEN("An elevator") {
+        GIVEN("An elevator and algorithm at level Low") {
             ProcessAlgorithm algorithm { { "!do not run!" }, Elevated::ProcessAlgorithm::InfoLevel::Low };
 
             ElevatorID elevator_id = GENERATE(0u, 1u);
@@ -168,5 +168,37 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
         }
     }
 
+
+    SECTION("New request message") {
+        GIVEN("An algorithm at level Low") {
+            ProcessAlgorithm algorithm { { "!do not run!" }, Elevated::ProcessAlgorithm::InfoLevel::Low };
+
+            WHEN("Passenger is going up") {
+                Height from = GENERATE(0u, 1u);
+                Height to = GENERATE(2u, 3u);
+                GroupID group = GENERATE(0u, 1u);
+                Passenger passenger{GENERATE(1u, 2u, 3u), {from, to, group, GENERATE(0u, 1u)}};
+
+                THEN("Message has up") {
+                    std::ostringstream str;
+                    algorithm.write_new_request(passenger, str);
+                    REQUIRE(str.str() == std::to_string(from) + ' ' + std::to_string(group) + " up");
+                }
+            }
+
+            WHEN("Passenger is going down") {
+                Height from = GENERATE(2u, 3u);
+                Height to = GENERATE(0u, 1u);
+                GroupID group = GENERATE(0u, 1u);
+                Passenger passenger{GENERATE(1u, 2u, 3u), {from, to, group, GENERATE(0u, 1u)}};
+
+                THEN("Message has down") {
+                    std::ostringstream str;
+                    algorithm.write_new_request(passenger, str);
+                    REQUIRE(str.str() == std::to_string(from) + ' ' + std::to_string(group) + " down");
+                }
+            }
+        }
+    }
 
 }

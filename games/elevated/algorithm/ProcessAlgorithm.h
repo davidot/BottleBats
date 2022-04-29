@@ -25,7 +25,9 @@ public:
 
     static void write_building(BuildingGenerationResult const& building, std::ostringstream& stream);
 
-    void write_elevator_closed(ElevatorState const&, std::ostringstream& stream);
+    void write_elevator_closed(ElevatorState const&, std::ostringstream& stream) const;
+    void write_new_request(Passenger const&, std::ostringstream&) const;
+    bool should_write_new_request(BuildingState const&, Height target, size_t index);
 private:
     std::unique_ptr<util::SubProcess> m_process;
     std::vector<std::string> m_command;

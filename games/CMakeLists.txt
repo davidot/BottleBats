@@ -39,6 +39,7 @@ add_executable(elevated-test
         elevated/test/simulator-test.cpp
         elevated/test/protocol-test.cpp
         elevated/test/gen-test.cpp
+        elevated/test/info-test.cpp
         )
 
 target_link_libraries(elevated-test PUBLIC Catch2::Catch2 LibElevated)

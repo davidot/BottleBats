@@ -106,7 +106,7 @@ ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_descriptio
     return ScenarioAccepted::failed( {"Process gave non reject/ready result, got:", *result} );
 }
 
-void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std::ostringstream& stream)
+void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std::ostringstream& stream) const
 {
     stream << elevator.id << ' '
            << elevator.group_id << ' '
@@ -134,6 +134,36 @@ void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std:
     // FIXME: Give more info for higher levels.
 }
 
+void ProcessAlgorithm::write_new_request(Passenger const& request, std::ostringstream& stream) const
+{
+    ASSERT(m_info_level == InfoLevel::Low);
+
+    bool going_up = request.to > request.from;
+
+    stream << request.from << ' ' << request.group << ' ';
+    if (going_up)
+        stream << "up";
+    else
+        stream << "down";
+}
+
+bool ProcessAlgorithm::should_write_new_request(BuildingState const& building, Height target, size_t index)
+{
+    ASSERT(m_info_level == InfoLevel::Low);
+    auto& queue = building.passengers_at(target);
+    ASSERT(queue.size() > index);
+    auto& request = queue[index];
+    bool going_up = request.to > request.from;
+
+    return std::none_of(queue.begin(), std::next(queue.begin(), index), [&](Passenger const& item) {
+        if (item.group != request.group)
+            return false;
+
+        bool also_going_up = item.to > item.from;
+        return going_up == also_going_up;
+    });
+}
+
 std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs)
 {
     std::ostringstream message;
@@ -141,6 +171,10 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
     for (auto& input : inputs) {
         switch (input.type()) {
         case AlgorithmInput::Type::NewRequestMade:
+            if (should_write_new_request(building, input.request_height(), input.request_index())) {
+                message << "request ";
+                write_new_request(input.request(building), message);
+            }
             break;
         case AlgorithmInput::Type::ElevatorClosedDoors:
             message << "closed ";
