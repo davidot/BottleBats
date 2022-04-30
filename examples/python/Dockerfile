@@ -1,5 +1,5 @@
 FROM docker.io/python:alpine3.15
 
-ADD run.py /
+ADD cycle.py /
 
-ENTRYPOINT ["python", "./run.py"]
+ENTRYPOINT ["python", "./cycle.py"]
