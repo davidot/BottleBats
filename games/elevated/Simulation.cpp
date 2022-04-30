@@ -83,8 +83,7 @@ SimulatorResult Simulation::run()
         auto next_time_or_none = min_time(next_request_time, next_building_event, next_timer);
         if (!next_time_or_none.has_value()) {
             running = false;
-            if (!m_building.passengers_done())
-                result->type = SimulatorResult::Type::NoNextEvent;
+            result->type = SimulatorResult::Type::NoNextEvent;
             return *result;
         }
 
