@@ -21,6 +21,18 @@ add_executable(vijf-server
 
 target_link_libraries(vijf-server PUBLIC BBServer LibVijf)
 
+add_executable(full-server
+        full-server.cpp
+        elevated/BotCreator.cpp
+        elevated/Endpoints.cpp
+        vijf/GamePlayer.cpp
+        vijf/BotCreator.cpp
+        vijf/EndPoints.cpp
+        )
+
+target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)
+
+
 add_executable(BBRunGames runsomegames.cpp
         database/ConnectionPool.cpp
         database/User.cpp
