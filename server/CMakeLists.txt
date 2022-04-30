@@ -7,6 +7,7 @@ add_executable(BBServer
         database/User.cpp
         vijf/GamePlayer.cpp
         vijf/BotCreator.cpp
+        vijf/EndPoints.cpp
         elevated/BotCreator.cpp
         )
 
