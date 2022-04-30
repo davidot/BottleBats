@@ -113,4 +113,15 @@ void fail_response_with_message(crow::response& resp, int code, std::string cons
     resp.end(message);
 }
 
+std::string trim(std::string const& str)
+{
+    size_t first = str.find_first_not_of(' ');
+    if (std::string::npos == first)
+    {
+        return str;
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
 }

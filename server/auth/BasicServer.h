@@ -13,4 +13,7 @@ void add_authentication(ServerType& app);
 void fail_response_with_message(crow::response& resp, int code, std::string const& message);
 
 
+std::string trim(const std::string& str);
+
+
 }
