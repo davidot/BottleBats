@@ -17,7 +17,7 @@
 #include "auth/Authenticator.h"
 #include "database/ConnectionPool.h"
 #include "auth/BasicServer.h"
-#include "BotCreator.h"
+#include "vijf/BotCreator.h"
 #include "vijf/GamePlayer.h"
 
 boost::asio::io_service io_service;
@@ -221,7 +221,7 @@ int main()
         file.close();
 
         io_service.post([bot_id]{
-            if (BBServer::create_bot_in_container(bot_id)) {
+            if (BBServer::create_vijf_bot_in_container(bot_id)) {
                 io_service.post([bot_id] {
                     BBServer::play_initial_random_games(bot_id);
                 });

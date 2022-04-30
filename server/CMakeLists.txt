@@ -1,12 +1,12 @@
 add_executable(BBServer
         auth/BasicServer.cpp
-        BotCreator.cpp
         ContainerBuilder.cpp
         auth/Authenticator.cpp
         crowtest.cpp
         database/ConnectionPool.cpp
         database/User.cpp
         vijf/GamePlayer.cpp
+        vijf/BotCreator.cpp
         )
 
 find_package(Crow)

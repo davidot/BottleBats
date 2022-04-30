@@ -1,17 +1,9 @@
 #include "BotCreator.h"
 
-#include <string>
-#include <pqxx/connection>
-#include <pqxx/transaction>
-#include <iostream>
-#include <filesystem>
-#include "database/ConnectionPool.h"
-#include "../util/Assertions.h"
-#include "../util/Process.h"
 #include "../games/vijf/Game.h"
 #include "../games/vijf/Vijf.h"
-#include "ContainerBuilder.h"
-#include "database/ConnectionPool.h"
+#include "../ContainerBuilder.h"
+#include "../database/ConnectionPool.h"
 #include <iostream>
 #include <pqxx/connection>
 #include <pqxx/transaction>
@@ -21,7 +13,7 @@ namespace BBServer {
 
 static constexpr std::string_view random_player_command = "internal:random";
 
-bool create_bot_in_container(uint32_t id) {
+bool create_vijf_bot_in_container(uint32_t id) {
 
     std::string filename;
     auto start_status = ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) -> std::string {
