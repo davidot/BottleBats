@@ -51,3 +51,5 @@ add_test(NAME ElevatedUnitTests COMMAND elevated-test)
 add_executable(elevated-tester
         elevated/elevated-algorithm-tester.cpp)
 target_link_libraries(elevated-tester PUBLIC LibElevated)
+
+add_test(NAME elevated-protocol-test COMMAND elevated-tester python3 examples/python/cycle.py WORKING_DIRECTORY ..)
