@@ -1,5 +1,5 @@
 add_executable(BBServer
-        BasicServer.cpp
+        auth/BasicServer.cpp
         BotCreator.cpp
         auth/Authenticator.cpp
         crowtest.cpp

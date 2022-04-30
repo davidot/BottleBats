@@ -16,7 +16,7 @@
 
 #include "auth/Authenticator.h"
 #include "database/ConnectionPool.h"
-#include "BasicServer.h"
+#include "auth/BasicServer.h"
 #include "BotCreator.h"
 #include "GamePlayer.h"
 

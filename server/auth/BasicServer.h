@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Authenticator.h"
 #include <crow/app.h>
 #include <crow/middlewares/cookie_parser.h>
-#include "auth/Authenticator.h"
 
 namespace BBServer {
 
