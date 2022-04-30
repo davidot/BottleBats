@@ -10,6 +10,12 @@
 #include "../util/Process.h"
 #include "../games/vijf/Game.h"
 #include "../games/vijf/Vijf.h"
+#include "ContainerBuilder.h"
+#include "database/ConnectionPool.h"
+#include <iostream>
+#include <pqxx/connection>
+#include <pqxx/transaction>
+#include <string>
 
 namespace BBServer {
 
@@ -58,58 +64,15 @@ bool create_bot_in_container(uint32_t id) {
         });
     };
 
-    update_status("Checking file contents", false);
+    update_status("Checking and building file", false);
 
     std::string file_path = std::string("bots-data/") + std::to_string(id) + std::string("/") + filename;
-
-    auto absolute_path = std::filesystem::canonical(file_path);
-
-    if (!std::filesystem::exists(absolute_path)) {
-        update_status("File upload failed :(");
-        return false;
-    }
-
-    auto last_dot = filename.find_last_of('.');
-    if (last_dot == std::string::npos) {
-        update_status("No extension: " + filename);
-        return false;
-    }
-
-    auto extension = filename.substr(last_dot + 1);
-    
-
-
-    if (!std::filesystem::exists("bots-scripts/" + extension + "/")) {
-        update_status("Unknown filetype: " + extension);
-        return false;
-    }
-
-    update_status("Building bot in container", false);
-
     std::string container_name = "vijfbot-" + std::to_string(id);
-    std::unique_ptr<util::SubProcess> process = util::SubProcess::create({"bots-scripts/" + extension + "/" + "build.sh", absolute_path, container_name }, util::SubProcess::StderrState::Readable);
 
-    if (!process) {
-        update_status("Failed to run build script");
-        return false;
-    }
+    auto build_result = build_single_file_container(file_path, container_name);
 
-    std::vector<std::string> output;
-
-    std::string line;
-
-    while (process->readLine(line))
-        output.emplace_back(line);
-
-    auto result = process->stop();
-
-    if (!result.exitCode.has_value() || result.exitCode.value() != 0) {
-        std::string fail_output = "Bot failed to build with:\n";
-        for (auto& line : output)
-            fail_output += line + "\n";
-        update_status(fail_output);
-
-        std::cerr << "Failed to build bot " << id << " with message:\n" << fail_output;
+    if (build_result.has_value()) {
+        update_status(build_result.value());
         return false;
     }
 
