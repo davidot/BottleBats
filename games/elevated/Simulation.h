@@ -28,6 +28,13 @@ class Simulation {
 public:
     Simulation(std::unique_ptr<ScenarioGenerator> generator, std::unique_ptr<ElevatedAlgorithm> algorithm);
 
+    template<typename ListenerType, typename... Args>
+    std::shared_ptr<ListenerType> construct_and_add_listener(Args... args) {
+        auto listener = std::make_shared<ListenerType>(std::forward<Args>(args)...);
+        add_listener(listener);
+        return listener;
+    }
+
     void add_listener(std::shared_ptr<EventListener> listener) { m_event_distributor.add_listener(std::move(listener)); }
     bool remove_listener(EventListener* listener) { return m_event_distributor.remove_listener(listener); }
 
