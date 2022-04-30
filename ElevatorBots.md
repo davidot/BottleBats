@@ -76,7 +76,10 @@ Protocol:
  > request [height] [group_id] {extra_info2}
 info low -> 
         {extra_info2} = [direction = up|down]
-> done???
+> done
+ < set-timer [time]
+ < move [elevator_id] [target] 
+< done
 
 
 
