@@ -7,6 +7,7 @@ add_executable(BBServer
         database/User.cpp
         vijf/GamePlayer.cpp
         vijf/BotCreator.cpp
+        elevated/BotCreator.cpp
         )
 
 find_package(Crow)
