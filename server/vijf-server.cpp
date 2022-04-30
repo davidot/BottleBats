@@ -131,5 +131,6 @@ int main()
     t2.join();
     t3.join();
     t4.join();
+    BBServer::flush_results_to_database();
 
 }
