@@ -1,6 +1,7 @@
 #include "ProcessAlgorithm.h"
 #include "../../../util/Assertions.h"
 #include <algorithm>
+#include <charconv>
 #include <set>
 #include <sstream>
 
@@ -29,10 +30,15 @@ void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, 
     GroupID group_id {0};
 
     for (auto& reachable_floors : building.blueprint().reachable_per_group) {
-        stream << "group " << group_id << ' ' << reachable_floors.size();
+        stream << "group " << group_id << ' ' << reachable_floors.size() << ' ';
 
-        for (auto& floor : std::set<Height>(reachable_floors.begin(), reachable_floors.end()))
-            stream << ' ' << floor;
+        bool first = true;
+        for (auto& floor : std::set<Height>(reachable_floors.begin(), reachable_floors.end())) {
+            if (!first)
+                stream << ',';
+            stream << floor;
+            first = false;
+        }
 
         stream << '\n';
         ++group_id;
@@ -54,12 +60,9 @@ void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, 
 
 ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_description(BuildingGenerationResult const& building)
 {
-    m_process = util::SubProcess::create(m_command);
+    m_process = util::SubProcess::create(m_command, util::SubProcess::StderrState::Forwarded);
     if (!m_process) {
-        std::vector<std::string> messages {"Failed to start process: "};
-        messages.reserve(m_command.size() + 1);
-        messages.insert(messages.end(), m_command.begin(), m_command.end());
-        return ScenarioAccepted::failed( std::move(messages) );
+        return ScenarioAccepted::failed({ "Failed to start process", make_command_string() });
     }
 
     std::ostringstream message;
@@ -88,14 +91,11 @@ ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_descriptio
     write_building(building, message);
     message << "done\n";
 
+    size_t start_up_time;
     auto val = std::move(*message.rdbuf()).str();
-    auto result = m_process->sendAndWaitForResponse(val, 1500);
-    if (!result.has_value()) {
-        std::vector<std::string> messages {"Process failed to respond to setup, command: "};
-        messages.reserve(m_command.size() + 1);
-        messages.insert(messages.end(), m_command.begin(), m_command.end());
-        return ScenarioAccepted::failed( std::move(messages) );
-    }
+    auto result = m_process->sendAndWaitForResponse(val, 1500, &start_up_time);
+    if (!result.has_value())
+        return ScenarioAccepted::failed({ "Process failed to respond to setup, command: ", make_command_string() });
 
     if (*result == "ready\n")
         return ScenarioAccepted::accepted();
@@ -164,16 +164,28 @@ bool ProcessAlgorithm::should_write_new_request(BuildingState const& building, H
     });
 }
 
+static std::optional<uint64_t> parse_unsigned(std::string_view view) {
+    uint64_t val;
+    auto [ptr, ec] { std::from_chars(view.begin(), view.end(), val) };
+    if (ec == std::errc{}) {
+        if (ptr == view.end())
+            return val;
+    }
+    return {};
+}
+
 std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs)
 {
     std::ostringstream message;
-    message << "events " << at << ' ' << inputs.size() << '\n';
+    size_t events = 0;
     for (auto& input : inputs) {
         switch (input.type()) {
         case AlgorithmInput::Type::NewRequestMade:
             if (should_write_new_request(building, input.request_height(), input.request_index())) {
                 message << "request ";
                 write_new_request(input.request(building), message);
+            } else {
+                continue;
             }
             break;
         case AlgorithmInput::Type::ElevatorClosedDoors:
@@ -184,13 +196,81 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
             message << "timer";
             break;
         }
+        events++;
         message << '\n';
     }
 
+    if (!events)
+        return {};
+
     message << "done\n";
 
-    return {};
+    {
+        std::ostringstream temp;
+        temp << "events " << at << ' ' << events << '\n';
+        temp << message.str();
+        message = std::move(temp);
+    }
+
+    size_t time_taken;
+    size_t time_left = 500;
+    auto result = m_process->sendAndWaitForResponse(message.view(), time_left, &time_taken);
+    if (!result.has_value())
+        return { AlgorithmResponse::algorithm_failed({ "Process failed to respond to messages, command: ", make_command_string(), "input: ", message.str() }) };
+
+    std::vector<AlgorithmResponse> responses;
+
+    std::string line = result.value();
+
+    while (line != "done\n") {
+        if (line.starts_with("move ")) {
+            std::string_view view = line;
+            ASSERT(line[line.size() - 1] == '\n');
+            view.remove_suffix(1);
+            view.remove_prefix(5);
+
+            auto middle = view.find(' ');
+            auto elevator_id_or_none = parse_unsigned(view.substr(0, middle));
+            if (!elevator_id_or_none.has_value())
+                return { AlgorithmResponse::algorithm_failed({ "Process sent move but did not have elevator id:", line }) };
+            if (elevator_id_or_none.value() >= building.num_elevators())
+                return { AlgorithmResponse::algorithm_misbehaved({ "Process sent move with incorrect elevator id:", line }) };
+
+            auto target_or_none = parse_unsigned(view.substr(middle + 1));
+            if (!target_or_none.has_value())
+                return { AlgorithmResponse::algorithm_failed({ "Process sent move but did not have (valid) target height:", line }) };
+
+            responses.push_back(AlgorithmResponse::move_elevator_to(elevator_id_or_none.value(), target_or_none.value()));
+        } else if (line.starts_with("set-timer ")){
+            std::string_view view = line;
+            ASSERT(line[line.size() - 1] == '\n');
+            view.remove_suffix(1);
+            view.remove_prefix(10);
+
+            auto time_or_none = parse_unsigned(view);
+            if (!time_or_none.has_value())
+                return { AlgorithmResponse::algorithm_failed({ "Process sent set-timer but did not have (just) time:", line }) };
+
+            responses.push_back(AlgorithmResponse::set_timer_at(time_or_none.value()));
+        } else {
+            return { AlgorithmResponse::algorithm_misbehaved({ "Process gave invalid command: ", line, "for input: ", message.str() }) };
+        }
+
+        if (!m_process->readLineWithTimeout(line, 10))
+            return { AlgorithmResponse::algorithm_failed({ "Process failed to respond to messages, command: ", make_command_string(), "input: ", message.str() }) };
+    }
+
+    return responses;
 }
 
+
+
+std::string ProcessAlgorithm::make_command_string() const
+{
+    std::string command_value;
+    for (auto& part : m_command)
+        command_value += part + " ";
+    return command_value;
+}
 
 }
