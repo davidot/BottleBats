@@ -166,9 +166,9 @@ bool ProcessAlgorithm::should_write_new_request(BuildingState const& building, H
 
 static std::optional<uint64_t> parse_unsigned(std::string_view view) {
     uint64_t val;
-    auto [ptr, ec] { std::from_chars(view.begin(), view.end(), val) };
+    auto [ptr, ec] { std::from_chars(view.data(), view.data() + view.size(), val) };
     if (ec == std::errc{}) {
-        if (ptr == view.end())
+        if (ptr == view.data() + view.size())
             return val;
     }
     return {};
