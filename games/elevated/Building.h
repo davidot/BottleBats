@@ -24,6 +24,7 @@ public:
 
     [[nodiscard]] std::vector<Passenger> const& passengers_at(Height) const;
     [[nodiscard]] ElevatorState const& elevator(ElevatorID) const;
+    [[nodiscard]] size_t num_elevators() const { return m_elevators.size(); }
     [[nodiscard]] Time current_time() const { return m_current_time; }
 
     bool passengers_done();

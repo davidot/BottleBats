@@ -41,6 +41,8 @@ public:
     ScenarioGenerator& generator() { return *m_generator; }
     ElevatedAlgorithm& algorithm() { return *m_algorithm; }
 
+    BuildingState const& building() const { return m_building; }
+
     SimulatorResult run();
 
 private:
