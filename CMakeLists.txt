@@ -78,7 +78,9 @@ endif ()
 
 add_subdirectory(games)
 
-set(BUILD_SERVER OFF)
+set(BUILD_SERVER OFF CACHE BOOL "Build server")
 if (BUILD_SERVER)
     add_subdirectory(server)
+else()
+    message(STATUS "Not building server parts")
 endif()
