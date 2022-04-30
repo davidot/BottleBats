@@ -47,3 +47,7 @@ add_executable(elevated-test
 target_link_libraries(elevated-test PUBLIC Catch2::Catch2 LibElevated)
 
 add_test(NAME ElevatedUnitTests COMMAND elevated-test)
+
+add_executable(elevated-tester
+        elevated/elevated-algorithm-tester.cpp)
+target_link_libraries(elevated-tester PUBLIC LibElevated)
