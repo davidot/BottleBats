@@ -6,8 +6,7 @@ namespace BBServer {
 void add_authentication(ServerType& app)
 {
     // FIXME: Do not hardcode the max-age
-    //
-    static std::string cookie_extra_data = "; Expires: Thu, 14 Apr 2022 00:00:01 GMT; HttpOnly; Path=/; SameSite=Strict";
+    static std::string cookie_extra_data = "; Max-Age=86400; HttpOnly; Path=/; SameSite=Strict";
     CROW_ROUTE(app, "/api/auth/login")([&](crow::request& req, crow::response& resp){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         if (base_context.user.logged_in)
