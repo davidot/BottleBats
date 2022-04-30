@@ -70,7 +70,7 @@ SimulatorResult Simulation::run()
     bool running = true;
     NextRequests next_request_time = m_generator->next_requests_at();
     Time last_requests = 0;
-    std::optional<Time> next_timer = {};
+    std::optional<Time> next_timer = 0;
 
     Time extra_time_after_last_request = 100000;
 

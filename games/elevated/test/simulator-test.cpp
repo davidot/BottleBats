@@ -73,7 +73,11 @@ TEST_CASE("Simulator", "[simulator]") {
                 REQUIRE(!algorithm.building_result.value().has_error());
 
                 REQUIRE_FALSE(listener->no_events());
-                REQUIRE(algorithm.received_inputs.size() == 1);
+                REQUIRE(algorithm.received_inputs.size() == 2);
+                REQUIRE(std::get<Time>(algorithm.received_inputs[0]) == 0);
+                REQUIRE(std::get<std::vector<AlgorithmInput>>(algorithm.received_inputs[0]).front().type() == Elevated::AlgorithmInput::Type::TimerFired);
+                REQUIRE(std::get<Time>(algorithm.received_inputs[1]) == 10);
+                REQUIRE(std::get<std::vector<AlgorithmInput>>(algorithm.received_inputs[1]).front().type() == Elevated::AlgorithmInput::Type::NewRequestMade);
             }
         }
     }
@@ -97,7 +101,11 @@ TEST_CASE("Simulator", "[simulator]") {
                 REQUIRE(!algorithm.building_result.value().has_error());
 
                 REQUIRE_FALSE(listener->no_events());
-                REQUIRE(algorithm.received_inputs.size() == 1);
+                REQUIRE(algorithm.received_inputs.size() == 2);
+                REQUIRE(std::get<Time>(algorithm.received_inputs[0]) == 0);
+                REQUIRE(std::get<std::vector<AlgorithmInput>>(algorithm.received_inputs[0]).front().type() == Elevated::AlgorithmInput::Type::TimerFired);
+                REQUIRE(std::get<Time>(algorithm.received_inputs[1]) == 10);
+                REQUIRE(std::get<std::vector<AlgorithmInput>>(algorithm.received_inputs[1]).front().type() == Elevated::AlgorithmInput::Type::NewRequestMade);
             }
         }
     }
@@ -111,6 +119,7 @@ TEST_CASE("Simulator", "[simulator]") {
         REQUIRE(dynamic_cast<StoringAlgorithm*>(&simulation.algorithm()));
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
+        algorithm.add_response(0, { });
         algorithm.add_response(10, { AlgorithmResponse::move_elevator_to(0, 0) });
         algorithm.add_response(12, { AlgorithmResponse::move_elevator_to(0, 1) });
 
@@ -122,7 +131,7 @@ TEST_CASE("Simulator", "[simulator]") {
                 REQUIRE(algorithm.got_building());
 
                 REQUIRE(!algorithm.building_result.value().has_error());
-                REQUIRE(algorithm.received_inputs.size() == 2);
+                REQUIRE(algorithm.received_inputs.size() == 3);
 
                 REQUIRE_FALSE(listener->no_events());
             }
@@ -158,8 +167,9 @@ TEST_CASE("Simulator", "[simulator]") {
                     auto& [time, building, inputs] = first_input;
                     REQUIRE(time == 0);
                     REQUIRE(building.passengers_at(0).size() == 1);
-                    REQUIRE(inputs.size() == 1);
-                    REQUIRE(inputs[0].type() == Elevated::AlgorithmInput::Type::NewRequestMade);
+                    REQUIRE(inputs.size() == 2);
+                    REQUIRE((inputs[0].type() == Elevated::AlgorithmInput::Type::NewRequestMade || inputs[1].type() == Elevated::AlgorithmInput::Type::NewRequestMade));
+                    REQUIRE((inputs[0].type() == Elevated::AlgorithmInput::Type::TimerFired || inputs[1].type() == Elevated::AlgorithmInput::Type::TimerFired));
                 }
 
                 {
