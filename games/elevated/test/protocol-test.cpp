@@ -16,8 +16,8 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
         ProcessAlgorithm::write_building(building, str);
 
         REQUIRE(str.str() == "building 2 2\n"
-                     "group 0 4 0 5 10 15\n"
-                     "group 1 2 5 15\n"
+                     "group 0 4 0,5,10,15\n"
+                     "group 1 2 5,15\n"
                      "elevator 0 0 1 1 1 1\n"
                      "elevator 1 1 1 1 1 1\n");
     }
