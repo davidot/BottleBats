@@ -5,7 +5,7 @@ add_executable(BBServer
         crowtest.cpp
         database/ConnectionPool.cpp
         database/User.cpp
-        GamePlayer.cpp
+        vijf/GamePlayer.cpp
         )
 
 find_package(Crow)
@@ -15,7 +15,6 @@ target_link_libraries(BBServer PUBLIC Crow::Crow pq pqxx SubProcess LibVijf)
 add_executable(BBRunGames runsomegames.cpp
         database/ConnectionPool.cpp
         database/User.cpp
-        GamePlayer.cpp
-
+        vijf/GamePlayer.cpp
         )
 target_link_libraries(BBRunGames PUBLIC pq pqxx SubProcess LibVijf)

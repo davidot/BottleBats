@@ -7,7 +7,7 @@
 #include <iostream>
 #include "GamePlayer.h"
 #include "vijf/Vijf.h"
-#include "database/ConnectionPool.h"
+#include "../database/ConnectionPool.h"
 
 namespace BBServer {
 

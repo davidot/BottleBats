@@ -18,7 +18,7 @@
 #include "database/ConnectionPool.h"
 #include "auth/BasicServer.h"
 #include "BotCreator.h"
-#include "GamePlayer.h"
+#include "vijf/GamePlayer.h"
 
 boost::asio::io_service io_service;
 boost::posix_time::seconds interval(5);
