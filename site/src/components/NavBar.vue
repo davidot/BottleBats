@@ -1,6 +1,10 @@
 <template>
   <div class="bb-nav">
-    <LogoSVG class="logo-nav" style="float: left; height: 100%; z-index: 1; border: 0;"/>
+    <div class="open-doors" style="height: 100%; float: left; z-index: 1; border: 0">
+      <div style="width: 100%; height: 100%; background-color: #ebffcf; animation: behind-doors step-end 1.5s forwards">
+      </div>
+      <LogoSVG class="logo-nav" style="height: 100%; z-index: 1"/>
+    </div>
     <span class="nav-button logo-nav" style="border-left-width: 0;">
       Bottle Bats
     </span>
@@ -121,5 +125,82 @@ export default {
 .logo-nav:hover {
   background-color: #ebffcf;
 }
+
+
+.open-doors {
+  animation: behind-doors;
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  width: 50px;
+  background-color: #ebffcf;
+}
+
+.open-doors::before {
+  display: block;
+  content: "";
+  /*z-index: 10;*/
+  width: 0;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-color: transparent;
+  border-left: gray solid 25px;
+  animation: opening-door linear 1.5s forwards;
+}
+
+.open-doors::after {
+  display: block;
+  content: "";
+  /*z-index: 10;*/
+  width: 0;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: transparent;
+  border-right: gray solid 25px;
+  animation: opening-door linear 1.5s forwards;
+}
+
+@keyframes behind-doors {
+  40% {
+    height: 100%;
+  }
+  60% {
+    height: 0;
+  }
+  100% {
+    height: 0;
+  }
+}
+
+@keyframes opening-door {
+  0% {
+    top: 100%;
+    width: 0;
+    border-width: 25px;
+  }
+
+  40% {
+    top: 0;
+    width: 0;
+    border-width: 25px;
+  }
+
+  60% {
+    top: 0;
+    width: 0;
+    border-width: 25px;
+  }
+
+  100% {
+    top: 0;
+    width: 50%;
+    border-width: 0;
+  }
+}
+
 
 </style>
