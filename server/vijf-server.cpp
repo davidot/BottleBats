@@ -2,11 +2,7 @@
 //#define CROW_STATIC_ENDPOINT "/<path>"
 
 #define CROW_DISABLE_STATIC_DIR
-#include <crow/app.h>
 #include <crow/multipart.h>
-#include <crow/middleware.h>
-#include <crow/middlewares/cors.h>
-#include <crow/middlewares/cookie_parser.h>
 
 #include <boost/asio.hpp>
 #include <pqxx/transaction>

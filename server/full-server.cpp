@@ -1,4 +1,4 @@
-
+#define CROW_DISABLE_STATIC_DIR
 #include "elevated/Endpoints.h"
 #include "vijf/EndPoints.h"
 #include <boost/asio/deadline_timer.hpp>
