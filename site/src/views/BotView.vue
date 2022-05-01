@@ -4,7 +4,7 @@
     <div v-if="!loggedIn">
       Sorry, your not logged in so not much to see here.
     </div>
-    <BotCreator v-else @new-bot="updateBots"/>
+    <BotCreator v-else @new-bot="updateBots" :upload-url="'/vijf/upload'"/>
     <div style="display: flex; flex-direction: column;">
       <div v-if="bots === null"><div style="animation: 1s linear infinite; transform-origin: 50% 50%;">Loading</div></div>
       <TransitionGroup v-else name="bot-list">

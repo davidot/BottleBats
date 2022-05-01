@@ -42,6 +42,9 @@ import {endpoint} from "@/http";
 
 export default {
   name: "BotCreator",
+  props: {
+    uploadUrl: String,
+  },
   data() {
     return {
       currentFile: null,
@@ -66,7 +69,7 @@ export default {
       data.append("file", file);
       data.append("name", name);
 
-      endpoint.post("/vijf/upload", data).then((done) => {
+      endpoint.post(this.uploadUrl, data).then((done) => {
         this.currentFile = null;
         this.uploading = false;
         this.$emit('new-bot');
