@@ -8,14 +8,17 @@
     <NavBarButton :to="{name: 'home'}">
       LeaderBoard
     </NavBarButton>
-    <NavBarButton :to="{name: 'games'}">
-      Games
-    </NavBarButton>
+<!--    <NavBarButton :to="{name: 'games'}">-->
+<!--      Games-->
+<!--    </NavBarButton>-->
     <NavBarButton :to="{name: 'bots'}" :enabled="loggedIn">
       Bots
     </NavBarButton>
     <NavBarButton :to="{name: 'rules'}">
       Regels
+    </NavBarButton>
+    <NavBarButton :to="{path: '/vijf'}">
+      Vijf
     </NavBarButton>
 
     <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
