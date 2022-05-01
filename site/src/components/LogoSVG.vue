@@ -1,5 +1,5 @@
 <template>
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" :class="['logo-svg-main', animating && 'animating', (pop) && 'popping']">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" :class="['logo-svg-main', animating && 'animating', (popping) && 'popping']">
     <g>
       <g id="bb-logo">
         <!--            <rect class="cls-1" width="299.12" height="299.12"/>-->
