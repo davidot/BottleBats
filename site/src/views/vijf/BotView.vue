@@ -17,7 +17,7 @@
 <script>
 import { endpoint } from "@/http";
 import BotCreator from "@/components/BotCreator.vue";
-import BotItem from "@/components/BotItem.vue";
+import BotItem from "@/components/vijf/BotItem.vue";
 
 export default {
   name: "BotView",
