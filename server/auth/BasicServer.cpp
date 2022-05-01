@@ -10,7 +10,7 @@ void add_authentication(ServerType& app)
     CROW_ROUTE(app, "/api/auth/login")([&](crow::request& req, crow::response& resp){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         if (base_context.user.logged_in)
-            return fail_response_with_message(resp, 400, "Already logged in");
+            return fail_response_with_message(resp, 204, "Already logged in");
 
         auto& authorization_header = req.get_header_value("Authorization");
 
