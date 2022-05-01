@@ -36,8 +36,10 @@ std::unique_ptr<pqxx::connection> get_connection()
 
     CPOOL_LOG("Getting connection " << pool.size() << " left ");
 
-    while (pool.empty())
+    while (pool.empty()) {
+        std::cerr << "Actually have to wait for a db connection!\n";
         non_empty_condition.wait(l);
+    }
 
     auto connection = std::move(pool.back());
     pool.pop_back();
