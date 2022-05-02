@@ -53,3 +53,4 @@ add_executable(elevated-tester
 target_link_libraries(elevated-tester PUBLIC LibElevated)
 
 add_test(NAME elevated-protocol-test COMMAND elevated-tester python3 examples/python/cycle.py WORKING_DIRECTORY ..)
+add_test(NAME elevated-protocol-test2 COMMAND elevated-tester python3 examples/python/random_travel.py WORKING_DIRECTORY ..)
