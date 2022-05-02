@@ -1,6 +1,8 @@
 #include "elevated/generation/FullGenerators.h"
 #include "elevated/stats/MetaListener.h"
 #include "elevated/stats/PassengerStats.h"
+#include "elevated/stats/PowerStatsListener.h"
+#include "elevated/stats/SpecialEventsListener.h"
 #include <ctime>
 #include <elevated/Simulation.h>
 #include <elevated/algorithm/ProcessAlgorithm.h>
@@ -76,7 +78,7 @@ int main(int argc, char** argv) {
     }
 
     std::unique_ptr<ScenarioGenerator> generator = std::make_unique<HardcodedScenarioGenerator>(
-        std::vector<std::pair<size_t, std::vector<Height>>> { { 3, { 0, 5, 10, 15, 5000 } } },
+        std::vector<std::pair<size_t, std::vector<Height>>> { { 3, { 0, 5, 10, 15 } } },
         std::move(requests));
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
@@ -84,6 +86,8 @@ int main(int argc, char** argv) {
     Simulation simulation { std::move(generator), std::move(algorithm) };
 
     auto passenger_stats_listener = simulation.construct_and_add_listener<PassengerStatsListener>();
+    auto power_stats = simulation.construct_and_add_listener<PowerStatsListener>();
+    auto special_stats = simulation.construct_and_add_listener<SpecialEventsListener>();
 
     auto meta_listener = simulation.construct_and_add_listener<MetaListener>();
 
@@ -93,8 +97,11 @@ int main(int argc, char** argv) {
     case SimulatorResult::Type::SuccessFull:
         std::cout << "Ran complete simulation in " << simulation.building().current_time() << " steps\n";
         std::cout << "Which was " << meta_listener->ticks() << " tick of the simulation and " << meta_listener->events() << " events\n";
-        std::cout << "Max waiting time " << passenger_stats_listener->max_wait_times() << '\n';
-        std::cout << "Max travel time " << passenger_stats_listener->max_travel_times() << '\n';
+        std::cout << "Max waiting time: " << passenger_stats_listener->max_wait_times() << " avg: " << passenger_stats_listener->average_wait_time() << '\n';
+        std::cout << "Max travel time: " << passenger_stats_listener->max_travel_times() << '\n';
+        std::cout << "Max time door opened: " << passenger_stats_listener->max_times_door_opened() << '\n';
+        std::cout << "Power: Doors opened: " << power_stats->times_door_opened() << " total distance travelled: " << power_stats->total_distance_travelled() << " time stopped with passengers: " << power_stats->time_stopped_with_passengers() << '\n';
+        std::cout << "Roller coaster events: " << special_stats->total_roller_coaster_events()  << '\n';
         break;
     case SimulatorResult::Type::GenerationFailed:
         std::cout << "Something went wrong in the generation of the scenario\n";
