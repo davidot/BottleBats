@@ -25,6 +25,7 @@ add_library(LibElevated
         elevated/stats/Listener.cpp
         elevated/stats/MetaListener.cpp
         elevated/stats/PassengerStats.cpp
+        elevated/stats/PowerStatsListener.cpp
         elevated/stats/SpecialEventsListener.cpp
         elevated/algorithm/Algorithm.cpp
         elevated/algorithm/CyclingAlgorithm.cpp
