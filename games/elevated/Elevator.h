@@ -80,6 +80,7 @@ public:
     [[nodiscard]] State current_state() const { return m_state; }
     [[nodiscard]] Height target_height() const { return m_target_height; }
     [[nodiscard]] Height height() const { return m_height; }
+    [[nodiscard]] Capacity filled_capacity() const;
 
     struct TransferredPassengers {
         std::vector<ElevatorID> dropped_off_passengers;

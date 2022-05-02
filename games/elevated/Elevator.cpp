@@ -125,6 +125,11 @@ Capacity ElevatorState::dropoff_passengers(TransferredPassengers& transferred)
     });
 
     m_passengers.erase(reached_destination, m_passengers.end());
+    return filled_capacity();
+}
+
+Capacity ElevatorState::filled_capacity() const
+{
     return std::accumulate(m_passengers.begin(), m_passengers.end(), Capacity {0},
         [](Capacity accumulator, TravellingPassenger const& passenger) {
             return accumulator + passenger.capacity;
