@@ -25,6 +25,7 @@ add_executable(full-server
         full-server.cpp
         elevated/BotCreator.cpp
         elevated/Endpoints.cpp
+        elevated/Runner.cpp
         vijf/GamePlayer.cpp
         vijf/BotCreator.cpp
         vijf/EndPoints.cpp
