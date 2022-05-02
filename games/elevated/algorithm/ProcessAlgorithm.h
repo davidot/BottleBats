@@ -15,7 +15,7 @@ public:
         Minimal
     };
 
-    explicit ProcessAlgorithm(std::vector<std::string> command, InfoLevel);
+    explicit ProcessAlgorithm(std::vector<std::string> command, InfoLevel, util::SubProcess::StderrState = util::SubProcess::StderrState::Ignored);
     ProcessAlgorithm(ProcessAlgorithm const&) = delete;
     ProcessAlgorithm& operator=(ProcessAlgorithm const&) = delete;
     ~ProcessAlgorithm();
@@ -34,6 +34,7 @@ private:
     std::unique_ptr<util::SubProcess> m_process;
     std::vector<std::string> m_command;
     InfoLevel m_info_level;
+    util::SubProcess::StderrState m_stderr_handling;
 };
 
 }

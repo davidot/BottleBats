@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
         std::vector<std::pair<size_t, std::vector<Height>>> { { 3, { 0, 5, 10, 15, 5000 } } },
         std::move(requests));
 
-    std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low);
+    std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 
     Simulation simulation { std::move(generator), std::move(algorithm) };
 
