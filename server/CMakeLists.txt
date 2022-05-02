@@ -33,7 +33,7 @@ add_executable(full-server
 target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)
 
 
-add_executable(BBRunGames runsomegames.cpp
+add_executable(BBRunGames vijf/runsomegames.cpp
         database/ConnectionPool.cpp
         database/User.cpp
         vijf/GamePlayer.cpp
