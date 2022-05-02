@@ -17,39 +17,41 @@
           </td>
         </tr>
       </thead>
-      <tr v-for="b in bots" :key="'bot-' + b.id">
-        <td class="bot-name">
-          {{ b.name }} (by {{ b.author }})
-        </td>
-        <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
-          <div v-if="b.runs[cs.id] == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
+      <transition-group name="list" tag="tbody">
+        <tr v-for="b in bots" :key="'bot-' + b.id">
+          <td class="bot-name">
+            {{ b.name }} (by {{ b.author }})
+          </td>
+          <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
+            <div v-if="b.runs[cs.id] == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
 
-          </div>
-          <div v-else-if="!b.runs[cs.id].done" style="min-height: 35px; display: flex; align-items: center">
-            <spinner style="width: 50%; height: 50%; margin: auto"/>
-          </div>
-          <div v-else-if="b.runs[cs.id].rejected" class="skipped">
-          </div>
-          <div v-else style="min-height: 35px;" :title="b.runs[cs.id].result[stat]" :style="{'background-color': toColor(b.runs[cs.id].result[stat], cs.best[stat])}">
-<!--            {{ Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) }}%-->
-          </div>
-        </td>
-        <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
-          ?
-        </td>
-      </tr>
-      <tr>
-        <td class="bot-name">
-          Best per case
-        </td>
-        <td v-for="cs in cases" :key="'summ-' + cs.id" class="table-result">
-          <div v-if="cs.best && cs.best[stat] != null" :title="cs.best[stat][0]" style="min-height: 35px;" :style="{'background-color': toColor(cs.best[stat][0], cs.best[stat])}">
-<!--            {{ Math.round(percentage(cs.best[stat][0], cs.best[stat]) * 100.0) }}%-->
-          </div>
-        </td>
-        <td title="Invalid"><div class="skipped"></div></td>
-        <td title="Invalid"><div class="skipped"></div></td>
-      </tr>
+            </div>
+            <div v-else-if="!b.runs[cs.id].done" style="min-height: 35px; display: flex; align-items: center">
+              <spinner style="width: 50%; height: 50%; margin: auto"/>
+            </div>
+            <div v-else-if="b.runs[cs.id].rejected" class="skipped">
+            </div>
+            <div v-else style="min-height: 35px;" :title="b.runs[cs.id].result[stat]" :style="{'background-color': toColor(b.runs[cs.id].result[stat], cs.best[stat])}">
+              <!--            {{ Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) }}%-->
+            </div>
+          </td>
+          <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
+            ?
+          </td>
+        </tr>
+      </transition-group>
+<!--      <tr>-->
+<!--        <td class="bot-name">-->
+<!--          Best per case-->
+<!--        </td>-->
+<!--        <td v-for="cs in cases" :key="'summ-' + cs.id" class="table-result">-->
+<!--          <div v-if="cs.best && cs.best[stat] != null" :title="cs.best[stat][0]" style="min-height: 35px;" :style="{'background-color': toColor(cs.best[stat][0], cs.best[stat])}">-->
+<!--&lt;!&ndash;            {{ Math.round(percentage(cs.best[stat][0], cs.best[stat]) * 100.0) }}%&ndash;&gt;-->
+<!--          </div>-->
+<!--        </td>-->
+<!--        <td title="Invalid"><div class="skipped"></div></td>-->
+<!--        <td title="Invalid"><div class="skipped"></div></td>-->
+<!--      </tr>-->
     </table>
   </div>
 </template>
@@ -107,9 +109,6 @@ export default {
               1: {
                 done: false,
               },
-              2: {
-                done: false,
-              },
             }
           }
         }
@@ -124,6 +123,17 @@ export default {
           { id: 2, name: "Case #2" },
         ],
         bots: {
+          24: {
+            name: "Better bot",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 13.4,
+                },
+              },
+            },
+          },
           13: {
             name: "Simple bot",
             runs: {
@@ -143,17 +153,6 @@ export default {
                 done: true,
                 rejected: true,
               }
-            },
-          },
-          24: {
-            name: "Better bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.4,
-                },
-              },
             },
           },
           240: {
@@ -199,6 +198,99 @@ export default {
         }
       };
     }, 3000);
+
+
+
+    setTimeout(() => {
+      this.results = {
+        cases: [
+          { id: 0, name: "Case #0", best: { "avg-wait": [13.4, 27.3] } },
+          { id: 1, name: "Case #1", best: { "avg-wait": [14.2, 14.2] } },
+          { id: 2, name: "Case #2" },
+          { id: 4, name: "Case #2", best: { "avg-wait": [14.2, 14.2] } },
+        ],
+        bots: {
+          24: {
+            name: "Better bot",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 13.4,
+                },
+              },
+            },
+          },
+          13: {
+            name: "Simple bot",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 27.3,
+                }
+              },
+              1: {
+                done: true,
+                result: {
+                  "avg-wait": 14.2,
+                },
+              },
+              2: {
+                done: true,
+                rejected: true,
+              }
+            },
+          },
+          240: {
+            name: "Bot with a very very very very long name like insanely long",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 13.5,
+                },
+              },
+              1: {
+                done: false,
+              },
+              2: {
+                done: true,
+                rejected: true,
+              }
+            }
+          },
+          241: {
+            name: "Bot #123",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 18.5,
+                },
+              },
+            }
+          },
+          242: {
+            name: "Bot #1231",
+            runs: {
+              0: {
+                done: true,
+                result: {
+                  "avg-wait": 20.5,
+                },
+              },
+              4: {
+                done: true,
+                result: {
+                  "avg-wait": 20.5,
+                },
+              },
+            }
+          }
+        }
+      };
+    }, 4000);
   },
   data() {
     return {
@@ -219,6 +311,14 @@ export default {
 
       return Object.entries(this.results.bots).map(([id, val]) => {
         return Object.assign({ runs: {} }, { id: id, ...val });
+      }).sort((lhs, rhs) => {
+        let leftKeys = Object.keys(lhs.runs).length;
+        let rightKeys = Object.keys(rhs.runs).length;
+        if (leftKeys === rightKeys) {
+          console.log(lhs.name);
+          return lhs.name.localeCompare(rhs.name);
+        }
+        return rightKeys - leftKeys;
       });
     }
   },
@@ -273,7 +373,7 @@ export default {
 table {
   border-collapse: collapse;
   table-layout: fixed;
-  background: linear-gradient(0deg, rgb(54, 199, 149) 0%, rgb(54, 199, 149) 5%, rgb(53, 200, 69) 6%, rgb(230, 6, 45) 100%);
+  /*background: linear-gradient(180deg, rgb(54, 199, 149) 0%, !*rgb(54, 199, 149) 5%,*! rgb(53, 200, 69) 6%, rgb(230, 6, 45) 100%);*/
 }
 
 table tr {
@@ -300,13 +400,29 @@ table td {
 .skipped {
   background:
       linear-gradient(to top left,
-      rgba(0,0,0,0) 0%,
-      rgba(0,0,0,0) calc(50% - 1.8px),
-      rgba(0,0,0,1) 50%,
-      rgba(0,0,0,0) calc(50% + 1.8px),
-      rgba(0,0,0,0) 100%);
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0) calc(50% - 1.8px),
+    rgba(0, 0, 0, 1) 50%,
+    rgba(0, 0, 0, 0) calc(50% + 1.8px),
+    rgba(0, 0, 0, 0) 100%
+  );
   min-height: 35px;
   min-width: 35px;
+}
+
+.list-move,
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.5s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.list-leave-active {
+  position: absolute;
 }
 
 </style>
