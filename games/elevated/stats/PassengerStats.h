@@ -15,6 +15,7 @@ public:
     uint32_t max_times_door_opened() const { return m_max_times_door_opened; }
 
     [[nodiscard]] double average_wait_time() const;
+    [[nodiscard]] double average_travel_time() const;
 private:
     std::unordered_map<PassengerID, Time> m_arrival_times;
     std::unordered_map<PassengerID, Time> m_enter_times;

@@ -52,6 +52,19 @@ double PassengerStatsListener::average_wait_time() const
     return sum / (double)count;
 }
 
+
+double PassengerStatsListener::average_travel_time() const
+{
+    auto [sum, count] = std::accumulate(m_travel_times.begin(), m_travel_times.end(), std::pair<double, size_t>{0.0, 0}, [](auto const& acc, auto& entry){
+        return std::pair<double, size_t>{
+            acc.first + entry.second * entry.first,
+            acc.second + entry.second,
+        };
+    });
+    return sum / (double)count;
+}
+
+
 void PassengerStatsListener::on_elevator_opened_doors(Time, ElevatorState const& state)
 {
     for (auto& passenger : state.passengers()) {
