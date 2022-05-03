@@ -71,6 +71,21 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         return crow::json::wvalue {cases};
     });
 
+    CROW_ROUTE(app, "/api/elevated/remove-bot/<int>")
+    .middlewares<ServerType, BBServer::AuthGuard>()
+    ([&app](crow::request const& req, int bot_id){
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::work transaction {*base_context.database_connection};
+
+        auto result = transaction.exec(
+            "UPDATE elevated_bot SET running_cases = FALSE WHERE bot_id = " + std::to_string(bot_id) + " AND user_id = " + std::to_string(base_context.user.id)
+        );
+
+        transaction.commit();
+
+        return "Success";
+    });
+
     CROW_ROUTE(app, "/api/elevated/upload")
     .methods(crow::HTTPMethod::POST)
     .middlewares<ServerType, BBServer::AuthGuard>()
