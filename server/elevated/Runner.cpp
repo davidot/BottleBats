@@ -38,7 +38,7 @@ std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm_from_command(std::string 
             "--network=none", "--cpus=1.0", "--memory=128m",
             "--cap-drop=all", "--rm", "--interactive",
             std::string(details)
-        }, Elevated::ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
+        }, Elevated::ProcessAlgorithm::InfoLevel::Low);
     }
 
     return nullptr;
