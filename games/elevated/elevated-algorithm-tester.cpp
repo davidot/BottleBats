@@ -7,6 +7,7 @@
 #include <elevated/Simulation.h>
 #include <elevated/algorithm/ProcessAlgorithm.h>
 #include <elevated/generation/BasicGenerator.h>
+#include <elevated/generation/GenerationFactory.h>
 #include <elevated/generation/MetaGenerators.h>
 #include <iostream>
 #include <string>
@@ -27,17 +28,15 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string val = argv[i];
 
-        if (in_flags) {
-            if (val == "--groups") {
-                if (i == argc - 1)
-                    std::cout << "Must give amount after --groups\n";
-                i++;
-//                std::string group_val = argv[i];
-//                int temp = std::stoi(group_val);
-
-                continue;
-            }
-        }
+//        if (in_flags) {
+//            if (val == "--gen") {
+//                if (i == argc - 1)
+//                    std::cout << "Must give amount after --groups\n";
+//                i++;
+//
+//                continue;
+//            }
+//        }
 
         in_flags = false;
         command.push_back(val);
@@ -88,14 +87,13 @@ int main(int argc, char** argv) {
 //            requests.emplace_back(t, std::move(at));
 //    }
 
-    auto requests = RequestCombiner::create(
-        std::make_unique<ForceDirectionGenerator>(std::make_unique<GroundFloorGenerator>(1245, 5, 0.3, 0), ForceDirectionGenerator::Operation::Randomize, 456, 0.5),
-        std::make_unique<UniformFloorGenerator>(6789, 5, 0.01)
-    );
+    std::string input;
+    if (!std::getline(std::cin, input)) {
+        std::cerr << "Reading line failed!\n";
+        return 1;
+    }
 
-    auto generator = std::make_unique<SplitGenerator>(
-        std::make_unique<HardcodedBuildingGenerator>(std::vector<std::pair<size_t, std::vector<Height>>> { { 3, { 0, 5, 10, 15 } } }),
-        std::move(requests));
+    auto generator = generator_from_string(input);
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 

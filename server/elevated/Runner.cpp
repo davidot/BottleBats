@@ -4,6 +4,7 @@
 #include "elevated/algorithm/CyclingAlgorithm.h"
 #include "elevated/algorithm/ProcessAlgorithm.h"
 #include "elevated/generation/FullGenerators.h"
+#include "elevated/generation/GenerationFactory.h"
 #include <crow/json.h>
 #include <elevated/Simulation.h>
 #include <elevated/stats/PassengerStats.h>
@@ -46,39 +47,7 @@ std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm_from_command(std::string 
 
 std::unique_ptr<Elevated::ScenarioGenerator> scenario_from_command(std::string name)
 {
-    if (name != "h1")
-        return nullptr;
-
-
-    std::vector<std::pair<size_t, std::vector<Elevated::PassengerBlueprint>>> requests = {
-        { 0, { { 0, 10, 0 }, {10, 0, 0}, {5, 15, 0}, {5, 10, 0}, {0, 15, 0} } },
-    };
-
-    requests.reserve(1667);
-    for (size_t t = 5; t < 50010; t += 43) {
-        std::vector<Elevated::PassengerBlueprint> at;
-
-        if (t % 2 == 0)
-            at.push_back({0, 15, 0});
-
-        if (t % 3 == 0)
-            at.push_back({10, 5, 0});
-
-        if (t % 2 && t > 1000 && t < 6000)
-            at.push_back({5, 0, 0});
-
-        if (t % 4 == 0) {
-            at.push_back({10, 0, 0});
-            at.push_back({0, 10, 0});
-        }
-
-        if (!at.empty())
-            requests.emplace_back(t, std::move(at));
-    }
-
-    return std::make_unique<Elevated::HardcodedScenarioGenerator>(
-        std::vector<std::pair<size_t, std::vector<Elevated::Height>>> { { 3, { 0, 5, 10, 15 } } },
-        std::move(requests));
+    return Elevated::generator_from_string(std::move(name));
 }
 
 SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm, std::unique_ptr<Elevated::ScenarioGenerator> generator)

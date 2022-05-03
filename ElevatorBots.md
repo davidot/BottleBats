@@ -86,7 +86,9 @@ info low ->
 
 TODO: 
 - [x] Add extra info 1
-- [ ] Add more cases
+- [x] Add more cases
+  - [x] have the generators
+  - [x] add the actual cases
 - [ ] Write explanation
 - [x] Add bot info screen
 - [x] Add stat selection
