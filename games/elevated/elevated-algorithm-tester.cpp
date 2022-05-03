@@ -87,13 +87,13 @@ int main(int argc, char** argv) {
 //            requests.emplace_back(t, std::move(at));
 //    }
 
-    std::string input;
-    if (!std::getline(std::cin, input)) {
-        std::cerr << "Reading line failed!\n";
-        return 1;
-    }
+//    std::string input;
+//    if (!std::getline(std::cin, input)) {
+//        std::cerr << "Reading line failed!\n";
+//        return 1;
+//    }
 
-    auto generator = generator_from_string(input);
+    auto generator = generator_from_string("h1");
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 
