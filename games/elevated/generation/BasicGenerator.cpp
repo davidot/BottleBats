@@ -7,8 +7,8 @@ namespace Elevated {
 
 IndependentRequestGenerator::IndependentRequestGenerator(long seed, size_t requests, double mean)
     : m_engine(seed)
-    , m_requests_left(requests)
     , m_exp_dist(mean)
+    , m_requests_left(requests)
 {
 }
 

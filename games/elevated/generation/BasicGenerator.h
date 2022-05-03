@@ -93,8 +93,8 @@ public:
 
 private:
     Operation m_operation;
-    std::bernoulli_distribution m_dist;
     std::minstd_rand m_engine;
+    std::bernoulli_distribution m_dist;
 };
 
 }
