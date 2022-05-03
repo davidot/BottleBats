@@ -1,7 +1,7 @@
 import random
 import sys
 
-verbose = True
+verbose = False
 
 def pr(str):
     if verbose:
