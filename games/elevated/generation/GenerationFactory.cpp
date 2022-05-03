@@ -41,7 +41,7 @@ std::unique_ptr<ScenarioGenerator> hardcoded1() {
 
     return std::make_unique<Elevated::HardcodedScenarioGenerator>(
         std::vector<std::pair<size_t, std::vector<Elevated::Height>>> { { 3, { 0, 5, 10, 15 } } },
-        std::move(requests));
+        requests);
 }
 
 std::unique_ptr<ScenarioGenerator> single_group_unif(size_t num_floors, size_t num_elevators, size_t num_requests, long seed) {
