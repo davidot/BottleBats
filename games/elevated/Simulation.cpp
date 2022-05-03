@@ -1,6 +1,5 @@
 #include "Simulation.h"
 #include "../../util/Assertions.h"
-#include "../../util/Deferred.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -62,10 +61,6 @@ SimulatorResult Simulation::run()
         std::cerr << "Simulation was ran twice?\n";
         return *result;
     }
-
-    Deferred remove_algorithm ([&]{
-        m_algorithm.reset();
-    });
 
     result = SimulatorResult{};
 
