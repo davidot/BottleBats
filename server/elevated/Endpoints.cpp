@@ -10,19 +10,65 @@ namespace BBServer {
 void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service)
 {
 
-    CROW_ROUTE(app, "/api/elevated/bot/<int>")
+    CROW_ROUTE(app, "/api/elevated/my-bots")
+    .middlewares<ServerType, BBServer::AuthGuard>()
+    ([&app](crow::request const& req){
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::read_transaction transaction {*base_context.database_connection};
+
+        auto results = transaction.exec("SELECT bot_id, name, running_cases, status "
+                                                  "FROM elevated_bots "
+                                                  "WHERE user_id = " + std::to_string(base_context.user_id) + " "
+                                                  "ORDER BY created DESC LIMIT 50");
+
+        std::vector<crow::json::wvalue> bots;
+        bots.reserve(results.size());
+
+        for (auto row : results) {
+            bots.push_back({
+                { "id", row[0].as<long>() },
+                { "name", row[1].c_str() },
+                { "running", row[2].as<bool>() },
+                { "status", row[3].c_str() },
+            });
+        }
+
+        return crow::json::wvalue(bots);
+    });
+
+    CROW_ROUTE(app, "/api/elevated/bot-cases/<int>")
     ([&app](crow::request const& req, int bot_id){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::read_transaction transaction {*base_context.database_connection};
 
-        base_context.database_connection->prepare("SELECT COUNT(*) as played, COUNT(*) filter ( where game_result = 5 ) as won FROM vijf_game_players WHERE bot_id = $1");
-        auto results = transaction.exec_prepared1("", bot_id);
+        auto result = transaction.exec(
+            "SELECT er.case_id, ec.case_name, ec.hidden, er.success AND er.done as successful, NOT er.done as running, er.status, er.output\n"
+            "FROM elevated_run er\n"
+            "    JOIN elevated_cases ec on er.case_id = ec.case_id\n"
+            "WHERE er.bot_id = " + std::to_string(bot_id) + " AND started = (SELECT MAX(started) FROM elevated_run er2 WHERE er.bot_id = er2.bot_id AND er.case_id = er2.case_id)"
+            );
 
-        return crow::json::wvalue {
-            {"played", results[0].as<long>()},
-            {"won", results[1].as<long>()}
-        };
+        std::vector<crow::json::wvalue> cases;
+        for (auto row : result) {
+            auto hidden = row[2].as<bool>();
+            auto success = row[3].as<bool>();
 
+            auto& res = cases.emplace_back(crow::json::wvalue{
+                {"id", row[0].as<long>()},
+                {"name", hidden ? ("Case #" + std::to_string(row[0].as<long>())) : row[1].c_str()},
+                {"success", success},
+                {"running", row[4].as<bool>()},
+                {"status", row[5].c_str()}
+            });
+
+            if (success) {
+                res["result"] = crow::json::load(row[5].c_str());
+            } else {
+                res["result"] = row[5].c_str();
+            }
+        }
+
+        return crow::json::wvalue {cases};
     });
 
     CROW_ROUTE(app, "/api/elevated/upload")
