@@ -1,5 +1,6 @@
 #include "Simulation.h"
 #include "../../util/Assertions.h"
+#include "../../util/Deferred.h"
 #include <algorithm>
 #include <iostream>
 #include <string>
@@ -57,10 +58,14 @@ std::optional<Time> min_time(NextRequests requests, std::optional<Time> building
 
 SimulatorResult Simulation::run()
 {
-    if (result.has_value()) {
+    if (result.has_value() || !m_algorithm) {
         std::cerr << "Simulation was ran twice?\n";
         return *result;
     }
+
+    Deferred remove_algorithm ([&]{
+        m_algorithm.reset();
+    });
 
     result = SimulatorResult{};
 
