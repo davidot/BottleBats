@@ -1,5 +1,8 @@
 <template>
-  <div>
+  <div class="leaderboard-holder">
+    <div v-if="connectionLost" style="color: red; position: relative; top: 0; width: 100%; text-align: center;">
+      Connection to server lost!
+    </div>
     <span v-if="results === null">Loading...</span>
     <span v-else-if="!results.cases || Object.keys(results.bots).length === 0">No data</span>
     <table v-else>
@@ -27,17 +30,28 @@
             <div v-if="b.runs[cs.id] == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
 
             </div>
-            <div v-else-if="!b.runs[cs.id].done" style="min-height: 35px; display: flex; align-items: center">
+            <div v-else-if="b.runs[cs.id].status === 'running'" style="min-height: 35px; display: flex; align-items: center">
               <spinner style="width: 50%; height: 50%; margin: auto"/>
             </div>
-            <div v-else-if="b.runs[cs.id].rejected" class="skipped">
+            <div v-else-if="b.runs[cs.id].status === 'rejected'" class="skipped" :title="b.runs[cs.id].reason|| 'Rejected'">
             </div>
-            <div v-else style="min-height: 35px;" :title="b.runs[cs.id].result[stat]" :style="{'background-color': toColor(b.runs[cs.id].result[stat], cs.best[stat])}">
+            <div v-else-if="b.runs[cs.id].status !== 'done'" class="failed" :title="b.runs[cs.id].reason || 'Failed'">
+              &#10060;
+            </div>
+            <div v-else style="min-height: 35px;"
+                 :title="b.runs[cs.id].result[stat] + ' (' + Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) + '%)'"
+                 :style="{'background-color': toColor(percentage(b.runs[cs.id].result[stat], cs.best[stat]))}">
               <!--            {{ Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) }}%-->
             </div>
           </td>
+          <td></td>
           <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
-            ?
+            <div v-if="b.summary == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
+            </div>
+            <div v-else style="min-height: 35px;"
+                 :title="b.summary[summ].text"
+                 :style="{'background-color': toColor(b.summary[summ].percentage)}">
+            </div>
           </td>
         </tr>
       </transition-group>
@@ -59,269 +73,154 @@
 
 <script>
 import Spinner from "@/components/Spinner.vue";
+import {endpoint} from "@/http";
+import * as raw_data from "./data.json";
 
 export default {
   name: "LeaderboardView",
   components: {Spinner},
+  unmounted() {
+    if (this.dataInterval)
+      clearInterval(this.dataInterval);
+  },
   mounted() {
-    setTimeout(() => {
-      this.results = {
-        cases: [
-          { id: 0, name: "Case #0", best: { "avg-wait": [13.4, 27.3] } },
-          { id: 1, name: "Case #1" },
-          { id: 2, name: "Case #2" },
-        ],
-        bots: {
-          13: {
-            name: "Simple bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 27.3,
-                }
-              },
-              1: {
-                done: false
-              },
-              2: {
-                done: true,
-                rejected: true,
-              }
-            }
-          },
-          24: {
-            name: "Better bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.4,
-                }
-              }
-            }
-          },
-          240: {
-            name: "Bot with a very very very very long name like insanely long",
-            runs: {
-              0: {
-                done: false,
-              },
-              1: {
-                done: false,
-              },
-            }
-          }
-        }
-      };
-    }, 0);
+    // this.dataInterval = setInterval(() => this.getData(), 1000);
+    // this.getData();
 
     setTimeout(() => {
-      this.results = {
-        cases: [
-          { id: 0, name: "Case #0", best: { "avg-wait": [13.4, 27.3] } },
-          { id: 1, name: "Case #1", best: { "avg-wait": [14.2, 14.2] } },
-          { id: 2, name: "Case #2" },
-        ],
-        bots: {
-          24: {
-            name: "Better bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.4,
-                },
-              },
-            },
-          },
-          13: {
-            name: "Simple bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 27.3,
-                }
-              },
-              1: {
-                done: true,
-                result: {
-                  "avg-wait": 14.2,
-                },
-              },
-              2: {
-                done: true,
-                rejected: true,
-              }
-            },
-          },
-          240: {
-            name: "Bot with a very very very very long name like insanely long",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.5,
-                },
-              },
-              1: {
-                done: false,
-              },
-              2: {
-                done: true,
-                rejected: true,
-              }
-            }
-          },
-          241: {
-            name: "Bot #123",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 18.5,
-                },
-              },
-            }
-          },
-          242: {
-            name: "Bot #1231",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 20.5,
-                },
-              },
-            }
-          }
-        }
-      };
-    }, 3000);
+      this.results = raw_data;
+    }, 1500);
 
-
-
-    setTimeout(() => {
-      this.results = {
-        cases: [
-          { id: 0, name: "Case #0", best: { "avg-wait": [13.4, 27.3] } },
-          { id: 1, name: "Case #1", best: { "avg-wait": [14.2, 14.2] } },
-          { id: 2, name: "Case #2" },
-          { id: 4, name: "Case #2", best: { "avg-wait": [14.2, 14.2] } },
-        ],
-        bots: {
-          24: {
-            name: "Better bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.4,
-                },
-              },
-            },
-          },
-          13: {
-            name: "Simple bot",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 27.3,
-                }
-              },
-              1: {
-                done: true,
-                result: {
-                  "avg-wait": 14.2,
-                },
-              },
-              2: {
-                done: true,
-                rejected: true,
-              }
-            },
-          },
-          240: {
-            name: "Bot with a very very very very long name like insanely long",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 13.5,
-                },
-              },
-              1: {
-                done: false,
-              },
-              2: {
-                done: true,
-                rejected: true,
-              }
-            }
-          },
-          241: {
-            name: "Bot #123",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 18.5,
-                },
-              },
-            }
-          },
-          242: {
-            name: "Bot #1231",
-            runs: {
-              0: {
-                done: true,
-                result: {
-                  "avg-wait": 20.5,
-                },
-              },
-              4: {
-                done: true,
-                result: {
-                  "avg-wait": 20.5,
-                },
-              },
-            }
-          }
-        }
-      };
-    }, 4000);
   },
   data() {
     return {
       results: null,
-      stat: "avg-wait",
+      stat: "total-time",
+      connectionLost: false,
     };
   },
   computed: {
+    highBetterStat() {
+      return this.stat in {};
+    },
+    caseNames() {
+      if (!this.results?.cases)
+        return {};
+
+      const names = {};
+      this.results.cases.forEach(cs => {
+        names[cs.id] = cs.name;
+      });
+      return names;
+    },
     cases() {
       if (!this.results?.cases)
         return [];
 
-      return this.results.cases.map(c => c).sort((c1, c2) => c1.id - c2.id);
+      return Object.fromEntries(
+          this.results.cases
+          .map(c => {
+            const runs = Object.values(this.results.bots || {})
+                .map(r => r.runs)
+                .filter(r => r != null && r[c.id] != null)
+                .map(r => r[c.id].result)
+                .filter(r => r != null);
+            if (runs.length === 0) {
+              console.log('no runs for me', c.id);
+              return c;
+            }
+
+            let [best, worst] = runs
+              .map(r => r[this.stat])
+              .filter(res => res != null)
+              .reduce((prev, val) => {
+                if (prev[0] == null)
+                  return [val, val];
+
+                if (val < prev[0])
+                  return [val, prev[1]];
+                if (val > prev[1])
+                  return [prev[0], val];
+                return prev;
+              },
+              [null, null]
+            );
+
+            if (this.highBetterStat) {
+              const temp = worst;
+              worst = best;
+              best = temp;
+            }
+
+            return Object.assign({best: {[this.stat]: [best, worst]}}, c);
+          })
+          .sort((c1, c2) => c1.id - c2.id)
+          .map(c => [c.id, c]));
     },
     bots() {
       if (!this.results?.bots)
         return [];
 
-      return Object.entries(this.results.bots).map(([id, val]) => {
-        return Object.assign({ runs: {} }, { id: id, ...val });
-      }).sort((lhs, rhs) => {
-        let leftKeys = Object.keys(lhs.runs).length;
-        let rightKeys = Object.keys(rhs.runs).length;
-        if (leftKeys === rightKeys) {
-          console.log(lhs.name);
+      return Object.entries(this.results.bots)
+        .map(([id, val]) => {
+          console.log('id', id, 'val', val);
+          const runs = Object.entries(val?.runs || {})
+              .filter(([id, r]) => r != null && r.result != null);
+          if (runs.length === 0)
+            return Object.assign({runs: {}}, {id: id, ...val})
+
+          const summary = {};
+
+          let worst = null;
+          let worstId = null;
+          let sum = 0;
+
+          const lowStat = !this.highBetterStat;
+          // const lowStat = !this.cases()[];
+
+
+          for (const [id, run] of runs) {
+            const extremes = this.cases[id]?.best?.[this.stat];
+            if (extremes == null)
+              continue;
+            const value = this.percentage(run.result[this.stat], extremes);
+
+            if (worst === null || (lowStat ? value < worst : value > worst)) {
+              worstId = id;
+              worst = value;
+            }
+            sum += value;
+          }
+
+          sum /= runs.length;
+
+          summary['worst'] = { percentage: worst, text: `${Math.round(worst * 100)}% (For case: ${this.cases[worstId].name}`};
+          summary['avg'] = { percentage: sum, text: `On average ${Math.round(sum * 100)}%` };
+
+          // runs.forEach(r => console.log('d', r));
+
+
+
+
+          return Object.assign({ summary, runs: {} }, { id: id, ...val })
+        })
+        .sort((lhs, rhs) => {
+          const leftKeys = Object.keys(lhs.runs);
+          const rightKeys = Object.keys(rhs.runs);
+          if (leftKeys.length !== rightKeys.length)
+            return rightKeys.length - leftKeys.length;
+
+          const leftDone = leftKeys.filter(r => r.done).length;
+          const rightDone = rightKeys.filter(r => r.done).length;
+
+          console.log(leftDone, rightDone);
+
+          if (leftDone !== rightDone)
+            return leftDone - rightDone;
+
           return lhs.name.localeCompare(rhs.name);
-        }
-        return rightKeys - leftKeys;
-      });
-    }
+        });
+    },
   },
   methods: {
     percentage(val, [best, worst]) {
@@ -336,18 +235,27 @@ export default {
 
       return (val - worst) / (best - worst);
     },
-    toColor(val, [best, worst]) {
-      if (val === best)
+    toColor(p) {
+      if (p === 1.0)
         return 'rgb(54, 199, 149)';
 
       const worstColor = [230, 6, 45];
       const bestColor = [53, 200, 69];
 
-      const p = this.percentage(val, [best, worst]);
+      // const p = this.percentage(val, [best, worst]);
 
       return 'rgb(' + (worstColor[0] * (1 - p) + bestColor[0] * p) + ','
                     + (worstColor[1] * (1 - p) + bestColor[1] * p) + ','
                     + (worstColor[2] * (1 - p) + bestColor[2] * p) + ')';
+    },
+    async getData() {
+      try {
+        const data = await endpoint.get("/elevated/leaderboard", {timeout: 750});
+        this.results = data.data;
+        this.connectionLost = false;
+      } catch {
+        this.connectionLost = true;
+      }
     },
   },
 };
@@ -355,10 +263,13 @@ export default {
 
 <style scoped>
 .case-name {
-  writing-mode: sideways-lr;
+  writing-mode: vertical-lr;
   min-width: 35px;
   max-width: 35px;
   padding-bottom: 10px;
+
+  text-align: center;
+  vertical-align: middle;
 }
 
 .case-names {
@@ -366,20 +277,22 @@ export default {
 }
 
 .table-result {
-  width: 25px;
-  max-width: 25px;
+  width: 35px;
+  max-width: 35px;
   overflow: hidden;
 }
 
 table {
+  /*width: 100%;*/
   border-collapse: collapse;
   table-layout: fixed;
+  border-right: 1px solid black;
   /*background: linear-gradient(180deg, rgb(54, 199, 149) 0%, !*rgb(54, 199, 149) 5%,*! rgb(53, 200, 69) 6%, rgb(230, 6, 45) 100%);*/
 }
 
 table tr {
-  border-bottom:1px solid black;
-  height: 25px;
+  border-bottom: 1px solid black;
+  height: 35px;
 }
 
 table td {
@@ -393,8 +306,8 @@ table td {
   white-space: nowrap;
   max-width: 250px;
   overflow: hidden;
-  max-height: 25px;
-  min-height: 25px;
+  max-height: 35px;
+  min-height: 35px;
   display: table-cell;
 }
 
@@ -411,19 +324,34 @@ table td {
   min-width: 35px;
 }
 
+.failed {
+  min-height: 35px;
+  max-height: 35px;
+  min-width: 35px;
+  font-size: 30px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+}
+
 .list-move,
 .list-enter-active,
 .list-leave-active {
-  transition: all 0.5s ease;
+  transition: transform 0.5s ease 0s;
 }
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
-  transform: translateX(30px);
+  transform: translateY(30px);
 }
 
 .list-leave-active {
   position: absolute;
 }
 
+.leaderboard-holder {
+  padding-right: 30px;
+  padding-left: 10px;
+}
 </style>
