@@ -20,7 +20,7 @@ export default {
       return this.userDetails.values.value.displayName != null;
     },
     isRuben() {
-      if (this.loggedIn) return this.userDetails.values.value.displayName === 'Ruben';
+      if (this.loggedIn) return this.userDetails.values.value.displayName === 'david';
       return false;
     },
     hasCrown() {
@@ -55,9 +55,9 @@ export default {
 
 @keyframes spinning {
   100% {
-    /*transform: scale(2.5);*/
+    transform: scale(5);
     rotate: 360deg;
-    /*opacity: 1;*/
+    opacity: 1;
   }
 }
 </style>

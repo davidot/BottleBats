@@ -37,7 +37,7 @@
           <td class="bot-name" :title="b.name">
             {{ b.name }} (by {{ b.author }})
           </td>
-          <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
+          <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="max-width: 35px; max-height: 35px;">
             <div v-if="b.runs[cs.id] == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
 
             </div>
@@ -57,7 +57,7 @@
             </div>
           </td>
           <td></td>
-          <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
+          <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="max-width: 35px; max-height: 35px;">
             <div v-if="b.summary == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
             </div>
             <div v-else style="min-height: 35px; max-height: 35px; display: flex; align-items: center; justify-content: center;"
@@ -301,7 +301,7 @@ export default {
 .table-result {
   width: 35px;
   max-width: 35px;
-  overflow: hidden;
+  /*overflow: hidden;*/
 }
 
 table {
