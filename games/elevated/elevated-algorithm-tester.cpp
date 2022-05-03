@@ -60,10 +60,19 @@ int main(int argc, char** argv) {
         std::vector<PassengerBlueprint> at;
 
         if (t % 2 == 0)
-            at.push_back({0, 15, 0});
+            at.push_back({0, 15, 0 });
 
-        if (t % 3 == 0)
-            at.push_back({10, 5, 0});
+        if (t % 3 == 0) {
+            at.push_back({ 10, 5, 0, 1 });
+            at.push_back({ 10, 5, 0, 1 });
+            at.push_back({ 10, 5, 0, 1 });
+            at.push_back({ 10, 5, 0, 1 });
+            at.push_back({ 10, 5, 0, 1 });
+            at.push_back({ 10, 15, 0, 1 });
+            at.push_back({ 10, 15, 0, 1 });
+            at.push_back({ 10, 15, 0, 1 });
+            at.push_back({ 10, 15, 0, 1 });
+        }
 
         if (t % 2 && t > 1000 && t < 6000)
             at.push_back({5, 0, 0});
@@ -79,7 +88,7 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<ScenarioGenerator> generator = std::make_unique<HardcodedScenarioGenerator>(
         std::vector<std::pair<size_t, std::vector<Height>>> { { 3, { 0, 5, 10, 15 } } },
-        std::move(requests));
+        std::move(requests), Capacity{5});
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 

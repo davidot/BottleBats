@@ -2,6 +2,7 @@
 #include "../../../util/Assertions.h"
 #include <algorithm>
 #include <charconv>
+#include <numeric>
 #include <set>
 #include <sstream>
 
@@ -138,6 +139,30 @@ void ProcessAlgorithm::write_elevator_closed(BuildingState const& building, Elev
     write_elevator_base(elevator, stream);
 
     ASSERT(m_info_level == InfoLevel::Low);
+
+    stream << " still-waiting ";
+    auto const& queue = building.passengers_at(elevator.height());
+    auto [up, down] = std::accumulate(queue.begin(), queue.end(), std::pair<bool, bool>{false, false},
+        [&](auto acc, Passenger const& entry){
+            ASSERT(entry.from == elevator.height());
+            if (entry.group != elevator.group_id)
+                return acc;
+            bool request_up = entry.to > entry.from;
+            return std::pair<bool, bool>{
+                acc.first || request_up,
+                acc.second || !request_up,
+            };
+        });
+
+    if (up && down)
+        stream << "up,down";
+    else if (up)
+        stream << "up";
+    else if (down)
+        stream << "down";
+    else
+        stream << "-";
+
     // FIXME: Give more info for higher levels.
 }
 
@@ -221,7 +246,7 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
 
     size_t time_taken;
     size_t time_left = 500;
-    auto result = m_process->sendAndWaitForResponse(message.view(), time_left, &time_taken);
+    auto result = m_process->sendAndWaitForResponse(message.str(), time_left, &time_taken);
     if (!result.has_value())
         return { AlgorithmResponse::algorithm_failed({ "Process failed to respond to messages, command: ", make_command_string(), "input: ", message.str() }) };
 
