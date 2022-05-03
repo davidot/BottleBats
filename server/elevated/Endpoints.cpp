@@ -3,6 +3,7 @@
 #include <crow/multipart.h>
 #include <filesystem>
 #include <pqxx/transaction>
+#include <pqxx/result>
 
 namespace BBServer {
 
@@ -102,6 +103,86 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
 
         resp.end("Bot uploaded");
     });
+
+    CROW_ROUTE(app, "/api/elevated/leaderboard")
+    ([&app](crow::request const& req) {
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::read_transaction transaction{*base_context.database_connection};
+
+        crow::json::wvalue result;
+
+
+        {
+            std::vector<crow::json::wvalue> cases;
+            auto active_cases = transaction.exec("SELECT case_id, case_name, hidden, description FROM elevated_cases WHERE enabled");
+            for (auto row : active_cases) {
+                auto hidden = row[2].as<bool>();
+
+                cases.emplace_back(crow::json::wvalue{
+                    {"id", row[0].as<long>()},
+                    {"name", hidden ? ("Case #" + std::to_string(row[0].as<long>())) : row[1].c_str()},
+                    {"description", row[2].c_str()},
+                });
+            }
+
+            result["cases"] = crow::json::wvalue{cases};
+        }
+
+
+        {
+            crow::json::wvalue bots{};
+
+            auto all_runs = transaction.exec(
+                "SELECT er.bot_id, eb.bot_name, er.case_id, er.success AND er.done as successful, er.status, er.output, u.display_name as author\n"
+                "FROM elevated_run er\n"
+                "    JOIN elevated_bots eb on er.bot_id = eb.bot_id\n"
+                "    JOIN users u on eb.user_id = u.user_id\n"
+                "    JOIN elevated_cases ec on er.case_id = ec.case_id\n"
+                "WHERE eb.running_cases AND ec.enabled\n"
+                "  AND started = (SELECT MAX(started) FROM elevated_run er2 WHERE er.bot_id = er2.bot_id AND er.case_id = er2.case_id)\n"
+                "ORDER BY er.bot_id");
+
+            if (!all_runs.empty()) {
+                auto current_bot_id = all_runs[0][0].as<long>();
+
+                crow::json::wvalue current_bot;
+                current_bot["author"] = all_runs[0][6].c_str();
+                current_bot["name"] = all_runs[0][1].c_str();
+
+                for (auto row : all_runs) {
+                    auto this_bot_id = row[0].as<long>();
+                    if (this_bot_id != current_bot_id) {
+                        bots[std::to_string(current_bot_id)] = std::move(current_bot);
+                        current_bot = crow::json::wvalue{};
+                        current_bot_id = this_bot_id;
+                        current_bot["author"] = row[6].c_str();
+                        current_bot["name"] = row[1].c_str();
+                    }
+
+
+                    crow::json::wvalue case_result{};
+
+                    case_result["status"] = row[4].c_str();
+                    if (row[3].as<bool>()) {
+                        // sucessful!
+//                        auto result_value = ;
+                        case_result["result"] = crow::json::load(row[5].c_str());//crow::json::wvalue{result_value};
+                    }
+
+                    current_bot["runs"][row[2].c_str()] = std::move(case_result);
+                }
+
+                bots[std::to_string(current_bot_id)] = std::move(current_bot);
+
+            }
+
+            result["bots"] = std::move(bots);
+
+        }
+
+        return result;
+    });
+
 
 }
 
