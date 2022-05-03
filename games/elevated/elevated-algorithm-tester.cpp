@@ -22,21 +22,25 @@ int main(int argc, char** argv) {
     }
 
     std::vector<std::string> command;
+    std::string input = "h1";
 
     bool in_flags = true;
 
     for (int i = 1; i < argc; ++i) {
         std::string val = argv[i];
 
-//        if (in_flags) {
-//            if (val == "--gen") {
-//                if (i == argc - 1)
-//                    std::cout << "Must give amount after --groups\n";
-//                i++;
-//
-//                continue;
-//            }
-//        }
+        if (in_flags) {
+            if (val == "--gen") {
+                if (i == argc - 1) {
+                    std::cout << "Must give generator name after --gen\n";
+                    return 1;
+                }
+                i++;
+
+                input = argv[i];
+                continue;
+            }
+        }
 
         in_flags = false;
         command.push_back(val);
@@ -47,53 +51,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    auto generator = generator_from_string(input);
 
-//    srand(time(nullptr));
-//
-//    uint32_t seed = rand();
-
-//    std::vector<std::pair<size_t, std::vector<PassengerBlueprint>>> requests = {
-//        { 0, { { 0, 10, 0 }, {10, 0, 0}, {5, 15, 0}, {5, 10, 0}, {0, 15, 0} } },
-//    };
-//
-//    requests.reserve(1667);
-//    for (size_t t = 5; t < 50010; t += 43) {
-//        std::vector<PassengerBlueprint> at;
-//
-//        if (t % 2 == 0)
-//            at.push_back({0, 15, 0 });
-//
-//        if (t % 3 == 0) {
-//            at.push_back({ 10, 5, 0, 1 });
-//            at.push_back({ 10, 5, 0, 1 });
-//            at.push_back({ 10, 5, 0, 1 });
-//            at.push_back({ 10, 5, 0, 1 });
-//            at.push_back({ 10, 5, 0, 1 });
-//            at.push_back({ 10, 15, 0, 1 });
-//            at.push_back({ 10, 15, 0, 1 });
-//            at.push_back({ 10, 15, 0, 1 });
-//            at.push_back({ 10, 15, 0, 1 });
-//        }
-//
-//        if (t % 2 && t > 1000 && t < 6000)
-//            at.push_back({5, 0, 0});
-//
-//        if (t % 4 == 0) {
-//            at.push_back({10, 0, 0});
-//            at.push_back({0, 10, 0});
-//        }
-//
-//        if (!at.empty())
-//            requests.emplace_back(t, std::move(at));
-//    }
-
-//    std::string input;
-//    if (!std::getline(std::cin, input)) {
-//        std::cerr << "Reading line failed!\n";
-//        return 1;
-//    }
-
-    auto generator = generator_from_string("h1");
+    if (!generator) {
+        std::cerr << "Invalid generator\n";
+        return 1;
+    }
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 
