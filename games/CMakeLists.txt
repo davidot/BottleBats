@@ -24,6 +24,7 @@ add_library(LibElevated
         elevated/generation/BasicGenerator.cpp
         elevated/generation/Generation.cpp
         elevated/generation/MetaGenerators.cpp
+        elevated/generation/GenerationFactory.cpp
         elevated/stats/Listener.cpp
         elevated/stats/MetaListener.cpp
         elevated/stats/PassengerStats.cpp
