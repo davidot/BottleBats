@@ -4,10 +4,11 @@
     <div v-if="!loggedIn">
       Sorry, your not logged in so not much to see here.
     </div>
-    <BotCreator v-else @new-bot="console.log('new bot added')" :upload-url="'/elevated/upload'"/>
-    <div style="display: flex; flex-direction: column;">
-      <div v-if="bots === null"><div style="animation: 1s linear infinite; transform-origin: 50% 50%;">Loading</div></div>
-      <div :bot="bot" v-for="bot in bots" :key="'bot' + bot.name" />
+    <button @click="updateBots">Add bot</button>
+    <BotCreator @new-bot="updateBots" :upload-url="'/elevated/upload'"/>
+    <div style="display: flex; flex-direction: column; align-items: center">
+      <div v-if="bots === null">Loading</div>
+      <BotInfo v-for="bot in bots" :key="'bot' + bot.name" :bot="bot" />
     </div>
   </div>
 </template>
@@ -15,16 +16,27 @@
 <script>
 import BotCreator from "@/components/BotCreator.vue";
 import {endpoint} from "@/http";
+import BotInfo from "@/components/elevated/BotInfo.vue";
 
 export default {
   name: "BotView",
   components: {
+    BotInfo,
     BotCreator,
   },
   inject: ["userDetails"],
   mounted() {
-    this.botUpdateInterval = setInterval(() => this.updateBots(), 15000);
-    this.updateBots();
+    // this.botUpdateInterval = setInterval(() => this.updateBots(), 15000);
+    // this.updateBots();
+
+    setTimeout(() => {
+      this.bots = [
+        {id: 2, name: 'bot 2', running: true, status: 'false'},
+        {id: 3, name: 'bot 3', running: false, status: 'disabled'},
+      ];
+    }, 500);
+
+
   },
   unmounted() {
     if (this.botUpdateInterval)
@@ -44,8 +56,23 @@ export default {
   },
   methods: {
     async updateBots() {
+      // setTimeout(() => {
+      //   this.bots = [
+      //     {id: 2, name: 'bot 2', running: true, status: 'false'},
+      //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
+      //     {id: 4, name: 'bot 4', running: false, status: 'Checking and building file'},
+      //   ];
+      // }, 500);
+      //
+      // setTimeout(() => {
+      //   this.bots = [
+      //     {id: 2, name: 'bot 2', running: true, status: 'false'},
+      //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
+      //     {id: 4, name: 'bot 4', running: true, status: 'Running cases'},
+      //   ];
+      // }, 1500);
       try {
-        const data = await endpoint.get("/elevated/bots", {timeout: 750});
+        const data = await endpoint.get("/elevated/my-bots", {timeout: 750});
         this.bots = data.data;
         this.connectionLost = false;
       } catch {
