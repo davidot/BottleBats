@@ -8,7 +8,18 @@
     <table v-else>
       <thead class="case-names">
         <tr>
-          <td style="max-width: 250px; min-width: 250px"></td>
+          <td style="max-width: 250px; min-width: 250px">
+            <div>
+              <select v-model="stat">
+                <option selected value="avg-wait">Average wait time</option>
+                <option value="avg-travel">Average travel time</option>
+                <option value="power">Power usage</option>
+                <option value="max-wait">Max wait time</option>
+                <option value="max-travel">Max travel time</option>
+                <option value="total-time">Total simulation time</option>
+              </select>
+            </div>
+          </td>
           <td v-for="cs in cases" :key="'case-' + cs.id" class="case-name">
             {{cs.name}}
           </td>
