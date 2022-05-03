@@ -49,9 +49,10 @@
             <div v-else-if="b.runs[cs.id].status !== 'done'" class="failed" :title="b.runs[cs.id].reason || 'Failed'">
               &#10060;
             </div>
-            <div v-else style="min-height: 35px;"
+            <div v-else style="min-height: 35px; display: flex; align-items: center; justify-content: center;"
                  :title="b.runs[cs.id].result[stat] + ' (' + Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) + '%)'"
                  :style="{'background-color': toColor(percentage(b.runs[cs.id].result[stat], cs.best[stat]))}">
+              <PoopOrCrown :value="b.runs[cs.id].result[stat]" :limits="cs.best[stat]" />
               <!--            {{ Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) }}%-->
             </div>
           </td>
@@ -59,9 +60,10 @@
           <td v-for="summ in ['worst', 'avg']" :key="b.id + '-' + summ" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
             <div v-if="b.summary == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
             </div>
-            <div v-else style="min-height: 35px;"
+            <div v-else style="min-height: 35px; max-height: 35px; display: flex; align-items: center; justify-content: center;"
                  :title="b.summary[summ].text"
                  :style="{'background-color': toColor(b.summary[summ].percentage)}">
+              <PoopOrCrown :value="b.summary[summ].percentage" :limits="summaryLimits[summ]" />
             </div>
           </td>
         </tr>
@@ -86,10 +88,11 @@
 import Spinner from "@/components/Spinner.vue";
 import {endpoint} from "@/http";
 import * as raw_data from "./data.json";
+import PoopOrCrown from "@/components/elevated/PoopOrCrown.vue";
 
 export default {
   name: "LeaderboardView",
-  components: {Spinner},
+  components: {PoopOrCrown, Spinner},
   unmounted() {
     if (this.dataInterval)
       clearInterval(this.dataInterval);
@@ -231,6 +234,36 @@ export default {
 
           return lhs.name.localeCompare(rhs.name);
         });
+    },
+    summaryLimits() {
+      const vals = this.bots
+          .map(b => b.summary)
+          .filter(summ => summ != null);
+
+      const result = { 'worst': [1, 0] };
+
+      if (vals.length === 0)
+        return result;
+
+      let [min, max] = vals
+          .map(r => r?.['avg']?.percentage)
+          .filter(res => res != null)
+          .reduce(([min, max], val) => {
+                if (min == null)
+                  return [val, val];
+
+                if (val < min)
+                  return [val, max];
+                if (val > max)
+                  return [min, val];
+                return [min, max];
+              },
+              [null, null]
+          );
+
+      result['avg'] = [max, min];
+
+      return result;
     },
   },
   methods: {
