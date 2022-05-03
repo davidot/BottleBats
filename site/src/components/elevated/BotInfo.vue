@@ -7,6 +7,9 @@
     <button style="float: right" @click.stop="showDetails">
       {{ detailsShown ? 'Refresh' : 'Details'}}
     </button>
+    <button style="float: right" v-if="bot.running" @click.stop="removeBot">
+      Remove from leaderboard
+    </button>
     <div class="bot-details" v-show="detailsShown">
       <hr/>
       <div v-if="!cases">
@@ -76,6 +79,15 @@ export default {
           console.log('Failed to get bot stats!');
         });
 
+    },
+    removeBot() {
+      endpoint.get('/elevated/remove-bot/' + this.bot.id)
+          .then((val) => {
+            console.log('bot removed!');
+          })
+          .catch(() => {
+            console.log('Failed to remove bot!');
+          });
     }
   },
   components: {Spinner},
