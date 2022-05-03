@@ -25,7 +25,8 @@ public:
 
     static void write_building(BuildingGenerationResult const& building, std::ostringstream& stream);
 
-    void write_elevator_closed(ElevatorState const&, std::ostringstream& stream) const;
+    void write_elevator_base(ElevatorState const& elevator, std::ostringstream& stream) const;
+    void write_elevator_closed(BuildingState const&, ElevatorID, std::ostringstream& stream) const;
     void write_new_request(Passenger const&, std::ostringstream&) const;
     bool should_write_new_request(BuildingState const&, Height target, size_t index);
 

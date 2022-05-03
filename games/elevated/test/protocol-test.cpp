@@ -49,7 +49,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
                 THEN("Has empty passenger message") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "0 -");
                 }
             }
@@ -67,7 +67,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
                 
                 THEN("Has single passenger message") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "1 "
                             + std::to_string(target_height));
                 }
@@ -88,7 +88,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
                 THEN("Has single target message") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "1 "
                             + std::to_string(target_height));
                 }
@@ -109,7 +109,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
                 THEN("Has multi target message") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "2 "
                             + std::to_string(target_height1) + ","
                             + std::to_string(target_height2));
@@ -131,7 +131,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
                 THEN("Target still go from low to high") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "2 "
                             + std::to_string(target_height1) + ","
                             + std::to_string(target_height2));
@@ -158,7 +158,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
                 THEN("Target still go from low to high") {
                     std::ostringstream str;
-                    algorithm.write_elevator_closed(elevator, str);
+                    algorithm.write_elevator_base(elevator, str);
                     REQUIRE(str.str() == base_string + "3 "
                             + std::to_string(target_height1) + ","
                             + std::to_string(target_height2) + ","

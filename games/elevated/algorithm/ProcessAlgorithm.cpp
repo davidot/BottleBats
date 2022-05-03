@@ -107,7 +107,7 @@ ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_descriptio
     return ScenarioAccepted::failed( {"Process gave non reject/ready result, got:", *result} );
 }
 
-void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std::ostringstream& stream) const
+void ProcessAlgorithm::write_elevator_base(const ElevatorState& elevator, std::ostringstream& stream) const
 {
     stream << elevator.id << ' '
            << elevator.group_id << ' '
@@ -130,6 +130,12 @@ void ProcessAlgorithm::write_elevator_closed(ElevatorState const& elevator, std:
 
     if (targets.empty())
         stream << '-';
+}
+
+void ProcessAlgorithm::write_elevator_closed(BuildingState const& building, ElevatorID elevator_id, std::ostringstream& stream) const
+{
+    auto& elevator = building.elevator(elevator_id);
+    write_elevator_base(elevator, stream);
 
     ASSERT(m_info_level == InfoLevel::Low);
     // FIXME: Give more info for higher levels.
@@ -191,7 +197,7 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
             break;
         case AlgorithmInput::Type::ElevatorClosedDoors:
             message << "closed ";
-            write_elevator_closed(building.elevator(input.elevator_id()), message);
+            write_elevator_closed(building, input.elevator_id(), message);
             break;
         case AlgorithmInput::Type::TimerFired:
             message << "timer";
