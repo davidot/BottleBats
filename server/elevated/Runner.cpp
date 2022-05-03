@@ -86,6 +86,7 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
         full_result.rejected = true;
     } else {
         full_result.failed = true;
+        full_result.messages.push_back(type_to_message[result.type]);
     }
     return full_result;
 }
