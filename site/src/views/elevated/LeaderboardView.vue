@@ -34,7 +34,7 @@
       </thead>
       <transition-group name="list" tag="tbody">
         <tr v-for="b in bots" :key="'bot-' + b.id">
-          <td class="bot-name">
+          <td class="bot-name" :title="b.name">
             {{ b.name }} (by {{ b.author }})
           </td>
           <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="overflow: hidden; max-width: 35px; max-height: 35px;">
