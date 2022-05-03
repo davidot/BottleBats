@@ -25,8 +25,11 @@
     &lt; done
   </pre>
 
-  <a href="elevated-examples/random_travel.py" download>Python</a>
-  <a href="elevated-examples/elevated-tester.exe" download>Local tester</a>
+  <ul>
+    <li><a href="elevated-examples/random_travel.py" download>Python</a></li>
+    <li><a href="elevated-examples/elevated-tester.exe" download>Local tester</a></li>
+    <li><a href="elevated-examples/elevated-tester" download>Local tester (linux)</a></li>
+  </ul>
 </template>
 
 <script>
