@@ -26,15 +26,15 @@ export default {
   },
   inject: ["userDetails"],
   mounted() {
-    // this.botUpdateInterval = setInterval(() => this.updateBots(), 15000);
-    // this.updateBots();
-
-    setTimeout(() => {
-      this.bots = [
-        {id: 2, name: 'bot 2', running: true, status: 'false'},
-        {id: 3, name: 'bot 3', running: false, status: 'disabled'},
-      ];
-    }, 500);
+    this.botUpdateInterval = setInterval(() => this.updateBots(), 15000);
+    this.updateBots();
+    //
+    // setTimeout(() => {
+    //   this.bots = [
+    //     {id: 2, name: 'bot 2', running: true, status: 'false'},
+    //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
+    //   ];
+    // }, 500);
 
 
   },

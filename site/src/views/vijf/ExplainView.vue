@@ -158,10 +158,10 @@
       Code voorbeelden en tools
     </h3>
     <ul>
-      <li><a href="examples/example.java" download>Java</a></li>
-      <li><a href="examples/example.py" download>Python</a></li>
-      <li><a href="examples/example.cpp" download>C++</a></li>
-      <li><a href="examples/test-vijf.exe" download>Test programma</a></li>
+      <li><a href="vijf-examples/example.java" download>Java</a></li>
+      <li><a href="vijf-examples/example.py" download>Python</a></li>
+      <li><a href="vijf-examples/example.cpp" download>C++</a></li>
+      <li><a href="vijf-examples/test-vijf.exe" download>Test programma</a></li>
     </ul>
 
     <h3>

@@ -1,10 +1,10 @@
 <template>
   <div class="leaderboard-holder">
-    <div v-if="connectionLost" style="color: red; position: relative; top: 0; width: 100%; text-align: center;">
+    <div style="transition: top 1s ease; color: red; position: relative; width: 100%; text-align: center; float: left;" :style="{top: connectionLost ? '0' : '-40px'}" >
       Connection to server lost!
     </div>
     <span v-if="results === null">Loading...</span>
-    <span v-else-if="!results.cases || Object.keys(results.bots).length === 0">No data</span>
+    <span v-else-if="!results.cases || Object.keys(results.bots || {}).length === 0">No data</span>
     <table v-else>
       <thead class="case-names">
         <tr>
@@ -86,12 +86,12 @@ export default {
       clearInterval(this.dataInterval);
   },
   mounted() {
-    // this.dataInterval = setInterval(() => this.getData(), 1000);
-    // this.getData();
+    this.dataInterval = setInterval(() => this.getData(), 1000);
+    this.getData();
 
-    setTimeout(() => {
-      this.results = raw_data;
-    }, 1500);
+    // setTimeout(() => {
+    //   this.results = raw_data;
+    // }, 1500);
 
   },
   data() {
