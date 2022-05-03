@@ -68,18 +68,6 @@
           </td>
         </tr>
       </transition-group>
-<!--      <tr>-->
-<!--        <td class="bot-name">-->
-<!--          Best per case-->
-<!--        </td>-->
-<!--        <td v-for="cs in cases" :key="'summ-' + cs.id" class="table-result">-->
-<!--          <div v-if="cs.best && cs.best[stat] != null" :title="cs.best[stat][0]" style="min-height: 35px;" :style="{'background-color': toColor(cs.best[stat][0], cs.best[stat])}">-->
-<!--&lt;!&ndash;            {{ Math.round(percentage(cs.best[stat][0], cs.best[stat]) * 100.0) }}%&ndash;&gt;-->
-<!--          </div>-->
-<!--        </td>-->
-<!--        <td title="Invalid"><div class="skipped"></div></td>-->
-<!--        <td title="Invalid"><div class="skipped"></div></td>-->
-<!--      </tr>-->
     </table>
   </div>
 </template>
@@ -177,7 +165,6 @@ export default {
 
       return Object.entries(this.results.bots)
         .map(([id, val]) => {
-          console.log('id', id, 'val', val);
           const runs = Object.entries(val?.runs || {})
               .filter(([id, r]) => r != null && r.result != null);
           if (runs.length === 0)
@@ -190,8 +177,6 @@ export default {
           let sum = 0;
 
           const lowStat = !this.highBetterStat;
-          // const lowStat = !this.cases()[];
-
 
           for (const [id, run] of runs) {
             const extremes = this.cases[id]?.best?.[this.stat];
@@ -211,11 +196,6 @@ export default {
           summary['worst'] = { percentage: worst, text: `${Math.round(worst * 100)}% (For case: ${this.cases[worstId].name}`};
           summary['avg'] = { percentage: sum, text: `On average ${Math.round(sum * 100)}%` };
 
-          // runs.forEach(r => console.log('d', r));
-
-
-
-
           return Object.assign({ summary, runs: {} }, { id: id, ...val })
         })
         .sort((lhs, rhs) => {
@@ -226,8 +206,6 @@ export default {
 
           const leftDone = leftKeys.filter(r => r.done).length;
           const rightDone = rightKeys.filter(r => r.done).length;
-
-          console.log(leftDone, rightDone);
 
           if (leftDone !== rightDone)
             return leftDone - rightDone;
