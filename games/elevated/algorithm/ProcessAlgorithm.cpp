@@ -19,7 +19,7 @@ ProcessAlgorithm::ProcessAlgorithm(std::vector<std::string> command, InfoLevel i
 ProcessAlgorithm::~ProcessAlgorithm()
 {
     if (m_process)
-        m_process->writeToWithTimeout("stop", 10);
+        m_process->writeToWithTimeout("stop\n", 10);
 }
 
 void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, std::ostringstream& stream)
@@ -257,7 +257,7 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
             return { AlgorithmResponse::algorithm_misbehaved({ "Process gave invalid command: ", line, "for input: ", message.str() }) };
         }
 
-        if (!m_process->readLineWithTimeout(line, 10))
+        if (!m_process->readLineWithTimeout(line, 50))
             return { AlgorithmResponse::algorithm_failed({ "Process failed to respond to messages, command: ", make_command_string(), "input: ", message.str() }) };
     }
 
