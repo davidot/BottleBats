@@ -134,7 +134,7 @@ void run_and_store_simulation(uint32_t bot_id, uint32_t case_id)
     if (!algorithm) {
         ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
             pqxx::work transaction { connection };
-            transaction.exec("UPDATE elevated_bots SET enabled = FALSE, status = 'Disabled: Command is invalid' WHERE bot_id = " + std::to_string(bot_id));
+            transaction.exec("UPDATE elevated_bots SET running_cases = FALSE, status = 'Disabled: Command is invalid' WHERE bot_id = " + std::to_string(bot_id));
             transaction.commit();
         });
         std::cerr << "Invalid bot: " << bot_command << " disabled and skipping this\n";
@@ -146,7 +146,7 @@ void run_and_store_simulation(uint32_t bot_id, uint32_t case_id)
     if (!generator) {
         ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
             pqxx::work transaction { connection };
-            transaction.exec("UPDATE elevated_cases SET enabled = FALSE WHERE case_id = " + std::to_string(case_id));
+            transaction.exec("UPDATE elevated_cases SET running_cases = FALSE WHERE case_id = " + std::to_string(case_id));
             transaction.commit();
         });
         std::cerr << "Invalid generator: " << case_command << " disabled and skipping this\n";
