@@ -9,6 +9,7 @@
           <td v-for="cs in cases" :key="'case-' + cs.id" class="case-name">
             {{cs.name}}
           </td>
+          <td style="width: 70%"></td>
           <td class="case-name">
             Worst result
           </td>
