@@ -16,9 +16,9 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::read_transaction transaction {*base_context.database_connection};
 
-        auto results = transaction.exec("SELECT bot_id, name, running_cases, status "
+        auto results = transaction.exec("SELECT bot_id, bot_name, running_cases, status "
                                                   "FROM elevated_bots "
-                                                  "WHERE user_id = " + std::to_string(base_context.user_id) + " "
+                                                  "WHERE user_id = " + std::to_string(base_context.user.id) + " "
                                                   "ORDER BY created DESC LIMIT 50");
 
         std::vector<crow::json::wvalue> bots;
@@ -57,14 +57,14 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
                 {"id", row[0].as<long>()},
                 {"name", hidden ? ("Case #" + std::to_string(row[0].as<long>())) : row[1].c_str()},
                 {"success", success},
-                {"running", row[4].as<bool>()},
+                {"running", row[4].is_null() ? false : row[4].as<bool>()},
                 {"status", row[5].c_str()}
             });
 
             if (success) {
-                res["result"] = crow::json::load(row[5].c_str());
+                res["result"] = crow::json::load(row[6].c_str());
             } else {
-                res["result"] = row[5].c_str();
+                res["result"] = row[6].c_str();
             }
         }
 
