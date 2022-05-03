@@ -60,7 +60,7 @@ private:
 
     Height m_ground_floor;
     std::vector<FloorInfo> m_travel_info;
-    std::uniform_int<size_t> m_destination_dist;
+    std::uniform_int_distribution<size_t> m_destination_dist;
     Capacity m_capacity;
 };
 

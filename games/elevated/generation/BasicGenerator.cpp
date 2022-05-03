@@ -75,7 +75,7 @@ void UniformFloorGenerator::inner_accept_building(const BuildingGenerationResult
 
 template<typename Engine>
 static size_t random_index(Engine& engine, size_t length) {
-    return std::uniform_int<size_t>(0, length - 1)(engine);
+    return std::uniform_int_distribution<size_t>(0, length - 1)(engine);
 }
 
 PassengerBlueprint UniformFloorGenerator::generate_request(std::minstd_rand& engine)
@@ -128,7 +128,7 @@ void GroundFloorGenerator::inner_accept_building(const BuildingGenerationResult&
     if (m_travel_info.empty())
         return result.add_error("None of the group can reach ground floor given");
 
-    m_destination_dist = std::uniform_int<size_t>{0, m_travel_info.size() - 1};
+    m_destination_dist = std::uniform_int_distribution<size_t>{0, m_travel_info.size() - 1};
 }
 
 PassengerBlueprint GroundFloorGenerator::generate_request(std::minstd_rand& engine)
