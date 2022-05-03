@@ -21,6 +21,7 @@ add_library(LibElevated
         elevated/Building.cpp
         elevated/Simulation.cpp
         elevated/generation/FullGenerators.cpp
+        elevated/generation/BasicGenerator.cpp
         elevated/generation/Generation.cpp
         elevated/stats/Listener.cpp
         elevated/stats/MetaListener.cpp

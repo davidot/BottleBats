@@ -35,6 +35,12 @@ std::strong_ordering NextRequests::operator<=>(NextRequests const& rhs) const {
     return std::strong_ordering::less;
 }
 
+SplitGenerator::SplitGenerator(std::unique_ptr<BuildingGenerator> building_generator, std::unique_ptr<RequestGenerator> request_generator)
+    : m_building_generator(std::move(building_generator))
+    , m_request_generator(std::move(request_generator))
+{
+}
+
 BuildingGenerationResult SplitGenerator::generate_building() {
     BuildingGenerationResult result = m_building_generator->generate_building();
     m_request_generator->accept_building(result);

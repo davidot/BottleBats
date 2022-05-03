@@ -90,7 +90,7 @@ public:
 
 class RequestGenerator {
 public:
-    ~RequestGenerator() = default;
+    virtual ~RequestGenerator() = default;
 
     virtual void accept_building(BuildingGenerationResult const&) {}
 
@@ -100,13 +100,15 @@ public:
 
 class BuildingGenerator {
 public:
-    ~BuildingGenerator() = default;
+    virtual ~BuildingGenerator() = default;
 
     virtual BuildingGenerationResult generate_building() = 0;
 };
 
-class SplitGenerator : public ScenarioGenerator {
+class SplitGenerator final : public ScenarioGenerator {
 public:
+    SplitGenerator(std::unique_ptr<BuildingGenerator>, std::unique_ptr<RequestGenerator>);
+
     virtual BuildingGenerationResult generate_building();
 
     virtual NextRequests next_requests_at();
