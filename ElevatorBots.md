@@ -75,12 +75,18 @@ Protocol:
  > closed [elevator_id] [group_id] [current_height] [#target floors] [...targets...] {extra_info1}
  > request [height] [group_id] {extra_info2}
 info low -> 
+        {extra_info1} = stillwating [-|up|down|up,down]
         {extra_info2} = [direction = up|down]
 > done
  < set-timer [time]
  < move [elevator_id] [target] 
 < done
 
-
-
 ``` 
+
+TODO: 
+- Write explanation
+- Add extra info 1
+- Add more cases
+- Add bot info screen
+- Add stat selection
