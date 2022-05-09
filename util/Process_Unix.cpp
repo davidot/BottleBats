@@ -216,9 +216,9 @@ namespace util {
             // should trigger command ending
             close(m_std_in);
 
-//            if (kill(m_procPid, SIGINT) < 0) {
-//                perror("kill");
-//            }
+            if (kill(m_procPid, SIGINT) < 0) {
+                perror("kill");
+            }
 
             int status;
 
