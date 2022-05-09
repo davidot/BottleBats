@@ -86,7 +86,7 @@ export default {
       clearInterval(this.dataInterval);
   },
   mounted() {
-    this.dataInterval = setInterval(() => this.getData(), 1000);
+    this.dataInterval = setInterval(() => this.getData(), 2000);
     this.getData();
 
     // setTimeout(() => {
