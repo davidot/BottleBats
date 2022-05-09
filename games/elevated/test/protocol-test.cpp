@@ -41,7 +41,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
             auto base_string = std::to_string(elevator_id) + " " + std::to_string(group_id) + " " + std::to_string(height) + " ";
 
-            ElevatorState elevator { elevator_id, group_id, 1, height };
+            ElevatorState elevator { elevator_id, {group_id}, height };
             elevator.set_target(height);
             REQUIRE(elevator.time_until_next_event().has_value());
             elevator.update(elevator.time_until_next_event().value());

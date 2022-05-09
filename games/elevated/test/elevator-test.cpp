@@ -10,19 +10,21 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         Elevated::GroupID group_id = GENERATE(0, 2);
         Elevated::Height initial_height = GENERATE(0, 2);
         Elevated::Capacity max_capacity = GENERATE(0, 1);
-        CAPTURE(id, group_id, initial_height);
-        Elevated::ElevatorState elevator{id, group_id, max_capacity, initial_height};
+        Elevated::Height speed = GENERATE(1, 2);
+        CAPTURE(id, group_id, max_capacity, speed, initial_height);
+        Elevated::ElevatorState elevator{id, {group_id, max_capacity, speed}, initial_height};
 
-        THEN("It has no passengers") {
+        THEN("It is initialized properly, stopped, at given height and target and empty") {
+            REQUIRE(elevator.speed == speed);
+            REQUIRE(elevator.max_capacity == max_capacity);
+            REQUIRE(elevator.group_id == group_id);
+            REQUIRE(elevator.id == id);
+
             REQUIRE(elevator.passengers().empty());
-        }
 
-        THEN("It starts at the given height and target") {
             REQUIRE(elevator.height() == initial_height);
             REQUIRE(elevator.target_height() == initial_height);
-        }
 
-        THEN("It is stopped") {
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::Stopped);
         }
 
@@ -41,7 +43,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
     GIVEN("An elevator starting on 0 height floor") {
         Elevated::Height initial_height = GENERATE(0, 2, 20);
         CAPTURE(initial_height);
-        Elevated::ElevatorState elevator{0, 0, 1, initial_height};
+        Elevated::ElevatorState elevator{0, {0}, initial_height};
 
         REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::Stopped);
 
@@ -81,7 +83,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
 
     GIVEN("An elevator travelling to another floor") {
         Elevated::Height initial_height = 0;
-        Elevated::ElevatorState elevator{0, 0, 1, initial_height};
+        Elevated::ElevatorState elevator{0, {0}, initial_height};
 
         Elevated::Height target_height = 10;
         elevator.set_target(target_height);
@@ -169,7 +171,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         Elevated::GroupID other_group_id = GENERATE(1, 4);
         CAPTURE(group_id, other_group_id);
 
-        Elevated::ElevatorState elevator {0, group_id, 1, 0};
+        Elevated::ElevatorState elevator {0, {group_id}, 0};
         elevator.set_target(0);
 
         REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
@@ -298,7 +300,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
     }
 
     GIVEN("An elevator which has just picked up passengers and is now closing doors") {
-        Elevated::ElevatorState elevator {0, 0, 1, 0};
+        Elevated::ElevatorState elevator {0, {0}, 0};
         elevator.set_target(0);
 
         {
@@ -364,7 +366,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         auto generate_filled_elevator = [&](std::initializer_list<Elevated::ElevatorState::TravellingPassenger> passenger_list, Elevated::Height get_in_floor = 0) {
             CAPTURE(get_in_floor);
             CAPTURE(passenger_list);
-            Elevated::ElevatorState elevator {0, 0, 1, get_in_floor};
+            Elevated::ElevatorState elevator {0, {0}, get_in_floor};
             elevator.set_target(get_in_floor);
 
             REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
@@ -472,7 +474,7 @@ TEST_CASE("Elevators state", "[elevators][state]") {
         Capacity max_capacity = 5;
         CAPTURE(group_id, other_group_id);
 
-        ElevatorState elevator {0, group_id, max_capacity, 0};
+        ElevatorState elevator {0, {group_id, max_capacity}, 0};
         elevator.set_target(0);
 
         REQUIRE(elevator.current_state() == ElevatorState::State::DoorsOpening);
