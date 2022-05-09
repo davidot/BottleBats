@@ -56,6 +56,11 @@ add_test(NAME ElevatedUnitTests COMMAND elevated-test)
 add_executable(elevated-tester
         elevated/elevated-algorithm-tester.cpp)
 target_link_libraries(elevated-tester PUBLIC LibElevated)
+set_target_properties(elevated-tester PROPERTIES
+        LINK_SEARCH_START_STATIC ON
+        LINK_SEARCH_END_STATIC ON
+        )
+
 
 add_test(NAME elevated-protocol-test COMMAND elevated-tester python3 examples/python/cycle.py WORKING_DIRECTORY ..)
 add_test(NAME elevated-protocol-test2 COMMAND elevated-tester python3 examples/python/random_travel.py WORKING_DIRECTORY ..)
