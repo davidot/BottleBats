@@ -51,7 +51,7 @@ void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, 
     for (auto& elevator : building.blueprint().elevators) {
         stream << "elevator " << elevator_id << ' '
                 << elevator.group << ' '
-                << ElevatorState::speed << ' '
+                << elevator.speed << ' '
                 << elevator.max_capacity << ' '
                 << ElevatorState::door_opening_time << ' '
                 << ElevatorState::door_closing_time << '\n';

@@ -7,9 +7,17 @@ using namespace Elevated;
 TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
 
     SECTION("Initial building message") {
+        Capacity max_capacity1 = GENERATE(1, 2);
+        Capacity max_capacity2 = GENERATE(1, 2);
+
+        Height speed1 = GENERATE(1, 2);
+        Height speed2 = GENERATE(1, 2);
+
+        CAPTURE(max_capacity1, max_capacity2, speed1, speed2);
+
         BuildingBlueprint building {
             { { 0u, 5u, 10u, 15u }, { 5u, 15u } },
-            { { 0 }, { 1 } }
+            { { 0, max_capacity1, speed1 }, { 1, max_capacity2, speed2 } }
         };
 
         std::ostringstream str;
@@ -18,8 +26,8 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
         REQUIRE(str.str() == "building 2 2\n"
                      "group 0 4 0,5,10,15\n"
                      "group 1 2 5,15\n"
-                     "elevator 0 0 1 1 1 1\n"
-                     "elevator 1 1 1 1 1 1\n");
+                     "elevator 0 0 " + std::to_string(speed1) + " " + std::to_string(max_capacity1) + " 1 1\n"
+                     "elevator 1 1 " + std::to_string(speed2) + " " + std::to_string(max_capacity2) + " 1 1\n");
     }
 
     SECTION("Elevator closed message") {

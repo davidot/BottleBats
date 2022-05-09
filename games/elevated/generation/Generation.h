@@ -12,7 +12,7 @@ struct BuildingBlueprint {
     struct Elevator {
         GroupID group;
         Capacity max_capacity{1};
-//        Height speed; FIXME: Ignored for now!
+        Height speed{1};
     };
 
     std::vector<std::unordered_set<Height>> reachable_per_group; // FIXME: Without differentiating elevators this can actually be pair<number_elevators, floors>

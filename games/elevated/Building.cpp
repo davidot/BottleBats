@@ -26,7 +26,7 @@ BuildingState::BuildingState(BuildingBlueprint blueprint, EventListener* event_l
 
     for (auto& elevator : blueprint.elevators) {
         ASSERT(elevator.group < blueprint.reachable_per_group.size());
-        m_elevators.emplace_back(id++, elevator.group, elevator.max_capacity, start_floors[elevator.group]);
+        m_elevators.emplace_back(id++, elevator, start_floors[elevator.group]);
     }
 
     m_group_reachable = std::move(blueprint.reachable_per_group);

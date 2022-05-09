@@ -50,7 +50,7 @@ public:
     ElevatorID const id;
     GroupID const group_id;
     Capacity const max_capacity;
-    constexpr static Height speed = 1;
+    Height const speed;
     constexpr static Time door_opening_time = 1;
     constexpr static Time door_closing_time = 1;
 
@@ -67,10 +67,11 @@ public:
         return m_passengers;
     }
 
-    ElevatorState(ElevatorID id_, GroupID group_id_, Capacity max_capacity_, Height initial_height)
+    ElevatorState(ElevatorID id_, BuildingBlueprint::Elevator const& elevator, Height initial_height)
         : id(id_)
-        , group_id(group_id_)
-        , max_capacity(max_capacity_)
+        , group_id(elevator.group)
+        , max_capacity(elevator.max_capacity)
+        , speed(elevator.speed)
         , m_height(initial_height)
         , m_target_height(initial_height)
     {
@@ -97,11 +98,11 @@ private:
 
     Time m_time_until_next_state { 0 };
 
-    constexpr static Time time_for_distance(Height distance) {
+    Time time_for_distance(Height distance) const {
         return distance / speed;
     }
 
-    constexpr static Time distance_for_time(Time steps) {
+    Time distance_for_time(Time steps) const {
         return speed * steps;
     }
 
