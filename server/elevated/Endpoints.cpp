@@ -78,7 +78,7 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         pqxx::work transaction {*base_context.database_connection};
 
         auto result = transaction.exec(
-            "UPDATE elevated_bot SET running_cases = FALSE WHERE bot_id = " + std::to_string(bot_id) + " AND user_id = " + std::to_string(base_context.user.id)
+            "UPDATE elevated_bots SET running_cases = FALSE, status = 'Disabled by user' WHERE bot_id = " + std::to_string(bot_id) + " AND user_id = " + std::to_string(base_context.user.id)
         );
 
         transaction.commit();
