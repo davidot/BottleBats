@@ -16,6 +16,7 @@ public:
             m_max = std::max(value, m_max);
             m_min = std::max(value, m_min);
         }
+        ++m_total_values;
         ++m_values[value];
     }
 
