@@ -37,7 +37,7 @@ void ReplayListener::on_passenger_enter_elevator(Time time, const Passenger& pas
     current_stream << time << " enter " << passenger.id << ' ' << id << '\n';
 }
 
-void ReplayListener::on_passenger_leave_elevator(Time time, PassengerID id, Height height)
+void ReplayListener::on_passenger_leave_elevator(Time time, PassengerID id, Height)
 {
     current_stream << time << " leave " << id << '\n';
 }
@@ -48,4 +48,3 @@ void ReplayListener::on_elevator_set_target(Time time, Height new_target, const 
 }
 
 }
-

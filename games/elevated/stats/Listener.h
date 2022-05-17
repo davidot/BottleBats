@@ -22,7 +22,7 @@ public:
 
     virtual void on_elevator_set_target(Time, [[maybe_unused]] Height new_target, ElevatorState const&) { }
     virtual void on_elevator_stopped([[maybe_unused]] Time at, [[maybe_unused]] Time duration, ElevatorState const&) { }
-    virtual void on_elevator_moved(Time, Height distance_travelled, Height before_height, ElevatorState const&) { }
+    virtual void on_elevator_moved(Time, [[maybe_unused]] Height distance_travelled, [[maybe_unused]] Height before_height, ElevatorState const&) { }
 };
 
 class EventDistributor final : public EventListener {
