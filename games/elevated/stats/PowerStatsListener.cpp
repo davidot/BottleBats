@@ -8,9 +8,9 @@ void PowerStatsListener::on_elevator_opened_doors(Time, ElevatorState const&)
     ++m_times_door_opened;
 }
 
-void PowerStatsListener::on_elevator_moved(Time, Height height, ElevatorState const& state)
+void PowerStatsListener::on_elevator_moved(Time, Height height_travelled, Height, ElevatorState const& state)
 {
-    m_distance_moved[state.filled_capacity()] += height;
+    m_distance_moved[state.filled_capacity()] += height_travelled;
 }
 
 size_t PowerStatsListener::total_distance_travelled() const

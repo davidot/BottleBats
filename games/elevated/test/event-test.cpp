@@ -265,9 +265,10 @@ TEST_CASE("Events", "[building][event]") {
 
             THEN("An elevator moved event was generated") {
                 REQUIRE(listener.elevator_moved_events.size() == 1);
-                auto& [time, distance, elevator] = listener.elevator_moved_events.front();
+                auto& [time, distance, initial_height, elevator] = listener.elevator_moved_events.front();
                 REQUIRE(time == open_time.value());
                 REQUIRE(distance == target);
+                REQUIRE(initial_height == 0);
                 listener.elevator_moved_events.clear();
                 REQUIRE(listener.elevator_opened_events.size() <= 1);
                 listener.elevator_opened_events.clear();
@@ -296,30 +297,34 @@ TEST_CASE("Events", "[building][event]") {
                 REQUIRE(listener.elevator_moved_events.size() == 4);
 
                 {
-                    auto& [time, distance, elevator] = listener.elevator_moved_events[0];
+                    auto& [time, distance, initial_height, elevator] = listener.elevator_moved_events[0];
                     REQUIRE(time == 4);
                     REQUIRE(distance == 4);
+                    REQUIRE(initial_height == 0);
                     REQUIRE(elevator.height() == 4);
                 }
 
                 {
-                    auto& [time, distance, elevator] = listener.elevator_moved_events[1];
+                    auto& [time, distance, initial_height, elevator] = listener.elevator_moved_events[1];
                     REQUIRE(time == 5);
                     REQUIRE(distance == 1);
+                    REQUIRE(initial_height == 4);
                     REQUIRE(elevator.height() == 5);
                 }
 
                 {
-                    auto& [time, distance, elevator] = listener.elevator_moved_events[2];
+                    auto& [time, distance, initial_height, elevator] = listener.elevator_moved_events[2];
                     REQUIRE(time == 12);
                     REQUIRE(distance == 7);
+                    REQUIRE(initial_height == 5);
                     REQUIRE(elevator.height() == 12);
                 }
 
                 {
-                    auto& [time, distance, elevator] = listener.elevator_moved_events[3];
+                    auto& [time, distance, initial_height, elevator] = listener.elevator_moved_events[3];
                     REQUIRE(time == 15);
                     REQUIRE(distance == 3);
+                    REQUIRE(initial_height == 12);
                     REQUIRE(elevator.height() == 15);
                 }
 

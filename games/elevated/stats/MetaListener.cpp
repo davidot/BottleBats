@@ -20,7 +20,7 @@ void MetaListener::on_elevator_stopped(Time at, Time, ElevatorState const&)
     times.insert(at);
 }
 
-void MetaListener::on_elevator_moved(Time time, Height, ElevatorState const&)
+void MetaListener::on_elevator_moved(Time time, Height, Height, ElevatorState const&)
 {
     ++m_events;
     times.insert(time);

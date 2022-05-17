@@ -48,10 +48,10 @@ public:
         elevator_stopped_events.emplace_back(at, duration, elevator);
     }
 
-    std::vector<std::tuple<Time, Height, ElevatorState>> elevator_moved_events;
-    void on_elevator_moved(Time at, Height distance, ElevatorState const& elevator) override
+    std::vector<std::tuple<Time, Height, Height, ElevatorState>> elevator_moved_events;
+    void on_elevator_moved(Time at, Height distance, Height initial_height, ElevatorState const& elevator) override
     {
-        elevator_moved_events.emplace_back(at, distance, elevator);
+        elevator_moved_events.emplace_back(at, distance, initial_height, elevator);
     }
 
     [[nodiscard]] bool no_events() const
