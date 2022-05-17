@@ -33,7 +33,7 @@ public:
     }
 
     template<typename SumType = uint64_t>
-    [[nodiscard]] ValueType sum_of_values() const {
+    [[nodiscard]] SumType sum_of_values() const {
         return std::accumulate(m_values.begin(), m_values.end(), SumType{}, [](SumType acc, auto& entry) {
            return acc + entry.first * entry.second;
         });
