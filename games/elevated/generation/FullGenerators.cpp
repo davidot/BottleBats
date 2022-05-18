@@ -105,4 +105,43 @@ std::vector<PassengerBlueprint> HardcodedScenarioGenerator::requests_at(Elevated
     return blueprints;
 }
 
+NextRequests ToFileScenarioGenerator::next_requests_at()
+{
+    return m_generator->next_requests_at();
+}
+
+BuildingGenerationResult ToFileScenarioGenerator::generate_building()
+{
+    auto building = m_generator->generate_building();
+    if (building.has_error()) {
+        building.add_error("Building has error not writing to file");
+        return building;
+    }
+    m_output_stream << "capacity " << (building.has_infinite_capacity() ? "off" : "on")
+                    << "\nbuilding\n";
+    write_building(building.blueprint());
+    return building;
+}
+
+
+std::vector<PassengerBlueprint> ToFileScenarioGenerator::requests_at(Time time)
+{
+    auto requests = m_generator->requests_at(time);
+    if (!requests.empty()) {
+        m_output_stream << "requests " << time << ' ';
+        write_requests(requests);
+    }
+    return std::move(requests);
+}
+
+void ToFileScenarioGenerator::write_building(const BuildingBlueprint&)
+{
+    ASSERT(false);
+}
+
+void ToFileScenarioGenerator::write_requests(const std::vector<PassengerBlueprint>& blueprints)
+{
+    ASSERT(false);
+}
+
 }
