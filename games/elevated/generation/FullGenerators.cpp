@@ -131,7 +131,7 @@ std::vector<PassengerBlueprint> ToFileScenarioGenerator::requests_at(Time time)
         m_output_stream << "requests " << time << ' ';
         write_requests(requests);
     }
-    return std::move(requests);
+    return requests;
 }
 
 void ToFileScenarioGenerator::write_building(const BuildingBlueprint&)
@@ -139,7 +139,7 @@ void ToFileScenarioGenerator::write_building(const BuildingBlueprint&)
     ASSERT(false);
 }
 
-void ToFileScenarioGenerator::write_requests(const std::vector<PassengerBlueprint>& blueprints)
+void ToFileScenarioGenerator::write_requests(const std::vector<PassengerBlueprint>&)
 {
     ASSERT(false);
 }
