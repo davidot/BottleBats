@@ -16,8 +16,10 @@ public:
     virtual void on_passenger_leave_elevator(Time time, PassengerID id, Height height) override;
     virtual void on_elevator_set_target(Time time, Height new_target, ElevatorState const& state) override;
 
+    [[nodiscard]] std::string value() const { return m_current_stream.str(); }
+
 private:
-    std::ostringstream current_stream;
+    std::ostringstream m_current_stream;
 };
 
 }
