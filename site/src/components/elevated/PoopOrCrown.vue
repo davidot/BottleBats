@@ -55,9 +55,9 @@ export default {
 
 @keyframes spinning {
   100% {
-    /*transform: scale(5);*/
+    transform: scale(5);
     rotate: 360deg;
-    /*opacity: 1;*/
+    opacity: 1;
   }
 }
 </style>
