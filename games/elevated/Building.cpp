@@ -170,4 +170,14 @@ bool BuildingState::passengers_done()
     });
 }
 
+std::vector<Height> BuildingState::all_floors() const
+{
+    std::vector<Height> heights;
+    heights.reserve(m_floors.size());
+    for (auto& [floor, _] : m_floors)
+        heights.push_back(floor);
+
+    return heights;
+}
+
 }

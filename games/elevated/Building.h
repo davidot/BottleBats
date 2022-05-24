@@ -40,6 +40,8 @@ public:
 
     bool passengers_done();
 
+    std::vector<Height> all_floors() const;
+
 private:
     std::unordered_map<Height, std::vector<Passenger>> m_floors;
     std::vector<ElevatorState> m_elevators;

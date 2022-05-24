@@ -29,6 +29,7 @@ add_library(LibElevated
         elevated/generation/factory/StringSettings.cpp
         elevated/generation/factory/OutputSettings.cpp
         elevated/generation/factory/FactoryFactory.cpp
+        elevated/generation/building/SplitBuildingGenerators.cpp
         elevated/stats/Listener.cpp
         elevated/stats/MetaListener.cpp
         elevated/stats/PassengerStats.cpp
