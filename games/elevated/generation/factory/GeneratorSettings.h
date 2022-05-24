@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <memory>
 #include "../../../../util/Assertions.h"
 
 namespace Elevated {
