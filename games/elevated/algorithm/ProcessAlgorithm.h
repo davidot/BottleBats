@@ -21,6 +21,7 @@ public:
     ~ProcessAlgorithm();
 
     ScenarioAccepted accept_scenario_description(BuildingGenerationResult const& building) override;
+    std::optional<ElevatorState::PassengerCallback> on_doors_open(Time time_1, ElevatorID id, BuildingState const& state) override;
     std::vector<AlgorithmResponse> on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs) override;
 
     static void write_building(BuildingGenerationResult const& building, std::ostringstream& stream);
@@ -36,6 +37,11 @@ private:
     std::vector<std::string> m_command;
     InfoLevel m_info_level;
     util::SubProcess::StderrState m_stderr_handling;
+    enum class PassengerFilter {
+        UpOnly,
+        DownOnly
+    };
+    std::unordered_map<ElevatorID, PassengerFilter> m_filters;
 };
 
 }

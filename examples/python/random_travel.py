@@ -71,5 +71,5 @@ while True:
     else:
         parts = next_line.split(' ')
         if not in_response:
-            write_line('move 0 ' + random_floor())
+            write_line('move 0 ' + random_floor() + (rand.choice([' down', ' up', ''])))
         in_response = True

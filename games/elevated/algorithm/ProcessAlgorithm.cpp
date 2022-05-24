@@ -268,9 +268,30 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
             if (elevator_id_or_none.value() >= building.num_elevators())
                 return { AlgorithmResponse::algorithm_misbehaved({ "Process sent move with incorrect elevator id:", line }) };
 
-            auto target_or_none = parse_unsigned(view.substr(middle + 1));
+            auto second_part = view.find(' ', middle + 1);
+
+            std::string_view target_view;
+
+            if (second_part == std::string_view::npos)
+                target_view = view.substr(middle + 1);
+            else
+                target_view = view.substr(middle + 1, second_part - middle - 1);
+
+            auto target_or_none = parse_unsigned(target_view);
             if (!target_or_none.has_value())
                 return { AlgorithmResponse::algorithm_failed({ "Process sent move but did not have (valid) target height:", line }) };
+
+            if (second_part != std::string_view::npos) {
+                auto filter = view.substr(second_part + 1);
+                if (filter == "up")
+                    m_filters[elevator_id_or_none.value()] = PassengerFilter::UpOnly;
+                else if (filter == "down")
+                    m_filters[elevator_id_or_none.value()] = PassengerFilter::DownOnly;
+                else
+                    return { AlgorithmResponse::algorithm_failed({ "Process sent move but did not have (valid) filter:", line }) };
+            } else {
+                m_filters.erase(elevator_id_or_none.value());
+            }
 
             responses.push_back(AlgorithmResponse::move_elevator_to(elevator_id_or_none.value(), target_or_none.value()));
         } else if (line.starts_with("set-timer ")){
@@ -303,6 +324,27 @@ std::string ProcessAlgorithm::make_command_string() const
     for (auto& part : m_command)
         command_value += part + " ";
     return command_value;
+}
+
+static bool up_only(Passenger const& passenger) {
+    return passenger.to > passenger.from;
+}
+
+static bool down_only(Passenger const& passenger) {
+    return passenger.to < passenger.from;
+}
+
+std::optional<ElevatorState::PassengerCallback> ProcessAlgorithm::on_doors_open(Time, ElevatorID id, BuildingState const&)
+{
+    if (auto it_or_end = m_filters.find(id); it_or_end != m_filters.end()) {
+        if (it_or_end->second == PassengerFilter::UpOnly) {
+            return up_only;
+        } else {
+            ASSERT(it_or_end->second == PassengerFilter::DownOnly);
+            return down_only;
+        }
+    }
+    return {};
 }
 
 }
