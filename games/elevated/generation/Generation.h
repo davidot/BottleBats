@@ -15,7 +15,7 @@ struct BuildingBlueprint {
         Height speed{1};
     };
 
-    std::vector<std::unordered_set<Height>> reachable_per_group; // FIXME: Without differentiating elevators this can actually be pair<number_elevators, floors>
+    std::vector<std::unordered_set<Height>> reachable_per_group;
     std::vector<Elevator> elevators;
 
 //    Time time_to_open_doors; FIXME: Fixed per building (or all really) for now?
@@ -55,9 +55,15 @@ private:
 
 class BuildingGenerationResult {
 public:
-    BuildingGenerationResult(BuildingBlueprint blueprint)
+    explicit BuildingGenerationResult(BuildingBlueprint blueprint)
         : m_blueprint(std::move(blueprint))
     {
+    }
+
+    explicit BuildingGenerationResult(std::string error)
+        : m_blueprint({})
+    {
+        m_errors.push_back(std::move(error));
     }
 
     void add_error(std::string s) const { m_errors.emplace_back(std::move(s)); }

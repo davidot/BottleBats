@@ -1,12 +1,9 @@
-#include "GenerationFactory.h"
-#include "BasicGenerator.h"
-#include "FullGenerators.h"
-#include "MetaGenerators.h"
+#include "NamedScenarios.h"
+#include "../BasicGenerator.h"
+#include "../FullGenerators.h"
+#include "../MetaGenerators.h"
 
 namespace Elevated {
-
-
-
 
 std::unique_ptr<ScenarioGenerator> hardcoded1() {
     static auto requests = []() noexcept {
@@ -124,7 +121,7 @@ std::unique_ptr<ScenarioGenerator> reverse_meta(size_t num_requests, long seed)
                 ));
 }
 
-std::unique_ptr<ScenarioGenerator> generator_from_string(std::string string)
+std::unique_ptr<ScenarioGenerator> named_scenario(std::string string)
 {
     if (string == "h1")
         return hardcoded1();

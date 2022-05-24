@@ -24,7 +24,11 @@ add_library(LibElevated
         elevated/generation/BasicGenerator.cpp
         elevated/generation/Generation.cpp
         elevated/generation/MetaGenerators.cpp
-        elevated/generation/GenerationFactory.cpp
+        elevated/generation/factory/NamedScenarios.cpp
+        elevated/generation/factory/GeneratorSettings.cpp
+        elevated/generation/factory/StringSettings.cpp
+        elevated/generation/factory/OutputSettings.cpp
+        elevated/generation/factory/FactoryFactory.cpp
         elevated/stats/Listener.cpp
         elevated/stats/MetaListener.cpp
         elevated/stats/PassengerStats.cpp

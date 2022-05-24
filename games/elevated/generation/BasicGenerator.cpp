@@ -238,6 +238,7 @@ void ForceDirectionGenerator::transform(PassengerBlueprint& blueprint)
         default:
             ASSERT_NOT_REACHED();
         }
+        return false;
     }();
 
     if (should_flip)

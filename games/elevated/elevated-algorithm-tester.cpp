@@ -7,8 +7,9 @@
 #include <elevated/Simulation.h>
 #include <elevated/algorithm/ProcessAlgorithm.h>
 #include <elevated/generation/BasicGenerator.h>
-#include <elevated/generation/GenerationFactory.h>
 #include <elevated/generation/MetaGenerators.h>
+#include <elevated/generation/factory/NamedScenarios.h>
+#include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,7 +23,7 @@ int main(int argc, char** argv) {
     }
 
     std::vector<std::string> command;
-    std::string input = "h1";
+    std::string input = "named-scenario(h1)";
 
     bool in_flags = true;
 
@@ -51,12 +52,21 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto generator = generator_from_string(input);
+    auto scenario_result = parse_scenario(input);
+
+    auto generator = std::move(scenario_result.generator);
+
 
     if (!generator) {
         std::cerr << "Invalid generator\n";
+        for (auto& s : scenario_result.errors)
+            std::cerr << s << '\n';
         return 1;
     }
+
+    for (auto& s : scenario_result.errors)
+        std::cerr << s << '\n';
+
 
     std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
 
