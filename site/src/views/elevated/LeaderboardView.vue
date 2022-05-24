@@ -97,7 +97,7 @@ export default {
   data() {
     return {
       results: null,
-      stat: "total-time",
+      stat: "avg-wait",
       connectionLost: false,
     };
   },
