@@ -20,7 +20,18 @@ public:
 
     std::optional<size_t> add_request(PassengerBlueprint passenger);
     bool send_elevator(ElevatorID, Height target);
-    std::vector<ElevatorID> update_until(Time target_time);
+
+    struct UpdateResult {
+        enum class Type {
+            DoorsOpened,
+            DoorsClosed
+        };
+        Type type;
+        ElevatorID id;
+    };
+
+    std::vector<UpdateResult> update_until(Time target_time);
+    void transfer_passengers(ElevatorID id, ElevatorState::PassengerCallback const& callback = [](Passenger const&){ return true; });
 
     [[nodiscard]] std::vector<Passenger> const& passengers_at(Height) const;
     [[nodiscard]] ElevatorState const& elevator(ElevatorID) const;

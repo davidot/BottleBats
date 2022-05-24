@@ -93,6 +93,9 @@ public:
 
     virtual ScenarioAccepted accept_scenario_description(BuildingGenerationResult const& building) = 0;
 
+    // FIXME: Maybe just handle this here directly? Instead of returning a function.
+    virtual std::optional<ElevatorState::PassengerCallback> on_doors_open(Time, ElevatorID, BuildingState const&) { return std::nullopt; };
+
     virtual std::vector<AlgorithmResponse> on_inputs(Time at, BuildingState const& building, std::vector<AlgorithmInput> inputs) = 0;
 };
 

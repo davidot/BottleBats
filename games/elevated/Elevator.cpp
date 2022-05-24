@@ -11,7 +11,7 @@ std::optional<Time> ElevatorState::time_until_next_event() const
     if (m_state == State::Stopped || m_state == State::DoorsOpen)
         return {};
 
-    if (m_state == State::Travelling) // FIXME: For now we don't emit anything on arrival and all arrivals are followed by door cycle
+    if (m_state == State::Travelling)
         return m_time_until_next_state + door_opening_time;
 
     return m_time_until_next_state;
@@ -136,7 +136,7 @@ Capacity ElevatorState::filled_capacity() const
         });
 }
 
-void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers& transferred, Capacity capacity_left)
+void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers& transferred, Capacity capacity_left, std::function<bool(Passenger const&)> const& callback)
 {
     auto in_group = [&](Passenger const& passenger) {
         return passenger.group == group_id;
@@ -149,7 +149,7 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
         return;
 
     for (auto it = start; it != end; ++it) {
-        if (in_group(*it) && it->capacity <= capacity_left) {
+        if (in_group(*it) && it->capacity <= capacity_left && callback(*it)) {
             transferred.picked_up_passengers.emplace_back(*it);
             m_passengers.push_back({it->id, it->to, it->capacity});
             capacity_left -= it->capacity;
@@ -162,7 +162,7 @@ void ElevatorState::pickup_passengers(std::vector<Passenger>& waiting_passengers
     waiting_passengers.erase(start, end);
 }
 
-ElevatorState::TransferredPassengers ElevatorState::transfer_passengers(std::vector<Passenger>& waiting_passengers)
+ElevatorState::TransferredPassengers ElevatorState::transfer_passengers(std::vector<Passenger>& waiting_passengers, std::function<bool(Passenger const&)> const& callback)
 {
     ASSERT(m_state == State::DoorsOpen);
     m_state = State::DoorsClosing;
@@ -172,7 +172,7 @@ ElevatorState::TransferredPassengers ElevatorState::transfer_passengers(std::vec
 
     Capacity used_capacity = dropoff_passengers(transferred);
     ASSERT(used_capacity <= max_capacity);
-    pickup_passengers(waiting_passengers, transferred, max_capacity - used_capacity);
+    pickup_passengers(waiting_passengers, transferred, max_capacity - used_capacity, callback);
 
     return transferred;
 }

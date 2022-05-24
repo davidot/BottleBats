@@ -33,7 +33,7 @@ public:
         if (next_responses.empty())
             return {};
 
-        INFO("Expected time " << next_responses.back().first);
+        CAPTURE(inputs[0].type());
         REQUIRE(next_responses.back().first == at);
         auto response = std::move(next_responses.back().second);
         next_responses.pop_back();

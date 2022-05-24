@@ -150,6 +150,7 @@ TEST_CASE("Events", "[building][event]") {
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
             REQUIRE(listener.elevator_opened_events.size() == 1);
+            building.transfer_passengers(0);
             listener.clear_events();
             auto close_time = building.next_event_at();
             REQUIRE(close_time.has_value());
@@ -186,6 +187,7 @@ TEST_CASE("Events", "[building][event]") {
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
+            building.transfer_passengers(0);
 
             THEN("A passenger enter event is generated") {
                 REQUIRE(listener.passenger_enter_events.size() == 1);
@@ -222,6 +224,7 @@ TEST_CASE("Events", "[building][event]") {
                 auto open_time = building.next_event_at();
                 REQUIRE(open_time.has_value());
                 building.update_until(open_time.value());
+                building.transfer_passengers(0);
             }
 
 
@@ -237,6 +240,7 @@ TEST_CASE("Events", "[building][event]") {
             auto open_time = building.next_event_at();
             REQUIRE(open_time.has_value());
             building.update_until(open_time.value());
+            building.transfer_passengers(0);
 
             THEN("A passenger leave event is generated") {
                 REQUIRE(listener.passenger_leave_events.size() == 1);

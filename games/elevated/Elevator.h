@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <optional>
+#include <functional>
 #include "generation/Generation.h"
 #include "Types.h"
 
@@ -88,7 +89,9 @@ public:
         std::vector<Passenger> picked_up_passengers;
     };
 
-    TransferredPassengers transfer_passengers(std::vector<Passenger>& waiting_passengers);
+    using PassengerCallback = std::function<bool(Passenger const&)>;
+
+    TransferredPassengers transfer_passengers(std::vector<Passenger>& waiting_passengers, PassengerCallback const& callback = [](auto&) { return true; });
 
 private:
     Height m_height{0};
@@ -106,7 +109,7 @@ private:
         return speed * steps;
     }
 
-    void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&, Capacity capacity_left);
+    void pickup_passengers(std::vector<Passenger>& waiting_passengers, TransferredPassengers&, Capacity capacity_left, PassengerCallback const& callback);
     Capacity dropoff_passengers(TransferredPassengers&);
     void move_to_target(Height distance);
 };

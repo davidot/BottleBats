@@ -94,15 +94,31 @@ SimulatorResult Simulation::run()
             return *result;
         }
 
-        auto elevators_closed = m_building.update_until(running_until);
+        auto elevator_updates = m_building.update_until(running_until);
         ASSERT(m_generator->next_requests_at() > running_until || next_request_time == running_until);
+
+        std::vector<ElevatorID> elevators_closed;
+        {
+            for (auto& elevator_update : elevator_updates) {
+                if (elevator_update.type == BuildingState::UpdateResult::Type::DoorsOpened) {
+                    auto callback = m_algorithm->on_doors_open(running_until, elevator_update.id, m_building);
+                    if (callback.has_value())
+                        m_building.transfer_passengers(elevator_update.id, callback.value());
+                    else
+                        m_building.transfer_passengers(elevator_update.id);
+                } else {
+                    ASSERT(elevator_update.type == BuildingState::UpdateResult::Type::DoorsClosed);
+                    elevators_closed.push_back(elevator_update.id);
+                }
+            }
+        }
 
         std::vector<AlgorithmInput> inputs;
 
         if (next_request_time == running_until) {
             last_requests = running_until;
             auto new_requests = m_generator->requests_at(running_until);
-            inputs.reserve(new_requests.size() + elevators_closed.size());
+            inputs.reserve(new_requests.size() + elevator_updates.size());
             for (auto& new_request : new_requests) {
                 auto queue_index = m_building.add_request(new_request);
                 if (!queue_index.has_value()) {
@@ -127,7 +143,7 @@ SimulatorResult Simulation::run()
         if (!inputs.empty()) {
             auto commands = m_algorithm->on_inputs(running_until, m_building, inputs);
 
-            for (auto const& command : commands) {
+            for (auto& command : commands) {
                 if (command.type() == AlgorithmResponse::Type::MoveElevator) {
                     if (!m_building.send_elevator(command.elevator_to_move(), command.elevator_target())) {
                         result->type = SimulatorResult::Type::AlgorithmMisbehaved;

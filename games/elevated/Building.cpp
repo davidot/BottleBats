@@ -34,7 +34,7 @@ BuildingState::BuildingState(BuildingBlueprint blueprint, EventListener* event_l
     ASSERT(m_event_listener);
 }
 
-std::vector<ElevatorID> BuildingState::update_until(Time target_time)
+std::vector<BuildingState::UpdateResult> BuildingState::update_until(Time target_time)
 {
     ASSERT(m_event_listener);
     ASSERT(target_time >= m_current_time);
@@ -47,9 +47,10 @@ std::vector<ElevatorID> BuildingState::update_until(Time target_time)
 
     m_current_time = target_time;
 
-    std::vector<ElevatorID> elevators_closed_doors;
+    std::vector<UpdateResult> elevators_closed_doors;
 
     for (auto& elevator : m_elevators) {
+        ASSERT(elevator.current_state() != ElevatorState::State::DoorsOpen);
         Height initial_height = elevator.height();
         auto result = elevator.update(steps);
         switch (result) {
@@ -65,22 +66,14 @@ std::vector<ElevatorID> BuildingState::update_until(Time target_time)
                 m_event_listener->on_elevator_moved(m_current_time, distance_between(initial_height, new_height), initial_height, elevator);
 
             m_event_listener->on_elevator_opened_doors(m_current_time, elevator);
-
-            auto& floor_stopped_at = m_floors[elevator.height()];
-            auto transferred = elevator.transfer_passengers(floor_stopped_at);
-            for (auto& arrived_passenger_id : transferred.dropped_off_passengers)
-                m_event_listener->on_passenger_leave_elevator(m_current_time, arrived_passenger_id, elevator.height());
-
-            for (auto& picked_up_passenger : transferred.picked_up_passengers)
-                m_event_listener->on_passenger_enter_elevator(m_current_time, picked_up_passenger, elevator.id);
-
+            elevators_closed_doors.push_back({UpdateResult::Type::DoorsOpened, elevator.id});
             break;
         }
         case ElevatorState::ElevatorUpdateResult::DoorsClosed:
             ASSERT(initial_height == elevator.height());
             ASSERT(m_floors.contains(elevator.height()));
             m_event_listener->on_elevator_closed_doors(m_current_time, elevator);
-            elevators_closed_doors.push_back(elevator.id);
+            elevators_closed_doors.push_back({UpdateResult::Type::DoorsClosed, elevator.id});
             break;
         }
     }
@@ -88,6 +81,22 @@ std::vector<ElevatorID> BuildingState::update_until(Time target_time)
     return elevators_closed_doors;
 }
 
+void BuildingState::transfer_passengers(ElevatorID id, ElevatorState::PassengerCallback const& callback)
+{
+    ASSERT(id < m_elevators.size());
+    auto& elevator = m_elevators[id];
+    ASSERT(elevator.current_state() == ElevatorState::State::DoorsOpen);
+    if (elevator.current_state() != ElevatorState::State::DoorsOpen)
+        return;
+
+    auto& floor_stopped_at = m_floors[elevator.height()];
+    auto transferred = elevator.transfer_passengers(floor_stopped_at, callback);
+    for (auto& arrived_passenger_id : transferred.dropped_off_passengers)
+        m_event_listener->on_passenger_leave_elevator(m_current_time, arrived_passenger_id, elevator.height());
+
+    for (auto& picked_up_passenger : transferred.picked_up_passengers)
+        m_event_listener->on_passenger_enter_elevator(m_current_time, picked_up_passenger, elevator.id);
+}
 
 std::optional<size_t> BuildingState::add_request(PassengerBlueprint passenger)
 {

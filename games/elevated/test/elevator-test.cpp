@@ -569,4 +569,129 @@ TEST_CASE("Elevators state", "[elevators][state]") {
             }
         }
     }
+
+    GIVEN("An elevator waiting at a floor") {
+        Elevated::GroupID group_id = GENERATE(0, 2, 3);
+        Elevated::GroupID other_group_id = GENERATE(1, 4);
+        CAPTURE(group_id, other_group_id);
+
+        Elevated::ElevatorState elevator {0, {group_id}, 0};
+        elevator.set_target(0);
+
+        REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpening);
+        auto steps = elevator.time_until_next_event();
+        REQUIRE(steps.has_value());
+        auto result = elevator.update(steps.value());
+        REQUIRE(result == Elevated::ElevatorState::ElevatorUpdateResult::DoorsOpened);
+        REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsOpen);
+        REQUIRE_FALSE(elevator.time_until_next_event().has_value());
+
+        std::vector<Elevated::Passenger> line {
+            {1, {0, 1, group_id}},
+            {2, {0, 1, other_group_id}},
+            {3, {0, 1, other_group_id}},
+            {4, {0, 1, group_id}},
+            {5, {0, 1, group_id}},
+            {6, {0, 1, other_group_id}},
+            {7, {0, 1, other_group_id}},
+        };
+
+        WHEN("Transferring passengers with false callback") {
+            std::vector<PassengerID> passenger_ids;
+
+            auto transferred = elevator.transfer_passengers(line, [&](Passenger const& passenger) {
+                passenger_ids.push_back(passenger.id);
+                return false;
+            });
+
+            THEN("Picks up all passengers and doors are closing") {
+                REQUIRE(line.size() == 7);
+                REQUIRE(elevator.passengers().empty());
+                REQUIRE(transferred.dropped_off_passengers.empty());
+
+                REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
+                REQUIRE(elevator.time_until_next_event() == elevator.door_closing_time);
+
+                REQUIRE(std::is_sorted(line.begin(), line.end(), [&](Elevated::Passenger const& lhs, Elevated::Passenger const& rhs) {
+                    return lhs.id < rhs.id;
+                }));
+
+                REQUIRE(passenger_ids == std::vector<PassengerID>{1, 4, 5});
+            }
+        }
+
+        WHEN("Transferring passengers with false callback") {
+            std::vector<PassengerID> passenger_ids;
+
+            auto transferred = elevator.transfer_passengers(line, [&](Passenger const& passenger) {
+                passenger_ids.push_back(passenger.id);
+                return passenger.id == 4;
+            });
+
+            THEN("Picks up all passengers and doors are closing") {
+                REQUIRE(line.size() == 6);
+                REQUIRE(elevator.passengers().size() == 1);
+                REQUIRE(transferred.dropped_off_passengers.empty());
+
+                REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
+                REQUIRE(elevator.time_until_next_event() == elevator.door_closing_time);
+
+                for (auto i : {4u}) {
+                    CAPTURE(i);
+                    REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(),
+                                [&](Elevated::ElevatorState::TravellingPassenger const &p) {
+                                    return p.id == i;
+                                }) != elevator.passengers().end());
+
+                    REQUIRE(std::find_if(transferred.picked_up_passengers.begin(), transferred.picked_up_passengers.end(),
+                                [&](Elevated::Passenger const &p) {
+                                    return p.id == i;
+                                }) != transferred.picked_up_passengers.end());
+                }
+
+                REQUIRE(std::is_sorted(line.begin(), line.end(), [&](Elevated::Passenger const& lhs, Elevated::Passenger const& rhs) {
+                    return lhs.id < rhs.id;
+                }));
+
+                REQUIRE(passenger_ids == std::vector<PassengerID>{1, 4, 5});
+            }
+        }
+
+        WHEN("Transferring passengers with false callback") {
+            std::vector<PassengerID> passenger_ids;
+
+            auto transferred = elevator.transfer_passengers(line, [&](Passenger const& passenger) {
+                passenger_ids.push_back(passenger.id);
+                return passenger.id != 4;
+            });
+
+            THEN("Picks up all passengers and doors are closing") {
+                REQUIRE(line.size() == 5);
+                REQUIRE(elevator.passengers().size() == 2);
+                REQUIRE(transferred.dropped_off_passengers.empty());
+
+                REQUIRE(elevator.current_state() == Elevated::ElevatorState::State::DoorsClosing);
+                REQUIRE(elevator.time_until_next_event() == elevator.door_closing_time);
+
+                for (auto i : {1u, 5u}) {
+                    CAPTURE(i);
+                    REQUIRE(std::find_if(elevator.passengers().begin(), elevator.passengers().end(),
+                                [&](Elevated::ElevatorState::TravellingPassenger const &p) {
+                                    return p.id == i;
+                                }) != elevator.passengers().end());
+
+                    REQUIRE(std::find_if(transferred.picked_up_passengers.begin(), transferred.picked_up_passengers.end(),
+                                [&](Elevated::Passenger const &p) {
+                                    return p.id == i;
+                                }) != transferred.picked_up_passengers.end());
+                }
+
+                REQUIRE(std::is_sorted(line.begin(), line.end(), [&](Elevated::Passenger const& lhs, Elevated::Passenger const& rhs) {
+                    return lhs.id < rhs.id;
+                }));
+
+                REQUIRE(passenger_ids == std::vector<PassengerID>{1, 4, 5});
+            }
+        }
+    }
 }
