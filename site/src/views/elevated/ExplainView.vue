@@ -21,14 +21,19 @@
     ]
     &gt; done
     &lt; set-timer [time]
-    &lt; move [elevator_id] [target]
+    &lt; move [elevator_id] [target] {extra_info2}
     &lt; done
   </pre>
 
   <ul>
     <li><a href="elevated-examples/random_travel.py" download>Python</a></li>
+
     <li><a href="elevated-examples/elevated-tester.exe" download>Local tester</a></li>
+    <li><a href="elevated-examples/elevated-tester.exe" download>Local GUI tester</a></li>
+
     <li><a href="elevated-examples/elevated-tester" download>Local tester (linux)</a></li>
+    <li><a href="elevated-examples/elevated-tester" download>Local GUI tester (linux)</a></li>
+
     <li><a href="elevated-examples/elevated-tester-erik" download>Local tester (linux-old)</a></li>
   </ul>
 </template>
