@@ -27,7 +27,9 @@ struct Passenger {
     {
     }
 
-    bool operator==(Passenger const& rhs) const = default;
+    bool operator==(Passenger const& rhs) const {
+        return id == rhs.id && from == rhs.from && to == rhs.to && group == rhs.group && capacity == rhs.capacity;
+    }
 };
 
 
