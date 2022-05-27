@@ -9,6 +9,7 @@ add_library(LibVijf
 
 target_link_libraries(LibVijf PUBLIC SubProcess)
 target_include_directories(LibVijf INTERFACE .)
+target_compile_options(LibVijf PRIVATE -Werror)
 
 add_executable(VijfTemp vijf/main.cpp)
 target_link_libraries(VijfTemp PUBLIC LibVijf)
@@ -43,6 +44,7 @@ add_library(LibElevated
 
 target_include_directories(LibElevated INTERFACE .)
 target_link_libraries(LibElevated PUBLIC SubProcess)
+target_compile_options(LibElevated PRIVATE -Werror)
 
 add_executable(elevated-test
         elevated/test/test-main.cpp
