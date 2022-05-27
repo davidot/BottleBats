@@ -14,6 +14,6 @@ filename_only="$(basename "$filename")"
 
 pushd "$folder/" > /dev/null
 
-podman build -f /home/david/code/BottleBats/bots-scripts/cs/Dockerfile -t "$container_name" . --build-arg "filename=./$filename_only"
+podman build -f /home/david/code/BottleBats/bots-scripts/cs/Dockerfile -t "$container_name" . --build-arg "filename=./$filename_only" 1>&2
 
 popd > /dev/null
