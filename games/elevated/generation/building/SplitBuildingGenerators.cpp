@@ -118,9 +118,9 @@ BuildingGenerationResult ElevatorRepeater::generate_elevators(const std::set<Hei
     return base_result;
 }
 
-BuildingGenerationResult AlternatingElevatorGenerator::generate_elevators(const std::set<Height>& floors)
+BuildingGenerationResult AlternatingElevatorGenerator::generate_elevators(const std::set<Height>&)
 {
-    return BuildingGenerationResult(Elevated::BuildingBlueprint());
+    return BuildingGenerationResult("Not implemented yet :(");
 }
 
 }
