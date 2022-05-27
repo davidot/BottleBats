@@ -16,7 +16,7 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::read_transaction transaction {*base_context.database_connection};
 
-        auto results = transaction.exec("SELECT bot_id, bot_name, running_cases, COALESCE(status, FALSE) "
+        auto results = transaction.exec("SELECT bot_id, bot_name, running_cases, COALESCE(status, '?') "
                                                   "FROM elevated_bots "
                                                   "WHERE user_id = " + std::to_string(base_context.user.id) + " "
                                                   "ORDER BY created DESC LIMIT 50");
