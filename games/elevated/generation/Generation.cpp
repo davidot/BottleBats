@@ -16,23 +16,42 @@ NextRequests NextRequests::at(Time time) {
     return time;
 }
 
-std::strong_ordering NextRequests::operator<=>(NextRequests const& rhs) const {
-    if (type == rhs.type) {
+bool NextRequests::operator==(NextRequests const& other) const
+{
+    if (other.type != type)
+        return false;
+    if (type != Type::At)
+        return true;
+    return next_request_time == other.next_request_time;
+}
+bool NextRequests::operator!=(NextRequests const& other) const
+{
+    if (other.type != type)
+        return true;
+    if (type != Type::At)
+        return false;
+    return next_request_time != other.next_request_time;
+}
+bool NextRequests::operator<(NextRequests const& other) const
+{
+    if (type == other.type) {
         if (type != Type::At)
-            return std::strong_ordering::equal;
+            return false;
 
-        return next_request_time <=> rhs.next_request_time;
+        return next_request_time < other.next_request_time;
     }
     if (type == Type::At)
-        return std::strong_ordering::less;
+        return true;
     if (type == Type::Done)
-        return std::strong_ordering::greater;
-    ASSERT(type == Type::Unknown);
-    if (rhs.type == Type::At)
-        return std::strong_ordering::greater;
+        return false;
+    if (other.type == Type::At)
+        return false;
+    return true;
+}
 
-    ASSERT(rhs.type == Type::Done);
-    return std::strong_ordering::less;
+bool NextRequests::operator>(NextRequests const& other) const
+{
+    return *this != other && !(*this < other);
 }
 
 SplitGenerator::SplitGenerator(std::unique_ptr<BuildingGenerator> building_generator, std::unique_ptr<RequestGenerator> request_generator)

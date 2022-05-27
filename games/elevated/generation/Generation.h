@@ -42,10 +42,10 @@ struct NextRequests {
 
     NextRequests(Time time) : next_request_time(time) { type = Type::At; }
 
-    std::strong_ordering operator<=>(NextRequests const& other) const;
-    bool operator==(NextRequests const& other) const = default;
-    bool operator!=(NextRequests const& other) const = default;
-    bool operator<(NextRequests const& other) const = default;
+    bool operator==(NextRequests const& other) const;
+    bool operator!=(NextRequests const& other) const;
+    bool operator<(NextRequests const& other) const;
+    bool operator>(NextRequests const& other) const;
 
     Type type = Type::Done;
     Time next_request_time {0};
