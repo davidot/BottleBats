@@ -119,7 +119,7 @@ private:
 
 class ElevatorRepeater : public ElevatorGenerator {
 public:
-    ElevatorRepeater(size_t times, std::unique_ptr<ElevatorGenerator> generator)
+    ElevatorRepeater(uint32_t times, std::unique_ptr<ElevatorGenerator> generator)
         : m_times(times)
         , m_generator(std::move(generator))
     {

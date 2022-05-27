@@ -142,7 +142,9 @@ static void init_factories() {
         return std::make_unique<FullRangeElevator>(capacity, speed);
     });
 
-    s_elevator_factories.addLambdaFactory("repeat", [times = size_t(1u), elevator = elevatorFactories().createGen("elevator")](GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
+    s_elevator_factories.addLambdaFactory("repeat",
+        [times = uint32_t(1u), elevator = elevatorFactories().createGen("elevator")]
+        (GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
         settings.unsignedValue("Times", times, 0);
         auto created_elevator = elevator.visit(settings);
         if (!created_elevator)
@@ -193,7 +195,7 @@ static void init_factories() {
         return std::make_unique<ForceDirectionGenerator>(std::move(created_requests), operation, 0, chance);
     });
 
-    s_requestFactories.addLambdaFactory("uniform-random", [amount = size_t(1u), mean = 0.0, capacity = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
+    s_requestFactories.addLambdaFactory("uniform-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
         settings.unsignedValue("Amount", amount, 1);
         settings.doubleValue("Mean arrival time (exponential)", mean);
         settings.unsignedValue("Capacity", capacity, 0);
@@ -204,7 +206,7 @@ static void init_factories() {
         return std::make_unique<UniformFloorGenerator>(0, amount, mean, capacity);
     });
 
-    s_requestFactories.addLambdaFactory("ground-floor-random", [amount = size_t(1u), mean = 0.0, capacity = 1u, ground_floor = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
+    s_requestFactories.addLambdaFactory("ground-floor-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u, ground_floor = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
         settings.unsignedValue("Amount", amount, 1, 1000000);
         settings.doubleValue("Mean arrival time (exponential)", mean, 0.0, 1000.0);
         settings.unsignedValue("Ground floor", ground_floor, 0, 1000);
