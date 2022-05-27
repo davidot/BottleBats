@@ -36,7 +36,7 @@ std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm_from_command(std::string 
     } else if (type == "podman") {
         return std::make_unique<Elevated::ProcessAlgorithm>(std::vector<std::string> {
             "podman", "run",
-            "--network=none", "--cpus=1.0", "--memory=128m",
+            "--network=none", "--cpus=1.0", "--memory=256m",
             "--cap-drop=all", "--rm", "--interactive",
             std::string(details)
         }, Elevated::ProcessAlgorithm::InfoLevel::Low);
