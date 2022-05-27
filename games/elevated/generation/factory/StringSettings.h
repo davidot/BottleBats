@@ -15,7 +15,7 @@ struct ScenarioResult {
     std::vector<std::string> errors;
 };
 
-ScenarioResult parse_scenario(const std::string& value);
+ScenarioResult parse_scenario(const std::string& value, long initial_seed);
 
 class StringSettings : public GeneratorSettings {
 private:

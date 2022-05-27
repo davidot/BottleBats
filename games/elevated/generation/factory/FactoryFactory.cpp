@@ -192,7 +192,7 @@ static void init_factories() {
         if (!created_requests)
             settings.encounteredError("Must have sub request generator");
 
-        return std::make_unique<ForceDirectionGenerator>(std::move(created_requests), operation, 0, chance);
+        return std::make_unique<ForceDirectionGenerator>(std::move(created_requests), operation, settings.next_seed(), chance);
     });
 
     s_requestFactories.addLambdaFactory("uniform-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
@@ -203,7 +203,7 @@ static void init_factories() {
             settings.encounteredError("Mean must be positive");
             return nullptr;
         }
-        return std::make_unique<UniformFloorGenerator>(0, amount, mean, capacity);
+        return std::make_unique<UniformFloorGenerator>(settings.next_seed(), amount, mean, capacity);
     });
 
     s_requestFactories.addLambdaFactory("ground-floor-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u, ground_floor = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
@@ -215,7 +215,7 @@ static void init_factories() {
             settings.encounteredError("Mean must be positive");
             return nullptr;
         }
-        return std::make_unique<GroundFloorGenerator>(0, amount, mean, ground_floor, capacity);
+        return std::make_unique<GroundFloorGenerator>(settings.next_seed(), amount, mean, ground_floor, capacity);
     });
 }
 

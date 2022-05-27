@@ -3,6 +3,7 @@
 #include "ImGui/ImGuiExtensions.h"
 
 #include <array>
+#include <cstring>
 #include <imgui.h>
 #include <utility>
 

@@ -1,13 +1,11 @@
-#include "elevated/generation/FullGenerators.h"
-#include "elevated/stats/MetaListener.h"
-#include "elevated/stats/PassengerStats.h"
-#include "elevated/stats/PowerStatsListener.h"
-#include "elevated/stats/SpecialEventsListener.h"
+#include <elevated/generation/FullGenerators.h>
+#include <elevated/stats/MetaListener.h>
+#include <elevated/stats/PassengerStats.h>
+#include <elevated/stats/PowerStatsListener.h>
+#include <elevated/stats/SpecialEventsListener.h>
 #include <ctime>
 #include <elevated/Simulation.h>
 #include <elevated/algorithm/ProcessAlgorithm.h>
-#include <elevated/generation/BasicGenerator.h>
-#include <elevated/generation/MetaGenerators.h>
 #include <elevated/generation/factory/NamedScenarios.h>
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
@@ -52,7 +50,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    auto scenario_result = parse_scenario(input);
+    auto scenario_result = parse_scenario(input, rand());
 
     auto generator = std::move(scenario_result.generator);
 

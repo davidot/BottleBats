@@ -4,7 +4,7 @@
 #include "elevated/algorithm/CyclingAlgorithm.h"
 #include "elevated/algorithm/ProcessAlgorithm.h"
 #include "elevated/generation/FullGenerators.h"
-#include "elevated/generation/GenerationFactory.h"
+#include "elevated/generation/factory/StringSettings.h"
 #include <crow/json.h>
 #include <elevated/Simulation.h>
 #include <elevated/stats/PassengerStats.h>
@@ -47,7 +47,14 @@ std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm_from_command(std::string 
 
 std::unique_ptr<Elevated::ScenarioGenerator> scenario_from_command(std::string name)
 {
-    return Elevated::generator_from_string(std::move(name));
+    auto result = Elevated::parse_scenario(name, 783675);
+    if (!result.generator) {
+        std::cerr << "Scenario failed: \n";
+        for (auto& line : result.errors)
+            std::cerr << "    " << line << '\n';
+        throw "failed scenario!";
+    }
+    return std::move(result.generator);
 }
 
 SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> algorithm, std::unique_ptr<Elevated::ScenarioGenerator> generator)

@@ -31,6 +31,7 @@ int main() {
     Elevated::ProxyOutputSettings settings {bSettings};
 
     auto factory = Elevated::scenarioFactories().createGenerator("root");
+    long seed = ((long)(rand() ^ rand()) << 32) + (long)(rand() ^ rand());
     int frameCount = 0;
     int frameLimit = 5;
     int copied = 0;
@@ -80,6 +81,17 @@ int main() {
         ImGui::SFML::Update(window, deltaClock.restart());
 
         if (ImGui::Begin("Factory")) {
+            ImGui::TextWrapped("%ld", seed);
+            ImGui::Separator();
+            bool seedChanged = false;
+            if (ImGui::Button("Regenerate")) {
+                // TODO: invalidate any building
+                seed = ((long)(rand() ^ rand()) << 32) + (long)(rand() ^ rand());
+                seedChanged = true;
+            }
+            ImGui::Separator();
+
+            settings.set_initial_seed(seed);
             auto v = factory->visit(settings);
             ImGui::Separator();
             ImGui::Indent();
@@ -134,7 +146,7 @@ int main() {
 
             ImGui::Separator();
 
-            if (v && (settings.value() != oldSettingsValue)) {
+            if (v && (settings.value() != oldSettingsValue || seedChanged)) {
                 oldSettingsValue = settings.value();
 
                 blueprint_result = v->generate_building();

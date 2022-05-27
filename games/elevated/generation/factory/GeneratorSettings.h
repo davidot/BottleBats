@@ -1,15 +1,16 @@
 #pragma once
 
+#include "../../../../util/Assertions.h"
 #include <algorithm>
 #include <functional>
 #include <iterator>
+#include <memory>
+#include <random>
 #include <set>
 #include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
-#include <memory>
-#include "../../../../util/Assertions.h"
 
 namespace Elevated {
 
@@ -168,6 +169,18 @@ public:
     // route
 
     virtual bool hasFailed() = 0;
+
+    virtual long next_seed() {
+        std::uniform_int_distribution<long> distrib(std::numeric_limits<long>::min(), std::numeric_limits<long>::max());
+        return distrib(engine);
+    }
+
+    virtual void set_initial_seed(long val) {
+        engine.seed(val);
+    }
+
+private:
+    std::minstd_rand engine;
 };
 
 template<typename OutputType>

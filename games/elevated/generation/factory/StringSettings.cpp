@@ -505,10 +505,11 @@ void StringSettings::consumeSeparator(size_t loc)
     }
 }
 
-ScenarioResult parse_scenario(const std::string& value)
+ScenarioResult parse_scenario(const std::string& value, long initial_seed)
 {
     StringSettings bSettings { value };
     ProxyOutputSettings settings { bSettings };
+    settings.set_initial_seed(initial_seed);
     auto factory = scenarioFactories().createGenerator("root");
     ScenarioResult result{};
     result.generator = factory->visit(settings);
