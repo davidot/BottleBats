@@ -309,7 +309,7 @@ std::vector<AlgorithmResponse> ProcessAlgorithm::on_inputs(Time at, BuildingStat
             return { AlgorithmResponse::algorithm_misbehaved({ "Process gave invalid command: ", line, "for input: ", message.str() }) };
         }
 
-        if (!m_process->readLineWithTimeout(line, 50))
+        if (!m_process->readLineWithTimeout(line, 150))
             return { AlgorithmResponse::algorithm_failed({ "Process failed to respond to messages, command: ", make_command_string(), "input: ", message.str() }) };
     }
 
