@@ -44,7 +44,7 @@ bool create_elevated_bot_in_container(uint32_t id)
 
             auto result = transaction.exec0(
                 "UPDATE elevated_bots"
-                " SET status = '" + transaction.esc(new_status) + "', running_cases = " + (failed ? "TRUE" : "NULL") +
+                " SET status = '" + transaction.esc(new_status) + "', running_cases = " + (failed ? "FALSE" : "NULL") +
                 " WHERE bot_id = " + std::to_string(id));
             ASSERT(result.affected_rows() == 1);
             transaction.commit();
