@@ -222,7 +222,7 @@ static void init_factories() {
         return std::make_unique<ForceDirectionGenerator>(std::move(created_requests), operation, settings.next_seed(), chance);
     });
 
-    s_requestFactories.addLambdaFactory("uniform-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
+    s_requestFactories.addLambdaFactory("uniform-random", [amount = uint32_t(1u), mean = 0.1, capacity = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
         settings.unsignedValue("Amount", amount, 1);
         settings.doubleValue("Mean arrival time (exponential)", mean);
         settings.unsignedValue("Capacity", capacity, 0);
@@ -233,8 +233,8 @@ static void init_factories() {
         return std::make_unique<UniformFloorGenerator>(settings.next_seed(), amount, mean, capacity);
     });
 
-    s_requestFactories.addLambdaFactory("ground-floor-random", [amount = uint32_t(1u), mean = 0.0, capacity = 1u, ground_floor = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
-        settings.unsignedValue("Amount", amount, 1, 1000000);
+    s_requestFactories.addLambdaFactory("ground-floor-random", [amount = uint32_t(1u), mean = 0.1, capacity = 1u, ground_floor = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<RequestGenerator> {
+        settings.unsignedValue("Amount", amount, 1, 1000);
         settings.doubleValue("Mean arrival time (exponential)", mean, 0.0, 1000.0);
         settings.unsignedValue("Ground floor", ground_floor, 0, 1000);
         settings.unsignedValue("Capacity", capacity, 0, 10000);
