@@ -53,7 +53,7 @@ HardcodedScenarioGenerator::HardcodedScenarioGenerator(
             } else if (!m_building.reachable_per_group[blueprint.group].contains(blueprint.to)) {
                 m_failed_string = "Request uses to floor " + std::to_string(blueprint.from) + " which is not reachable with given group " + std::to_string(blueprint.group);
             } else {
-                m_passengers.emplace_back(at, blueprint);
+                m_passengers.emplace_back(static_cast<Time>(at), blueprint);
                 continue;
             }
 
