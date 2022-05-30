@@ -66,13 +66,30 @@ std::set<Height> EquidistantFloors::generate_floors()
     return floors;
 }
 
-BuildingGenerationResult FullRangeElevator::generate_elevators(std::set<Height> const& floors) {
+ElevatorDetailsGenerator::ElevatorOrError ElevatorDetailsGenerator::create(GroupID group)
+{
     if (m_speed == 0)
-        return BuildingGenerationResult{"Cannot have elevator with speed 0"};
+        return {"Cannot have elevator with speed 0", {}};
+
+    return {
+        {},
+        {
+            group,
+            m_capacity,
+            m_speed,
+        }
+    };
+}
+
+BuildingGenerationResult FullRangeElevator::generate_elevators(std::set<Height> const& floors) {
+    auto elevator_or_error = m_generator.create(0);
+    if (!elevator_or_error)
+        return BuildingGenerationResult{elevator_or_error};
+
     return BuildingGenerationResult {
         {
             {std::unordered_set<Height>{floors.begin(), floors.end()}},
-            {{0, m_capacity, m_speed}}
+            {elevator_or_error.elevator}
         },
     };
 }

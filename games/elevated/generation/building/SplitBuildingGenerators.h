@@ -89,20 +89,44 @@ private:
     std::vector<std::unique_ptr<FloorGenerator>> m_generators;
 };
 
+class ElevatorDetailsGenerator {
+public:
+    explicit ElevatorDetailsGenerator(Capacity capacity, Height speed)
+        : m_capacity(capacity)
+        , m_speed(speed)
+    {
+    }
+
+    struct ElevatorOrError {
+        std::string error;
+        BuildingBlueprint::Elevator elevator;
+        explicit operator bool() const{
+            return error.empty();
+        }
+
+        explicit operator BuildingGenerationResult() const{
+            return BuildingGenerationResult{error};
+        }
+    };
+
+    ElevatorOrError create(GroupID group);
+
+private:
+    Capacity m_capacity;
+    Height m_speed;
+};
 
 class FullRangeElevator : public ElevatorGenerator {
 public:
-    explicit FullRangeElevator(Capacity capacity, Height speed)
-        : m_capacity(capacity)
-        , m_speed(speed)
+    explicit FullRangeElevator(ElevatorDetailsGenerator generator)
+        : m_generator(generator)
     {
     }
 
     BuildingGenerationResult generate_elevators(std::set<Height> const& floors) override;
 
 private:
-    Capacity m_capacity;
-    Height m_speed;
+    ElevatorDetailsGenerator m_generator;
 };
 
 class ElevatorCombiner : public ElevatorGenerator {

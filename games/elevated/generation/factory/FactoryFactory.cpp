@@ -5,6 +5,19 @@
 
 namespace Elevated {
 
+struct ElevatorDetailsFactory {
+    Capacity capacity{10};
+    Height speed{1};
+
+    ElevatorDetailsGenerator visit(GeneratorSettings& settings) {
+        settings.unsignedValue("Capacity", capacity);
+        settings.unsignedValue("Speed", speed, 1);
+        if (speed == 0)
+            settings.encounteredError("Speed must be positive");
+        return ElevatorDetailsGenerator(capacity, speed);
+    }
+};
+
 static GeneratorFactories<ScenarioGenerator> s_scenarioFactories;
 static GeneratorFactories<RequestGenerator> s_requestFactories;
 static GeneratorFactories<BuildingGenerator> s_buildingFactories;
@@ -136,10 +149,9 @@ static void init_factories() {
             return std::make_unique<FloorStacker>(values.extractValues());
         });
 
-    s_elevator_factories.addLambdaFactory("full-range", [capacity = 10u, speed = 1u](GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
-        settings.unsignedValue("Capacity", capacity, 0);
-        settings.unsignedValue("Speed", speed, 1);
-        return std::make_unique<FullRangeElevator>(capacity, speed);
+    s_elevator_factories.addLambdaFactory("full-range", [details = ElevatorDetailsFactory{}](GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
+        auto details_generator = details.visit(settings);
+        return std::make_unique<FullRangeElevator>(details_generator);
     });
 
     s_elevator_factories.addLambdaFactory("repeat",
