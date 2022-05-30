@@ -73,7 +73,7 @@ std::unique_ptr<ScenarioGenerator> koppele_ground(size_t num_requests, long seed
         koppele_building(),
         RequestCombiner::create(
             std::make_unique<ForceDirectionGenerator>(std::make_unique<GroundFloorGenerator>(seed * 2, num_requests, 0.2, 0), ForceDirectionGenerator::Operation::Randomize, seed, 0.5),
-            std::make_unique<UniformFloorGenerator>(seed ^ 0xDF23847DD, num_requests / 25, 0.01)
+            std::make_unique<UniformFloorGenerator>((long)(seed ^ 0xDF23847DDL), num_requests / 25, 0.01)
     ));
 }
 
@@ -96,7 +96,7 @@ std::unique_ptr<ScenarioGenerator> ruben_down_only(size_t num_floors, size_t num
         std::make_unique<ForceDirectionGenerator>(
             RequestCombiner::create(
                 std::make_unique<GroundFloorGenerator>(seed * 2, num_requests, 0.2, 0),
-                std::make_unique<UniformFloorGenerator>(seed ^ 0xDF23847DD, num_requests / 50, 0.01)
+                std::make_unique<UniformFloorGenerator>((long)(seed ^ 0xDF23847DD), num_requests / 50, 0.01)
                 ),
             ForceDirectionGenerator::Operation::ForceDown));
 }
@@ -118,7 +118,7 @@ std::unique_ptr<ScenarioGenerator> meta(size_t num_requests, long seed)
                 std::make_unique<GroundFloorGenerator>(seed * 2, num_requests / 2, 0.2, 0), ForceDirectionGenerator::Operation::Randomize, seed, 0.2),
             std::make_unique<ForceDirectionGenerator>(
                 std::make_unique<GroundFloorGenerator>(seed * 2, num_requests / 2, 0.2, 10), ForceDirectionGenerator::Operation::Randomize, seed, 0.5),
-            std::make_unique<UniformFloorGenerator>(seed ^ 0xDF23847DD, num_requests / 25, 0.05)
+            std::make_unique<UniformFloorGenerator>((long)(seed ^ 0xDF23847DD), num_requests / 25, 0.05)
                 ));
 }
 
@@ -129,7 +129,7 @@ std::unique_ptr<ScenarioGenerator> reverse_meta(size_t num_requests, long seed)
         RequestCombiner::create(
             std::make_unique<ForceDirectionGenerator>(
                 std::make_unique<GroundFloorGenerator>(seed * 2, num_requests, 0.2, 40), ForceDirectionGenerator::Operation::Randomize, seed, 0.5),
-            std::make_unique<UniformFloorGenerator>(seed ^ 0xDF23847DD, num_requests / 25, 0.05)
+            std::make_unique<UniformFloorGenerator>((long)(seed ^ 0xDF23847DD), num_requests / 25, 0.05)
                 ));
 }
 
