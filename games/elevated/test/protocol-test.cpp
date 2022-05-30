@@ -21,7 +21,7 @@ TEST_CASE("Text based protocol for process algorithm", "[protocol]") {
         };
 
         std::ostringstream str;
-        ProcessAlgorithm::write_building(building, str);
+        ProcessAlgorithm::write_building(BuildingGenerationResult{building}, str);
 
         REQUIRE(str.str() == "building 2 2\n"
                      "group 0 4 0,5,10,15\n"
