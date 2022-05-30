@@ -135,9 +135,40 @@ BuildingGenerationResult ElevatorRepeater::generate_elevators(const std::set<Hei
     return base_result;
 }
 
-BuildingGenerationResult AlternatingElevatorGenerator::generate_elevators(const std::set<Height>&)
+BuildingGenerationResult AlternatingElevatorGenerator::generate_elevators(std::set<Height> const& heights)
 {
-    return BuildingGenerationResult("Not implemented yet :(");
+    if (m_hit_ground_floor && !heights.contains(m_ground_floor))
+        return BuildingGenerationResult("Alternating elevators must hit ground floor but given ground floor is invalid");
+
+    if ((m_hit_ground_floor && heights.size() - 1u < m_amount) || (!m_hit_ground_floor && heights.size() / 2 < m_amount))
+        return BuildingGenerationResult("Must have at least two floors per elevator");
+
+    BuildingBlueprint blueprint;
+    blueprint.reachable_per_group.resize(m_amount);
+
+    if (m_hit_ground_floor) {
+        for (auto& reaches : blueprint.reachable_per_group)
+            reaches.insert(m_ground_floor);
+    }
+
+    uint32_t elevator_index = 0;
+    for (auto height : heights) {
+        if (m_hit_ground_floor && height == m_ground_floor)
+            continue;
+
+        blueprint.reachable_per_group[elevator_index].insert(height);
+        elevator_index = (elevator_index + 1) % m_amount;
+    }
+
+    for (auto i = 0u; i < m_amount; ++i) {
+        auto elevator_or_error = m_generator.create(GroupID{i});
+        if (!elevator_or_error)
+            return BuildingGenerationResult{elevator_or_error};
+
+        blueprint.elevators.push_back(elevator_or_error.elevator);
+    }
+
+    return BuildingGenerationResult{std::move(blueprint)};
 }
 
 }

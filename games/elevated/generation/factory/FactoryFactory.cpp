@@ -183,6 +183,21 @@ static void init_factories() {
             return std::make_unique<ElevatorCombiner>(values.extractValues());
         });
 
+    s_elevator_factories.addLambdaFactory("alternating",
+        [details = ElevatorDetailsFactory{}, amount = 1u, hit_ground_floor = true, ground_floor = 0u](
+            GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator> {
+            settings.unsignedValue("Amount", amount, 1);
+            if (amount == 0)
+                settings.encounteredError("Generating no elevators", false);
+
+            auto details_generator = details.visit(settings);
+            settings.boolValue("All reach ground floor", hit_ground_floor);
+            if (hit_ground_floor)
+                settings.unsignedValue("Ground floor", ground_floor);
+
+            return std::make_unique<AlternatingElevatorGenerator>(details_generator, amount, hit_ground_floor, ground_floor);
+        });
+
     static std::vector<std::string> force_direction_names = {"force-up", "force-down", "flip", "randomize"};
     static std::vector<ForceDirectionGenerator::Operation> operations = {ForceDirectionGenerator::Operation::ForceUp, ForceDirectionGenerator::Operation::ForceDown, ForceDirectionGenerator::Operation::Reverse, ForceDirectionGenerator::Operation::Randomize};
 

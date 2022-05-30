@@ -158,10 +158,17 @@ private:
 
 class AlternatingElevatorGenerator : public ElevatorGenerator {
 public:
-    AlternatingElevatorGenerator(size_t amount, bool hit_ground_floor, Height ground_floor);
+    AlternatingElevatorGenerator(ElevatorDetailsGenerator generator, size_t amount, bool hit_ground_floor, Height ground_floor)
+        : m_generator(generator)
+        , m_amount(amount)
+        , m_hit_ground_floor(hit_ground_floor)
+        , m_ground_floor(ground_floor)
+    {
+    }
 
     BuildingGenerationResult generate_elevators(const std::set<Height>& floors) override;
 private:
+    ElevatorDetailsGenerator m_generator;
     size_t m_amount;
     bool m_hit_ground_floor;
     Height m_ground_floor;
