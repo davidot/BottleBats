@@ -11,6 +11,11 @@
 #include <string>
 #include <utility>
 #include <vector>
+#ifdef WIN32
+#undef min
+#undef max
+#endif
+
 
 namespace Elevated {
 
