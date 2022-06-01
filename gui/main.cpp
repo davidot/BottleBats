@@ -13,9 +13,12 @@
 #include <SFML/Window/Clipboard.hpp>
 #include <SFML/Window/Event.hpp>
 #include <elevated/Building.h>
+#include <elevated/Simulation.h>
+#include <elevated/algorithm/ProcessAlgorithm.h>
 #include <elevated/generation/factory/FactoryFactory.h>
 #include <elevated/generation/factory/OutputSettings.h>
 #include <elevated/generation/factory/StringSettings.h>
+#include <iostream>
 
 int main() {
     sf::RenderWindow window(sf::VideoMode(1000, 1000), "Elevated");
@@ -43,6 +46,10 @@ int main() {
     sf::RenderTexture texture;
     texture.create(500, 500);
     view.viewSize(500, 500);
+
+    std::optional<Elevated::Simulation> simulation;
+
+    std::vector<std::array<char, 128>> command_text{1};
 
     sf::Clock deltaClock;
     while (window.isOpen()) {
@@ -181,6 +188,48 @@ int main() {
             }
 
             settings.clearValue();
+
+            ImGui::Separator();
+
+            ImGui::Text("Command to run:");
+            ImGui::PushID("command_input");
+            if (command_text.back()[0] != '\0')
+                command_text.emplace_back();
+            else if (command_text.size() > 2 && command_text[command_text.size() - 2u][0] == '\0')
+                command_text.pop_back();
+
+            for (auto i = 0; i < command_text.size(); ++i) {
+                ImGui::PushID(i);
+                ImGui::InputText("", command_text[i].data(), command_text[i].size());
+                ImGui::PopID();
+            }
+            ImGui::PopID();
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Run!")) {
+
+
+
+                std::vector<std::string> command;
+                for (auto i = 0; i < 5; ++i) {
+                    std::string value {command_text[i].data()};
+                    if (value.empty())
+                        break;
+                    command.push_back(value);
+                }
+
+                std::cout << "Have command with " << command.size() << " parts!\n";
+
+                if (v) {
+                    if (simulation.has_value())
+                        std::cout << "Overwriting previous simulation\n";
+
+                    simulation = std::move(Elevated::Simulation(std::move(v), std::make_unique<Elevated::ProcessAlgorithm>(command, Elevated::ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded)));
+                } else {
+                    std::cout << "No valid generator right now\n";
+                }
+            }
         }
         ImGui::End();
 
