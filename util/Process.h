@@ -37,7 +37,7 @@ namespace util {
         SubProcess(SubProcess&&) = default;
         SubProcess& operator=(SubProcess&&) = default;
 
-        static std::unique_ptr<SubProcess> create(std::vector<std::string> command, StderrState state = StderrState::Ignored);
+        static std::unique_ptr<SubProcess> create(std::vector<std::string> command, StderrState state = StderrState::Ignored, std::string const& working_directory = "");
 
         bool writeTo(std::string_view) const;
         bool readLine(std::string&) const;
@@ -55,7 +55,7 @@ namespace util {
 
         ProcessExit stop();
     private:
-        static bool setup(SubProcess& process, std::vector<std::string> command, StderrState state);
+        static bool setup(SubProcess& process, std::vector<std::string> command, StderrState state, std::string const& working_directory);
 
         mutable bool running = false;
 

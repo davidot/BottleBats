@@ -260,7 +260,7 @@ namespace util {
 
     static size_t unique_id = 0;
 
-    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, StderrState stderr_state) {
+    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, StderrState stderr_state, std::string const& working_directory) {
         assert(!command.empty());
 
         bool done = false;
@@ -356,8 +356,12 @@ namespace util {
                             return acc + ' ' + quoteIfSpaces(rhs);
                         });
 
+        auto* new_cwd = working_directory.c_str();
+        if (working_directory.empty())
+            new_cwd = nullptr;
+
         if (!CreateProcess(nullptr, (LPSTR)fullCommand.c_str(),
-                             nullptr, nullptr, true, 0, nullptr, nullptr,
+                             nullptr, nullptr, true, 0, nullptr, new_cwd,
                              &startupInfo, &childInfo)) {
             outputError("Create process with: _" + fullCommand + "_");
             return false;

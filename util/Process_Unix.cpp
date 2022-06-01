@@ -259,7 +259,7 @@ namespace util {
     constexpr int pipeWrite = 1;
     constexpr int maxCommandSize = 64;
 
-    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, SubProcess::StderrState state) {
+    bool SubProcess::setup(SubProcess& process, std::vector<std::string> command, SubProcess::StderrState state, std::string const& working_directory) {
         if (command.size() >= maxCommandSize || command.empty()) {
             ASSERT_NOT_REACHED();
             return false;
@@ -315,6 +315,8 @@ namespace util {
 
         // Forward is default behavior
 
+        if (!working_directory.empty())
+            posix_spawn_file_actions_addchdir_np(&actions, working_directory.c_str());
 
         pid_t pid;
         if (posix_spawnp(&pid, command[0].c_str(), &actions, nullptr, args, environ)) {
