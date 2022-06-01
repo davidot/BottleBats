@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
 
     std::vector<std::string> command;
     std::string input = "named-scenario(h1)";
+    std::string cwd = "";
 
     bool in_flags = true;
 
@@ -37,6 +38,15 @@ int main(int argc, char** argv) {
                 i++;
 
                 input = argv[i];
+                continue;
+            } else if (val == "--cwd") {
+                if (i == argc - 1) {
+                    std::cout << "Must give working directory after --cwd\n";
+                    return 1;
+                }
+                i++;
+
+                cwd = argv[i];
                 continue;
             }
         }
@@ -66,7 +76,7 @@ int main(int argc, char** argv) {
         std::cerr << s << '\n';
 
 
-    std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded);
+    std::unique_ptr<ElevatedAlgorithm> algorithm = std::make_unique<ProcessAlgorithm>(command, ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded, std::move(cwd));
 
     Simulation simulation { std::move(generator), std::move(algorithm) };
 

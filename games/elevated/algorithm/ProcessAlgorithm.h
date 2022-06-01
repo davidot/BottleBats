@@ -15,7 +15,7 @@ public:
         Minimal
     };
 
-    explicit ProcessAlgorithm(std::vector<std::string> command, InfoLevel, util::SubProcess::StderrState = util::SubProcess::StderrState::Ignored);
+    explicit ProcessAlgorithm(std::vector<std::string> command, InfoLevel, util::SubProcess::StderrState = util::SubProcess::StderrState::Ignored, std::string working_directory = "");
     ProcessAlgorithm(ProcessAlgorithm const&) = delete;
     ProcessAlgorithm& operator=(ProcessAlgorithm const&) = delete;
     ~ProcessAlgorithm();
@@ -37,6 +37,7 @@ private:
     std::vector<std::string> m_command;
     InfoLevel m_info_level;
     util::SubProcess::StderrState m_stderr_handling;
+    std::string m_working_directory;
     enum class PassengerFilter {
         UpOnly,
         DownOnly

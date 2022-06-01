@@ -8,10 +8,11 @@
 
 namespace Elevated {
 
-ProcessAlgorithm::ProcessAlgorithm(std::vector<std::string> command, InfoLevel info_level, util::SubProcess::StderrState stderr_state)
+ProcessAlgorithm::ProcessAlgorithm(std::vector<std::string> command, InfoLevel info_level, util::SubProcess::StderrState stderr_state, std::string working_directory)
     : m_command(std::move(command))
     , m_info_level(info_level)
     , m_stderr_handling(stderr_state)
+    , m_working_directory(std::move(working_directory))
 {
     ASSERT(!m_command.empty());
     ASSERT(m_info_level == InfoLevel::Low);
@@ -62,7 +63,7 @@ void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, 
 
 ElevatedAlgorithm::ScenarioAccepted ProcessAlgorithm::accept_scenario_description(BuildingGenerationResult const& building)
 {
-    m_process = util::SubProcess::create(m_command, m_stderr_handling);
+    m_process = util::SubProcess::create(m_command, m_stderr_handling, m_working_directory);
     if (!m_process) {
         return ScenarioAccepted::failed({ "Failed to start process", make_command_string() });
     }
