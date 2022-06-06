@@ -6,9 +6,10 @@
 namespace Elevated {
 
 struct ElevatorDetailsFactory {
+private:
     Capacity capacity{10};
     Height speed{1};
-
+public:
     ElevatorDetailsGenerator visit(GeneratorSettings& settings) {
         settings.unsignedValue("Capacity", capacity);
         settings.unsignedValue("Speed", speed, 1);
@@ -149,7 +150,8 @@ static void init_factories() {
             return std::make_unique<FloorStacker>(values.extractValues());
         });
 
-    s_elevator_factories.addLambdaFactory("full-range", [details = ElevatorDetailsFactory{}](GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
+    s_elevator_factories.addLambdaFactory("full-range",
+        [details = ElevatorDetailsFactory{}](GeneratorSettings& settings) mutable -> std::unique_ptr<ElevatorGenerator>{
         auto details_generator = details.visit(settings);
         return std::make_unique<FullRangeElevator>(details_generator);
     });
