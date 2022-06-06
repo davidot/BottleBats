@@ -31,7 +31,6 @@ std::vector<EventType> all_types_in(EventType type)
         return {};
 
     std::vector<EventType> extracted_types;
-    extracted_types.reserve(std::popcount(underlying_value));
     for (auto const& event : real_types) {
         if ((underlying_value & event) != 0)
             extracted_types.push_back(static_cast<EventType>(event));
