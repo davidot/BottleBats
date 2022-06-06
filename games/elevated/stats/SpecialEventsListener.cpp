@@ -22,9 +22,9 @@ void SpecialEventsListener::on_elevator_set_target(Time, Height new_target, Elev
         ++m_roller_coaster_events[state.filled_capacity()];
 }
 
-size_t SpecialEventsListener::total_roller_coaster_events() const
+uint64_t SpecialEventsListener::total_roller_coaster_events() const
 {
-    return std::accumulate(m_roller_coaster_events.begin(), m_roller_coaster_events.end(), size_t(0), [](uint64_t acc, auto& entry) {
+    return std::accumulate(m_roller_coaster_events.begin(), m_roller_coaster_events.end(), uint64_t(0), [](uint64_t acc, auto& entry) {
         return acc + entry.second;
     });
 }

@@ -11,7 +11,7 @@ public:
     virtual void on_elevator_stopped(Time at, Time duration, ElevatorState const& state) override;
 
     size_t times_door_opened() const { return m_times_door_opened; }
-    size_t total_distance_travelled() const;
+    uint64_t total_distance_travelled() const;
     Time time_stopped_with_passengers() const { return m_time_stopped_with_passengers; }
 
 private:
