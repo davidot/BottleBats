@@ -4,7 +4,7 @@
     <div v-if="!loggedIn">
       Sorry, your not logged in so not much to see here.
     </div>
-    <BotCreator @new-bot="updateBots" :upload-url="'/elevated/upload'"/>
+    <BotCreator @new-bot="updateBots" :upload-url="'/elevated/upload'" :multiple="true"/>
     <div style="display: flex; flex-direction: column; align-items: center">
       <div v-if="bots === null">Loading</div>
       <BotInfo v-for="bot in bots" :key="'bot' + bot.name" :bot="bot" />

@@ -1,6 +1,7 @@
 <template>
   <div style="display: flex; flex-direction: column; width: 100%; justify-items: center; justify-content: center; text-align: center">
     <div>
+      <canvas id="image-convert" width="128" height="128" ref="converter"/>
       <div
           :class="['file-drop-zone', dropActive && 'active']"
           @drop.prevent="onDrop"
@@ -9,16 +10,20 @@
           @dragleave="setInactive"
           @click="$refs.fileInput.click"
       >
-        <template v-if="!currentFile">
+        <div class="file-info" v-if="currentFiles.length === 0">
           Klik om te uploaden of sleep de file hier
-        </template>
-        <template v-else> File: {{ currentFile.name }} </template>
+        </div>
+        <div class="active-file" v-for="(file, index) of currentFiles" :key="file.name" @click.prevent.stop="currentFiles.splice(index, 1)">
+          <img src="@/assets/file.png" style="width: 1em"/>
+          {{ file.name }}❌
+        </div>
       </div>
       <input
           style="visibility: hidden"
           type="file"
           id="new-bot-file"
           ref="fileInput"
+          :multiple="multiple"
           @change="selectFile"
       />
     </div>
@@ -26,12 +31,9 @@
       <label for="new-bot-name"> Naam: </label>
       <input type="text" id="new-bot-name" v-model="botName" />
 
-      <button style="margin-left: 25px" :disabled="!currentFile || !botName || uploading" @click="uploadBot">
+      <button style="margin-left: 25px" :disabled="currentFiles.length === 0 || !botName || uploading" @click="uploadBot">
         Upload bot
       </button>
-    </div>
-    <div>
-
     </div>
     <span style="color: red">{{ lastError }}</span>
   </div>
@@ -44,10 +46,19 @@ export default {
   name: "BotCreator",
   props: {
     uploadUrl: String,
+    multiple: {
+      default: false,
+      type: Boolean,
+    },
+    withImage: {
+      default: false,
+      type: Boolean,
+    }
   },
   data() {
     return {
-      currentFile: null,
+      currentFiles: [],
+      image: null,
       lastError: "",
       dropActive: false,
       inActiveTimeout: null,
@@ -57,20 +68,23 @@ export default {
   },
   methods: {
     uploadBot() {
-      if (!this.currentFile || !this.botName)
+      if (this.currentFiles.length === 0 || !this.botName)
         return;
 
       this.uploading = true;
 
-      const file = this.currentFile;
+      const files = this.currentFiles;
       const name = this.botName;
 
       const data = new FormData();
-      data.append("file", file);
       data.append("name", name);
+      let i = 0;
+      for (let file of files)
+        data.append("src_" + (i++), file);
 
       endpoint.post(this.uploadUrl, data).then((done) => {
-        this.currentFile = null;
+        console.log('response', done.data);
+        this.currentFiles = [];
         this.uploading = false;
         this.$emit('new-bot');
       })
@@ -79,11 +93,11 @@ export default {
             this.lastError = response.data;
           });
     },
-    checkFile(file) {
+    addFile(file) {
       if (!file)
         return;
 
-      let maxSize = 100000;
+      let maxSize = 2500000;
       if (file.size > maxSize) {
         this.lastError = `File is een beetje te groot, max ${
             maxSize / 1000
@@ -91,38 +105,66 @@ export default {
         return;
       }
 
-      this.currentFile = file;
-      console.log(this.currentFile);
+      // if (
+      //   file.name.endsWith(".png") ||
+      //   file.name.endsWith(".jpg") ||
+      //   file.name.endsWith(".jpeg")
+      // ) {
+      //   console.log('converting!');
+      //   const context = this.$refs.converter.getContext('2d');
+      //   const img = new Image();
+      //   img.onload = () => {
+      //     context.drawImage(img, 0, 0, 128, 128);
+      //     this.$refs.converter.toBlob(async (blob) => {
+      //
+      //       console.log('blob', await blob.text());
+      //       }, "image/png");
+      //     console.log(png);
+      //     console.log(data);
+      //   };
+      //   img.src = URL.createObjectURL(file);
+      //   return;
+      // }
+
+      if (!this.multiple) {
+        this.currentFiles = [file];
+      } else {
+        this.currentFiles.push(file);
+      }
+
     },
     selectFile() {
       const files = this.$refs.fileInput.files;
       this.lastError = '';
 
-      if (files.length !== 1) {
+      if (!this.multiple && files.length !== 1) {
         this.lastError = "Precies 1 file graag, niet " + files.length;
         return;
       }
 
-      this.checkFile(this.$refs.fileInput.files[0]);
+      for (let file of this.$refs.fileInput.files) {
+        this.addFile(file);
+      }
     },
     onDrop(event) {
       const data = event.dataTransfer;
       this.dropActive = false;
       this.lastError = '';
 
-      if (data.items.length > 1) {
+      if (!this.multiple && data.items.length > 1) {
         this.lastError = "Precies 1 file graag, niet " + data.items.length;
         return;
       }
 
-      const item = data.items[0];
+      for (let item of data.items) {
 
-      if (item.kind !== "file") {
-        this.lastError = "Een file graag, niet " + item.kind;
-        return;
+        if (item.kind !== "file") {
+          this.lastError = "Een file graag, niet " + item.kind;
+          return;
+        }
+
+        this.addFile(item.getAsFile());
       }
-
-      this.checkFile(item.getAsFile());
     },
     setActive() {
       clearTimeout(this.inActiveTimeout);
@@ -148,10 +190,24 @@ export default {
   justify-content: center;
   align-items: center;
   margin: auto;
+  flex-wrap: wrap;
+  padding: 4px;
+  gap: 4px;
 }
 
 .file-drop-zone.active {
   /*border-color: blue;*/
   background-color: #5156bf;
+}
+
+.active-file {
+  border: 2px solid #5156bf;
+  border-radius: 5px;
+  padding: 2px;
+}
+
+.active-file:hover {
+  border-color: #fc2c2c;
+  cursor: pointer;
 }
 </style>
