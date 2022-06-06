@@ -34,8 +34,12 @@
       </thead>
       <transition-group name="list" tag="tbody">
         <tr v-for="b in bots" :key="'bot-' + b.id">
-          <td class="bot-name" :title="b.name">
-            {{ b.name }} (by {{ b.author }})
+          <td class="bot-name" :title="b.name"> <!-- For full name -->
+            <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px"/>
+            <div v-else style="width: 31px; height: 31px"></div>
+            <span style="text-overflow: ellipsis; max-width: calc(100% - 33px); overflow-x: visible">
+              {{ b.name }} (by {{ b.author }})
+            </span>
           </td>
           <td v-for="cs in cases" :key="b.id + '-' + cs.id" class="table-result" style="max-width: 35px; max-height: 35px;">
             <div v-if="b.runs[cs.id] == null" title="Not run yet" style="min-width: 35px; min-height: 35px;">
@@ -330,7 +334,10 @@ table td {
   overflow: hidden;
   max-height: 35px;
   min-height: 35px;
-  display: table-cell;
+  display: flex;
+  align-content: center;
+  align-items: center;
+  gap: 2px;
 }
 
 .skipped {
