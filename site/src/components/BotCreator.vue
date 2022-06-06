@@ -1,7 +1,6 @@
 <template>
   <div style="display: flex; flex-direction: column; width: 100%; justify-items: center; justify-content: center; text-align: center">
-    <div>
-      <canvas id="image-convert" width="128" height="128" ref="converter"/>
+    <div style="display: flex; flex-direction: row; align-self: center; gap: 40px; padding-bottom: 10px;">
       <div
           :class="['file-drop-zone', dropActive && 'active']"
           @drop.prevent="onDrop"
@@ -10,7 +9,7 @@
           @dragleave="setInactive"
           @click="$refs.fileInput.click"
       >
-        <div class="file-info" v-if="currentFiles.length === 0">
+        <div class="file-info">
           Klik om te uploaden of sleep de file hier
         </div>
         <div class="active-file" v-for="(file, index) of currentFiles" :key="file.name" @click.prevent.stop="currentFiles.splice(index, 1)">
@@ -19,13 +18,23 @@
         </div>
       </div>
       <input
-          style="visibility: hidden"
+          style="display: none"
           type="file"
           id="new-bot-file"
           ref="fileInput"
           :multiple="multiple"
           @change="selectFile"
       />
+      <canvas id="image-convert" width="124" height="124" ref="converter" style="border: black 1px solid; width: 124px; height: 124px;" @click="draw" @drag="draw" @mousemove="draw"/>
+      <div style="width: 50px; height: 50px" :style="{'background-color': currentColor}"></div>
+      <select v-model="currentColor">
+        <option value="red">
+          Rood
+        </option>
+        <option value="blue">
+          Blauw
+        </option>
+      </select>
     </div>
     <div>
       <label for="new-bot-name"> Naam: </label>
@@ -55,10 +64,18 @@ export default {
       type: Boolean,
     }
   },
+  mounted() {
+    const context = this.$refs.converter.getContext('2d');
+    for (var i = 0; i < 31; i++) {
+      context.fillStyle = `hsl(${i * 60}, 100%, 50%)`;
+      context.fillRect(i * 4, i * 4, 4, 4);
+    }
+  },
   data() {
     return {
       currentFiles: [],
-      image: null,
+      currentColor: 'red',
+      anyDrawn: false,
       lastError: "",
       dropActive: false,
       inActiveTimeout: null,
@@ -67,7 +84,7 @@ export default {
     };
   },
   methods: {
-    uploadBot() {
+    async uploadBot() {
       if (this.currentFiles.length === 0 || !this.botName)
         return;
 
@@ -78,12 +95,20 @@ export default {
 
       const data = new FormData();
       data.append("name", name);
+
+      if (this.anyDrawn) {
+        const imgBlob = await new Promise(resolve => this.$refs.converter.toBlob(resolve, "image/png"));
+        data.append("image", imgBlob);
+      }
+
       let i = 0;
       for (let file of files)
         data.append("src_" + (i++), file);
 
       endpoint.post(this.uploadUrl, data).then((done) => {
         console.log('response', done.data);
+        this.anyDrawn = false;
+        this.$refs.converter.getContext('2d').clearRect(0, 0, 128, 128);
         this.currentFiles = [];
         this.uploading = false;
         this.$emit('new-bot');
@@ -173,14 +198,21 @@ export default {
     setInactive() {
       this.inActiveTimeout = setTimeout(() => (this.dropActive = false), 50);
     },
+    draw(event) {
+      const context = this.$refs.converter.getContext('2d');
+      context.fillStyle = this.currentColor;
+      context.fillRect(4 * Math.floor(event.offsetX / 4), 4 * Math.floor(event.offsetY / 4), 4, 4);
+      this.anyDrawn = true;
+    }
   }
 };
 </script>
 
 <style scoped>
 .file-drop-zone {
-  min-width: 100px;
-  max-width: 50%;
+  /*min-width: 100px;*/
+  /*max-width: 50%;*/
+  width: 100%;
   min-height: 40px;
   /*border: 2px solid black;*/
   /*border-radius: 10px;*/
@@ -189,7 +221,7 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: auto;
+  /*margin: auto;*/
   flex-wrap: wrap;
   padding: 4px;
   gap: 4px;
