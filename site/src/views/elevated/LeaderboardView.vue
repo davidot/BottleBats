@@ -1,14 +1,18 @@
 <template>
-  <div class="leaderboard-holder">
-    <div style="transition: top 1s ease; color: red; position: relative; width: 100%; text-align: center; float: left;" :style="{top: connectionLost ? '0' : '-40px'}" >
-      Connection to server lost!
+  <div class="leaderboard-holder" style="position: relative">
+    <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': this.isRuben ? 'column' : 'row'}">
+      <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
+      <span style="border: 1px solid red; padding: 2px 5px; font-weight: bold">
+        Connection to server lost!
+      </span>
+      <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
     </div>
     <span v-if="results === null">Loading...</span>
     <span v-else-if="!results.cases || Object.keys(results.bots || {}).length === 0">No data</span>
     <table v-else>
       <thead class="case-names">
         <tr>
-          <td style="max-width: 250px; min-width: 250px">
+          <td style="max-width: 250px; min-width: 250px; position: relative;">
             <div>
               <select v-model="stat">
                 <option selected value="avg-wait">Average wait time</option>
@@ -19,23 +23,29 @@
                 <option value="total-time">Total simulation time</option>
               </select>
             </div>
+            <div style="position: absolute; bottom: 0" title="Click to sort on names" @click="sortOn('name')">
+              Names
+              <SortingIndicator property-name="name" />
+            </div>
           </td>
           <td v-for="cs in cases" :key="'case-' + cs.id" class="case-name">
-            {{cs.name}}
+            {{ cs.name }}
           </td>
           <td style="width: 70%"></td>
-          <td class="case-name">
+          <td class="case-name" @click="sortOn('worst')">
             Worst result
+            <SortingIndicator property-name="worst" />
           </td>
-          <td class="case-name">
+          <td class="case-name" @click="sortOn('avg')">
             Average result
+            <SortingIndicator property-name="avg" />
           </td>
         </tr>
       </thead>
       <transition-group name="list" tag="tbody">
         <tr v-for="b in bots" :key="'bot-' + b.id">
           <td class="bot-name" :title="b.name"> <!-- For full name -->
-            <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px"/>
+            <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px" alt=""/>
             <div v-else style="width: 31px; height: 31px"></div>
             <span style="text-overflow: ellipsis; max-width: calc(100% - 33px); overflow-x: visible">
               {{ b.name }} (by {{ b.author }})
@@ -81,43 +91,44 @@ import Spinner from "@/components/Spinner.vue";
 import {endpoint} from "@/http";
 import * as raw_data from "./data.json";
 import PoopOrCrown from "@/components/elevated/PoopOrCrown.vue";
+import SortingIndicator from "@/components/elevated/SortingIndicator.vue";
+import {computed} from "vue";
 
 export default {
   name: "LeaderboardView",
-  components: {PoopOrCrown, Spinner},
+  components: {SortingIndicator, PoopOrCrown, Spinner },
   unmounted() {
     if (this.dataInterval)
       clearInterval(this.dataInterval);
   },
   mounted() {
-    this.dataInterval = setInterval(() => this.getData(), 2000);
+    // this.dataInterval = setInterval(() => this.getData(), 2000);
     this.getData();
-
-    // setTimeout(() => {
-    //   this.results = raw_data;
-    // }, 1500);
-
   },
+  inject: ["userDetails"],
   data() {
     return {
       results: null,
       stat: "avg-wait",
       connectionLost: false,
+      sortingOn: "name",
+      invertSorting: false,
+    };
+  },
+  provide() {
+    return {
+      sorting: {
+        on: computed(() => this.sortingOn),
+        inverted: computed(() => this.invertSorting),
+      },
     };
   },
   computed: {
+    isRuben() {
+      return this.userDetails.values.value.isRuben;
+    },
     highBetterStat() {
       return this.stat in {};
-    },
-    caseNames() {
-      if (!this.results?.cases)
-        return {};
-
-      const names = {};
-      this.results.cases.forEach(cs => {
-        names[cs.id] = cs.name;
-      });
-      return names;
     },
     cases() {
       if (!this.results?.cases)
@@ -132,7 +143,6 @@ export default {
                 .map(r => r[c.id].result)
                 .filter(r => r != null);
             if (runs.length === 0) {
-              console.log('no runs for me', c.id);
               return c;
             }
 
@@ -203,16 +213,26 @@ export default {
           return Object.assign({ summary, runs: {} }, { id: id, ...val })
         })
         .sort((lhs, rhs) => {
-          const leftKeys = Object.keys(lhs.runs);
-          const rightKeys = Object.keys(rhs.runs);
+          const leftKeys = Object.entries(lhs.runs);
+          const rightKeys = Object.entries(rhs.runs);
           if (leftKeys.length !== rightKeys.length)
             return rightKeys.length - leftKeys.length;
 
-          const leftDone = leftKeys.filter(r => r.done).length;
-          const rightDone = rightKeys.filter(r => r.done).length;
+          const leftDone = leftKeys.filter(([, v]) => v.status === 'done').length;
+          const rightDone = rightKeys.filter(([, v]) => v.status === 'done').length;
 
           if (leftDone !== rightDone)
-            return leftDone - rightDone;
+            return rightDone - leftDone;
+
+          if ((this.sortingOn === 'worst' || this.sortingOn === 'avg') && lhs.summary && rhs.summary) {
+            const lhsValue = lhs.summary[this.sortingOn].percentage;
+            const rhsValue = rhs.summary[this.sortingOn].percentage;
+            // Default (invert = false) means -1 since highest value is best for percentage
+            if (lhsValue !== rhsValue)
+              return (this.invertSorting ? 1 : -1) * (lhsValue - rhsValue);
+          } else if (this.sortingOn === 'name' && this.invertSorting) {
+            return rhs.name.localeCompare(lhs.name);
+          }
 
           return lhs.name.localeCompare(rhs.name);
         });
@@ -283,6 +303,16 @@ export default {
         this.connectionLost = true;
       }
     },
+    sortOn(name) {
+      console.log('sortOn', name, this.sortingOn, this.invertSorting);
+      if (this.sortingOn === name) {
+        this.invertSorting = !this.invertSorting;
+      } else {
+        this.sortingOn = name;
+        this.invertSorting = false;
+      }
+      console.log('sortOn', name, this.sortingOn, this.invertSorting);
+    }
   },
 };
 </script>
@@ -383,4 +413,19 @@ table td {
   padding-right: 30px;
   padding-left: 10px;
 }
+
+.disconnected {
+  transition: top 1s ease;
+
+  position: absolute;
+  width: 100%;
+  float: right;
+
+  color: red;
+  display: flex;
+  justify-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
 </style>
