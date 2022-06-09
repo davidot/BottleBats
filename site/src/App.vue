@@ -34,19 +34,20 @@ moves.value = "9A269K63+*Q";
 
 const userDetails = ref({
   displayName: null,
-  isAdmin: false
+  isRuben: false,
+  isAdmin: false,
 });
 
 function updateUserDetails() {
   endpoint.get("/auth/info").then((val) => {
-    console.log('Auth successful!');
       const userData = val.data;
       userDetails.value.displayName = userData.displayName;
+      userDetails.value.isRuben = userData.displayName === "Ruben";
       userDetails.value.isAdmin = userData.admin;
-  }).catch((err) => {
-      console.log('Not logged in (anymore)', err);
-    userDetails.value.displayName = null;
-    userDetails.value.isAdmin = false;
+  }).catch(() => {
+      userDetails.value.displayName = null;
+      userDetails.value.isAdmin = false;
+      userDetails.value.isRuben = false;
   });
 }
 
@@ -56,11 +57,9 @@ provide("userDetails", {
 });
 
 updateUserDetails();
-
 </script>
 
 <style>
-
 body {
   margin-top: 0;
   margin-bottom: 0;
@@ -90,5 +89,4 @@ main {
   padding: 10px;
   min-height: calc(100vh - 70px);
 }
-
 </style>

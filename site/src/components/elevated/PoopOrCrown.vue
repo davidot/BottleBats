@@ -16,12 +16,8 @@ export default {
   },
   inject: ["userDetails"],
   computed: {
-    loggedIn() {
-      return this.userDetails.values.value.displayName != null;
-    },
     isRuben() {
-      if (this.loggedIn) return this.userDetails.values.value.displayName === 'Ruben';
-      return false;
+      return this.userDetails.values.value.isRuben;
     },
     hasCrown() {
       if (!this.limits || this.limits.length !== 2)
