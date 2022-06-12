@@ -14,7 +14,7 @@
         </div>
         <div class="active-file" v-for="(file, index) of currentFiles" :key="file.name" @click.prevent.stop="currentFiles.splice(index, 1)">
           <img src="@/assets/file.png" style="width: 1em"/>
-          {{ file.name }}❌
+          {{ file.name }} ❌
         </div>
       </div>
       <input
@@ -25,16 +25,7 @@
           :multiple="multiple"
           @change="selectFile"
       />
-      <canvas id="image-convert" width="124" height="124" ref="converter" style="border: black 1px solid; width: 124px; height: 124px;" @click="draw" @drag="draw" @mousemove="draw"/>
-      <div style="width: 50px; height: 50px" :style="{'background-color': currentColor}"></div>
-      <select v-model="currentColor">
-        <option value="red">
-          Rood
-        </option>
-        <option value="blue">
-          Blauw
-        </option>
-      </select>
+      <IconMaker v-if="withImage" ref="botImages"/>
     </div>
     <div>
       <label for="new-bot-name"> Naam: </label>
@@ -44,15 +35,17 @@
         Upload bot
       </button>
     </div>
-    <span style="color: red">{{ lastError }}</span>
+    <span :style="{ 'color': failed ? 'red' : 'gray'}">{{ lastMessage }}</span>
   </div>
 </template>
 
 <script>
 import {endpoint} from "@/http";
+import IconMaker from "@/components/IconMaker.vue";
 
 export default {
   name: "BotCreator",
+  components: {IconMaker},
   props: {
     uploadUrl: String,
     multiple: {
@@ -64,19 +57,12 @@ export default {
       type: Boolean,
     }
   },
-  mounted() {
-    const context = this.$refs.converter.getContext('2d');
-    for (var i = 0; i < 31; i++) {
-      context.fillStyle = `hsl(${i * 60}, 100%, 50%)`;
-      context.fillRect(i * 4, i * 4, 4, 4);
-    }
-  },
   data() {
     return {
       currentFiles: [],
-      currentColor: 'red',
       anyDrawn: false,
-      lastError: "",
+      lastMessage: "",
+      failed: false,
       dropActive: false,
       inActiveTimeout: null,
       botName: "",
@@ -96,27 +82,34 @@ export default {
       const data = new FormData();
       data.append("name", name);
 
-      if (this.anyDrawn) {
-        const imgBlob = await new Promise(resolve => this.$refs.converter.toBlob(resolve, "image/png"));
-        data.append("image", imgBlob);
+      if (this.withImage) {
+        const imgBlob = await this.$refs.botImages.getBlob();
+        if (imgBlob !== null)
+          data.append("image", imgBlob);
       }
 
       let i = 0;
       for (let file of files)
         data.append("src_" + (i++), file);
 
-      endpoint.post(this.uploadUrl, data).then((done) => {
-        console.log('response', done.data);
-        this.anyDrawn = false;
-        this.$refs.converter.getContext('2d').clearRect(0, 0, 128, 128);
-        this.currentFiles = [];
-        this.uploading = false;
-        this.$emit('new-bot');
-      })
-          .catch(({ response }) => {
-            this.uploading = false;
-            this.lastError = response.data;
-          });
+      endpoint
+        .post(this.uploadUrl, data)
+        .then((done) => {
+          this.lastMessage = done.data;
+          this.failed = false;
+
+          if (this.withImage)
+            this.$refs.botImages.clear();
+
+          this.currentFiles = [];
+          this.uploading = false;
+          this.$emit("new-bot");
+        })
+        .catch(({ response }) => {
+          this.uploading = false;
+          this.lastMessage = response.data;
+          this.failed = true;
+        });
     },
     addFile(file) {
       if (!file)
@@ -124,46 +117,35 @@ export default {
 
       let maxSize = 2500000;
       if (file.size > maxSize) {
-        this.lastError = `File is een beetje te groot, max ${
+        this.lastMessage = `File is een beetje te groot, max ${
             maxSize / 1000
         }kb aub`;
         return;
       }
 
-      // if (
-      //   file.name.endsWith(".png") ||
-      //   file.name.endsWith(".jpg") ||
-      //   file.name.endsWith(".jpeg")
-      // ) {
-      //   console.log('converting!');
-      //   const context = this.$refs.converter.getContext('2d');
-      //   const img = new Image();
-      //   img.onload = () => {
-      //     context.drawImage(img, 0, 0, 128, 128);
-      //     this.$refs.converter.toBlob(async (blob) => {
-      //
-      //       console.log('blob', await blob.text());
-      //       }, "image/png");
-      //     console.log(png);
-      //     console.log(data);
-      //   };
-      //   img.src = URL.createObjectURL(file);
-      //   return;
-      // }
+      if (
+        file.type.startsWith("image/")
+      ) {
+        const img = new Image();
+        img.onload = () => {
+          this.$refs.botImages.drawImage(img);
+        };
+        img.src = URL.createObjectURL(file);
+        return;
+      }
 
       if (!this.multiple) {
         this.currentFiles = [file];
       } else {
         this.currentFiles.push(file);
       }
-
     },
     selectFile() {
       const files = this.$refs.fileInput.files;
-      this.lastError = '';
+      this.lastMessage = "";
 
       if (!this.multiple && files.length !== 1) {
-        this.lastError = "Precies 1 file graag, niet " + files.length;
+        this.lastMessage = "Precies 1 file graag, niet " + files.length;
         return;
       }
 
@@ -174,17 +156,17 @@ export default {
     onDrop(event) {
       const data = event.dataTransfer;
       this.dropActive = false;
-      this.lastError = '';
+      this.lastMessage = "";
 
       if (!this.multiple && data.items.length > 1) {
-        this.lastError = "Precies 1 file graag, niet " + data.items.length;
+        this.lastMessage = "Precies 1 file graag, niet " + data.items.length;
         return;
       }
 
       for (let item of data.items) {
 
         if (item.kind !== "file") {
-          this.lastError = "Een file graag, niet " + item.kind;
+          this.lastMessage = "Een file graag, niet " + item.kind;
           return;
         }
 
@@ -198,11 +180,16 @@ export default {
     setInactive() {
       this.inActiveTimeout = setTimeout(() => (this.dropActive = false), 50);
     },
-    draw(event) {
-      const context = this.$refs.converter.getContext('2d');
-      context.fillStyle = this.currentColor;
-      context.fillRect(4 * Math.floor(event.offsetX / 4), 4 * Math.floor(event.offsetY / 4), 4, 4);
-      this.anyDrawn = true;
+    useImage(e) {
+      const src = e?.target?.src;
+      if (!src)
+        return;
+      const img = new Image();
+
+      img.onload = () => {
+        this.$refs.botImages.drawImage(img);
+      };
+      img.src = src;
     }
   }
 };
