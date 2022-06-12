@@ -3,7 +3,7 @@
     <span :style="{'color': bot.running ? 'green' : 'red', 'border-color': bot.running ? 'green' : 'red'}">
       {{ bot.name }} ({{ bot.id }})
     </span>
-    : {{ bot.status }}
+    : {{ bot.status }} {{ workString }}
     <button style="float: right" @click.stop="showDetails">
       {{ detailsShown ? 'Refresh' : 'Details'}}
     </button>
@@ -50,13 +50,54 @@ import {endpoint} from "@/http";
 export default {
   name: "BotInfo",
   props: {
-    bot: {id: Number, name: String, running: Boolean, status: String}
+    bot: {
+      id: Number,
+      name: String,
+      running: Boolean | null,
+      status: String,
+      hasImage: Boolean,
+    },
   },
   data() {
     return {
       detailsShown: false,
       cases: null,
     };
+  },
+  mounted() {
+    if (this.bot.running !== false)
+      this.getStats();
+  },
+  computed: {
+    building() {
+      if (!this.bot || !this.bot.id || this.bot.running === false)
+        return false;
+      if (this.bot.running === null)
+        return true;
+      if (!this.cases)
+        return false;
+
+      if (this.cases.length === 0)
+        return true;
+
+      return this.cases.some(c => c.running);
+    },
+    statusColor() {
+      if (this.bot.running === true)
+        return "#1c6f1d";
+      if (this.bot.running === null)
+        return "#cc8f1b";
+      if (this.bot.status.includes("Disabled by user"))
+        return "#576767";
+      return "#bb1b1b";
+    },
+    workString() {
+      if (!this.cases)
+        return '';
+      const total = this.cases.length;
+      const done = this.cases.filter(c => c.running === false).length;
+      return "(" + done + " / " + total + ")";
+    }
   },
   methods: {
     toggle() {
@@ -68,7 +109,7 @@ export default {
       this.getStats();
     },
     getStats() {
-      if (!this.bot || this.bot.id == null)
+      if (this.bot?.id == null)
         return;
 
       endpoint.get('/elevated/bot-cases/' + this.bot.id)
@@ -79,11 +120,18 @@ export default {
           console.log('Failed to get bot stats!');
         });
 
+      setTimeout(() => this.updateIfBuilding(), 1000);
+    },
+    updateIfBuilding() {
+      if (this.building || !this.cases || this.cases.length === 0) {
+        this.getStats();
+        this.$emit('build-update');
+      }
     },
     removeBot() {
       endpoint.get('/elevated/remove-bot/' + this.bot.id)
-          .then((val) => {
-            console.log('bot removed!');
+          .then(() => {
+            this.$emit('build-update');
           })
           .catch(() => {
             console.log('Failed to remove bot!');

@@ -11,10 +11,10 @@
     <div v-if="!loggedIn">
       Sorry, your not logged in so not much to see here.
     </div>
-    <BotCreator @new-bot="updateBots" :upload-url="'/elevated/upload'" :multiple="true"/>
+    <BotCreator @new-bot="updateBots" :upload-url="'/elevated/upload'" :multiple="true" :with-image="true" ref="creator"/>
     <div style="display: flex; flex-direction: column; align-items: center">
       <div v-if="bots === null">Loading</div>
-      <BotInfo v-for="bot in bots" :key="'bot' + bot.name" :bot="bot" />
+      <BotInfo v-for="bot in bots" :key="'bot' + bot.id" :bot="bot" @build-update="updateBots" @image-copy="$refs.creator.useImage" />
     </div>
   </div>
 </template>
