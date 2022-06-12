@@ -110,7 +110,8 @@ void fail_response_with_message(crow::response& resp, int code, std::string cons
 {
     resp.code = code;
     resp.set_header("Content-Type", "text/plain");
-    resp.end(message);
+    resp.body = message;
+    resp.end();
 }
 
 std::string trim(std::string const& str)
