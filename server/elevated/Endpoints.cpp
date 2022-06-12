@@ -4,8 +4,11 @@
 #include <filesystem>
 #include <pqxx/transaction>
 #include <pqxx/result>
+#include <unordered_set>
 
 namespace BBServer {
+
+static std::unordered_set<long> bots_with_image;
 
 void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service)
 {
@@ -19,17 +22,19 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         auto results = transaction.exec("SELECT bot_id, bot_name, running_cases, COALESCE(status, '?') "
                                                   "FROM elevated_bots "
                                                   "WHERE user_id = " + std::to_string(base_context.user.id) + " "
-                                                  "ORDER BY created DESC LIMIT 50");
+                                                  "ORDER BY created DESC LIMIT 100");
 
         std::vector<crow::json::wvalue> bots;
         bots.reserve(results.size());
 
         for (auto row : results) {
+            long bot_id = row[0].as<long>();
             bots.push_back({
-                { "id", row[0].as<long>() },
+                { "id", bot_id },
                 { "name", row[1].c_str() },
-                { "running", row[2].as<bool>() },
+                { "running", row[2].is_null() ? crow::json::wvalue() : row[2].as<bool>() },
                 { "status", row[3].c_str() },
+                { "hasImage", bots_with_image.contains(bot_id) },
             });
         }
 
@@ -69,6 +74,18 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         }
 
         return crow::json::wvalue {cases};
+    });
+
+    CROW_ROUTE(app, "/api/elevated/bot-image/<int>")
+    ([](crow::response& resp, int bot_id){
+        auto image_file = std::string("bots-data/el-") + std::to_string(bot_id) + "/image.png";
+        if (!bots_with_image.contains(bot_id))
+            return BBServer::fail_response_with_message(resp, 404, "No file yet");
+
+        // We set text/plain earlier and multiple types causes issues
+        resp.headers.erase("Content-Type");
+        resp.set_static_file_info(image_file);
+        resp.end();
     });
 
     CROW_ROUTE(app, "/api/elevated/remove-bot/<int>")
@@ -209,6 +226,7 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
                 crow::json::wvalue current_bot;
                 current_bot["author"] = all_runs[0][6].c_str();
                 current_bot["name"] = all_runs[0][1].c_str();
+                current_bot["hasImage"] = bots_with_image.contains(current_bot_id);
 
                 for (auto row : all_runs) {
                     auto this_bot_id = row[0].as<long>();
@@ -218,6 +236,7 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
                         current_bot_id = this_bot_id;
                         current_bot["author"] = row[6].c_str();
                         current_bot["name"] = row[1].c_str();
+                        current_bot["hasImage"] = bots_with_image.contains(current_bot_id);
                     }
 
 
@@ -244,6 +263,17 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
         return result;
     });
 
+    BBServer::ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
+        pqxx::read_transaction transaction{connection};
+        auto results = transaction.exec("SELECT bot_id FROM elevated_bots");
+        for (auto row : results) {
+            long bot_id = row[0].as<long>();
+            auto image_file = std::string("bots-data/el-") + std::to_string(bot_id) + "/image.png";
+            
+            if (std::filesystem::exists(image_file))
+                bots_with_image.insert(bot_id);
+        }
+    });
 
 }
 
