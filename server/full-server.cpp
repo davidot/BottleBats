@@ -11,7 +11,7 @@
 #include <thread>
 
 boost::asio::io_service io_service;
-boost::posix_time::seconds interval(5);
+boost::posix_time::seconds interval(3);
 boost::asio::deadline_timer timer(io_service, interval);
 
 struct ToRun {
@@ -103,7 +103,7 @@ int main()
     srand(time(nullptr));
 
     try {
-        BBServer::ConnectionPool::initialize_pool(4, "postgresql://postgres:passwrd@localhost:6543/postgres");
+        BBServer::ConnectionPool::initialize_pool(8, "postgresql://postgres:passwrd@localhost:6543/postgres");
         BBServer::ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
             // Clear any pending results
             pqxx::work transaction{connection};
