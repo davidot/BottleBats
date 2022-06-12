@@ -89,7 +89,6 @@
 <script>
 import Spinner from "@/components/Spinner.vue";
 import {endpoint} from "@/http";
-import * as raw_data from "./data.json";
 import PoopOrCrown from "@/components/elevated/PoopOrCrown.vue";
 import SortingIndicator from "@/components/elevated/SortingIndicator.vue";
 import {computed} from "vue";

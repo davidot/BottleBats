@@ -27,15 +27,6 @@ export default {
   mounted() {
     this.botUpdateInterval = setInterval(() => this.updateBots(), 15000);
     this.updateBots();
-    //
-    // setTimeout(() => {
-    //   this.bots = [
-    //     {id: 2, name: 'bot 2', running: true, status: 'false'},
-    //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
-    //   ];
-    // }, 500);
-
-
   },
   unmounted() {
     if (this.botUpdateInterval)
@@ -55,21 +46,6 @@ export default {
   },
   methods: {
     async updateBots() {
-      // setTimeout(() => {
-      //   this.bots = [
-      //     {id: 2, name: 'bot 2', running: true, status: 'false'},
-      //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
-      //     {id: 4, name: 'bot 4', running: false, status: 'Checking and building file'},
-      //   ];
-      // }, 500);
-      //
-      // setTimeout(() => {
-      //   this.bots = [
-      //     {id: 2, name: 'bot 2', running: true, status: 'false'},
-      //     {id: 3, name: 'bot 3', running: false, status: 'disabled'},
-      //     {id: 4, name: 'bot 4', running: true, status: 'Running cases'},
-      //   ];
-      // }, 1500);
       try {
         const data = await endpoint.get("/elevated/my-bots", {timeout: 750});
         this.bots = data.data;
