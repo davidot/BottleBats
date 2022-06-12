@@ -1,6 +1,8 @@
 <template>
-  <div class="elevated-bot-info" @click="toggle">
-    <span :style="{'color': bot.running ? 'green' : 'red', 'border-color': bot.running ? 'green' : 'red'}">
+  <div class="elevated-bot-info" @click="toggle" :style="{ 'border-color': statusColor }">
+    <img v-if="bot.hasImage" :src="'/api/elevated/bot-image/' + bot.id" style="width: 31px; height: 31px; padding-right: 15px" alt=""
+         @click.prevent.stop="$emit('image-copy', $event)" loading="lazy"/>
+    <span :style="{ color: statusColor, background: 'transparent' }" :class="[building && 'open-doors', building && 'looping-doors']">
       {{ bot.name }} ({{ bot.id }})
     </span>
     : {{ bot.status }} {{ workString }}
@@ -149,6 +151,7 @@ export default {
   border-radius: 5px;
   margin-top: 5px;
   padding: 2px;
+  overflow: hidden;
 }
 
 .elevated-bot-info:first-child {
@@ -161,4 +164,73 @@ export default {
   padding: 2px;
 }
 
+.looping-doors {
+  visibility: hidden;
+  animation: after-doors step-end 3s forwards infinite;
+}
+
+.looping-doors::before {
+  visibility: visible !important;
+  animation-name: loading-doors;
+  animation-iteration-count: infinite;
+  animation-duration: 3s;
+}
+
+.looping-doors::after {
+  visibility: visible !important;
+  animation-name: loading-doors;
+  animation-iteration-count: infinite;
+  animation-duration: 3s;
+}
+
+
+@keyframes after-doors {
+  20% {
+    visibility: hidden;
+  }
+  40% {
+    visibility: visible;
+  }
+  80% {
+    visibility: hidden;
+  }
+}
+
+@keyframes loading-doors {
+  0% {
+    top: 100%;
+    width: 50%;
+  }
+
+  20% {
+    top: 0;
+    width: 50%;
+  }
+
+  40% {
+    top: 0;
+    width: 50%;
+  }
+
+  55% {
+    top: 0;
+    width: 0;
+  }
+
+  65% {
+    top: 0;
+    width: 0;
+  }
+
+  80% {
+    top: 0;
+    width: 50%;
+  }
+
+  100% {
+    top: -200%;
+    width: 50%;
+  }
+
+}
 </style>
