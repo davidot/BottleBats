@@ -3,9 +3,9 @@ FROM docker.io/openjdk:16-alpine3.13
 ARG filename
 
 
-COPY $filename /
+COPY . /
 
-RUN javac $filename -d .
+RUN javac $filename -d . -classpath .
 
 ARG programname
 ENV JAVA_PROGRAM_NAME=${programname}

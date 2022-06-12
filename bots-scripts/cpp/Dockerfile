@@ -4,11 +4,9 @@ LABEL stage=build
 RUN apk update
 RUN apk --no-cache add g++
 
-ARG filename
+COPY . /
 
-COPY $filename /
-
-RUN g++ -x c++ -std=c++20 -O2 -o program $filename -static
+RUN g++ -x c++ -std=c++20 -O2 -o program *.cpp -static
 
 FROM scratch
 COPY --from=build program /
