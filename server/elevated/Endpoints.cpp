@@ -90,7 +90,7 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
 
     CROW_ROUTE(app, "/api/elevated/remove-bot/<int>")
     .middlewares<ServerType, BBServer::AuthGuard>()
-    ([&app](crow::request const& req, int bot_id){
+    ([&app](crow::request const& req, crow::response& resp, int bot_id){
         auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
         pqxx::work transaction {*base_context.database_connection};
 
@@ -100,7 +100,9 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
 
         transaction.commit();
 
-        return "Success";
+        resp.set_header("Content-Type", "text/plain");
+        resp.body = "Success";
+        resp.end();
     });
 
     CROW_ROUTE(app, "/api/elevated/upload")
