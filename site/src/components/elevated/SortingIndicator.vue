@@ -1,5 +1,5 @@
 <template>
-  <div v-if="active" style="display: inline-block; transition: transform 0.5s ease;" :style="{transform: 'rotate(' + (flipped ? '180deg' : '0') + ')'}">
+  <div v-if="active" class="sorting-indicator" :style="{transform: 'rotate(' + (flipped ? '180deg' : '0') + ')'}">
     🔽
   </div>
 </template>
@@ -23,5 +23,9 @@ export default {
 </script>
 
 <style scoped>
-
+.sorting-indicator {
+  display: inline-block;
+  transition: transform 0.5s ease;
+  transform-origin: center;
+}
 </style>

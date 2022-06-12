@@ -44,9 +44,8 @@
       </thead>
       <transition-group name="list" tag="tbody">
         <tr v-for="b in bots" :key="'bot-' + b.id">
-          <td class="bot-name" :title="b.name"> <!-- For full name -->
-            <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px" alt=""/>
-            <div v-else style="width: 31px; height: 31px"></div>
+          <td class="bot-name" :title="b.name" :data-bot-id="b.id">
+            <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px" alt="" loading="lazy"/>
             <span style="text-overflow: ellipsis; max-width: calc(100% - 33px); overflow-x: visible">
               {{ b.name }} (by {{ b.author }})
             </span>
@@ -95,13 +94,13 @@ import {computed} from "vue";
 
 export default {
   name: "LeaderboardView",
-  components: {SortingIndicator, PoopOrCrown, Spinner },
+  components: { SortingIndicator, PoopOrCrown, Spinner },
   unmounted() {
     if (this.dataInterval)
       clearInterval(this.dataInterval);
   },
   mounted() {
-    // this.dataInterval = setInterval(() => this.getData(), 2000);
+    this.dataInterval = setInterval(() => this.getData(), 2000);
     this.getData();
   },
   inject: ["userDetails"],
