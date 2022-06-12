@@ -1,6 +1,6 @@
 <template>
   <div class="leaderboard-holder" style="position: relative">
-    <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': this.isRuben ? 'column' : 'row'}">
+    <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': (isRuben && connectionLost) ? 'column' : 'row'}">
       <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
       <span style="border: 1px solid red; padding: 2px 5px; font-weight: bold">
         Connection to server lost!
@@ -411,20 +411,6 @@ table td {
 .leaderboard-holder {
   padding-right: 30px;
   padding-left: 10px;
-}
-
-.disconnected {
-  transition: top 1s ease;
-
-  position: absolute;
-  width: 100%;
-  float: right;
-
-  color: red;
-  display: flex;
-  justify-items: center;
-  justify-content: center;
-  gap: 5px;
 }
 
 </style>

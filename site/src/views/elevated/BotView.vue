@@ -1,5 +1,12 @@
 <template>
-  <div>
+  <div style="position: relative">
+    <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': (isRuben && connectionLost) ? 'column' : 'row'}">
+      <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
+      <span style="border: 1px solid red; padding: 2px 5px; font-weight: bold">
+        Connection to server lost!
+      </span>
+      <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
+    </div>
     <p>Bots</p>
     <div v-if="!loggedIn">
       Sorry, your not logged in so not much to see here.
@@ -42,6 +49,9 @@ export default {
   computed: {
     loggedIn() {
       return this.userDetails.values.value.displayName != null;
+    },
+    isRuben() {
+      return this.userDetails.values.value.isRuben;
     },
   },
   methods: {

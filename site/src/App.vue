@@ -89,4 +89,19 @@ main {
   padding: 10px;
   min-height: calc(100vh - 70px);
 }
+
+.disconnected {
+  transition: top 1s ease;
+
+  position: absolute;
+  width: 100%;
+  float: right;
+
+  color: red;
+  display: flex;
+  justify-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
 </style>
