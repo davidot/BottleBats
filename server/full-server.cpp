@@ -105,9 +105,11 @@ int main()
     try {
         BBServer::ConnectionPool::initialize_pool(8, "postgresql://postgres:passwrd@localhost:6543/postgres");
         BBServer::ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
-            // Clear any pending results
+            // Clear any pending results and bots
             pqxx::work transaction{connection};
             auto result = transaction.exec("DELETE FROM elevated_run WHERE done = FALSE");
+
+            auto result2 = transaction.exec("UPDATE elevated_bots SET running_cases = FALSE, status = 'Server stopped/crashed during building please resubmit (unless you crashed the server...)' WHERE running_cases IS NULL");
             transaction.commit();
         });
     } catch (std::exception const &e)
