@@ -109,79 +109,130 @@ void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service
     .methods(crow::HTTPMethod::POST)
     .middlewares<ServerType, BBServer::AuthGuard>()
     ([&io_service, &app](crow::request& req, crow::response& resp) {
+        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
+        pqxx::work transaction {*base_context.database_connection};
+
         crow::multipart::message msg(req);
 
-        auto file_it = msg.part_map.find("file");
-
-        if (file_it == msg.part_map.end())
-            return BBServer::fail_response_with_message(resp, 400, "No file for bot");
-
         auto name_it = msg.part_map.find("name");
-
         if (name_it == msg.part_map.end())
             return BBServer::fail_response_with_message(resp, 400, "No name for bot");
-
-        auto& file_part = file_it->second;
-        auto& name_part = name_it->second;
-
-        auto trimmed_name = trim(name_part.body);
+        auto& bot_name = name_it->second;
+        auto trimmed_name = trim(bot_name.body);
 
         if (trimmed_name.empty())
             return BBServer::fail_response_with_message(resp, 400, "Invalid name for bot");
-
-        //        CROW_LOG_INFO << "body file" << file_part.body;
-        //        CROW_LOG_INFO << "name body" << name_part.body;
-
-        auto content_details = file_part.headers.find("Content-Disposition");
-        if (content_details == file_part.headers.end() || !content_details->second.params.contains("filename"))
-            return BBServer::fail_response_with_message(resp, 400, "No file name given");
-
-        auto& file_name = content_details->second.params["filename"];
-
-        if (file_name.find('.') == std::string::npos)
-            return BBServer::fail_response_with_message(resp, 400, "File must have extension");
-
-        //        CROW_LOG_INFO << "file name " << file_name;
-
-        auto& base_context = app.get_context<BBServer::BaseMiddleware>(req);
-        pqxx::work transaction {*base_context.database_connection};
 
         base_context.database_connection->prepare("SELECT 1 FROM elevated_bots WHERE user_id = $1 and bot_name = $2");
         auto has_result = transaction.exec_prepared("", base_context.user.id, trimmed_name);
         if (!has_result.empty())
             return BBServer::fail_response_with_message(resp, 400, "You already have a bot with that name");
 
+        struct FileInfo {
+            std::string& name;
+            std::string& body;
+        };
+
+        std::vector<FileInfo> source_files;
+        std::set<std::string_view> extensions;
+        std::string main_file;
+        for (auto& [part, value] : msg.part_map) {
+            if (!part.starts_with("src_"))
+                continue;
+
+            auto content_details = value.headers.find("Content-Disposition");
+            if (content_details == value.headers.end())
+                return BBServer::fail_response_with_message(resp, 400, "Invalid file: " + part);
+
+            auto filename_or_end = content_details->second.params.find("filename");
+            if (filename_or_end == content_details->second.params.end())
+                return BBServer::fail_response_with_message(resp, 400, "File without filename: " + part);
+
+            auto& filename = filename_or_end->second;
+            if (auto last_dot = filename.find_last_of('.'); last_dot == std::string::npos)
+                return BBServer::fail_response_with_message(resp, 400, "All files must have extension: " + filename);
+            else
+                extensions.insert(std::string_view{filename}.substr(last_dot + 1));
+
+            source_files.push_back(FileInfo{filename, value.body});
+            std::string lowercase = filename;
+            std::transform(lowercase.begin(), lowercase.end(), lowercase.begin(),
+                [](unsigned char c){ return std::tolower(c); });
+
+            if (lowercase.starts_with("main.") || lowercase.starts_with("elevated.")) {
+                if (!main_file.empty()) {
+                    resp.body += "Warning found multiple potential main files: ";
+                    resp.body += main_file;
+                    resp.body += " and ";
+                    resp.body += filename;
+                    resp.body += ";\n";
+                }
+                main_file = filename;
+            }
+        }
+
+        if (source_files.empty())
+            return BBServer::fail_response_with_message(resp, 400, "Must have at least one source file");
+
+        if (main_file.empty()) {
+            main_file = source_files[0].name;
+            resp.body += "No direct main file found using:";
+            resp.body += main_file;
+            resp.body += ";\n";
+        }
+
+        if (extensions.size() > 2 || (extensions.size() == 2 && (!extensions.contains("h") || !extensions.contains("cpp"))))
+            return BBServer::fail_response_with_message(resp, 400, "Do not support multiple different file types (except .h + .cpp)");
+
+
         base_context.database_connection->prepare("INSERT INTO elevated_bots(bot_name, user_id, command)  VALUES ($1, $2, $3) RETURNING bot_id");
-        auto result = transaction.exec_prepared1("", trimmed_name, base_context.user.id, file_name);
+        auto result = transaction.exec_prepared1("", trimmed_name, base_context.user.id, main_file);
         auto bot_id = result[0].as<uint32_t>();
 
         transaction.commit();
 
-        auto file_path = std::string("bots-data/el-") + std::to_string(bot_id) + std::string("/");
+        auto dir_path = std::string("bots-data/el-") + std::to_string(bot_id) + std::string("/");
 
-        if (!std::filesystem::create_directories(file_path))
+        if (!std::filesystem::create_directories(dir_path))
             return BBServer::fail_response_with_message(resp, 500, "Could not create bot folder");
 
-        file_path += file_name;
+        for (auto& [filename, content] : source_files) {
+            auto file_path = dir_path + filename;
 
-        CROW_LOG_INFO << "Writing bot " << bot_id << " to " << file_path << " name: " << trimmed_name << " file name: " << file_name;
-        std::ofstream file{ file_path };
+            std::ofstream file{ file_path };
 
-        if (!file.is_open())
-            return BBServer::fail_response_with_message(resp, 500, "Could not open file for writing");
+            if (!file.is_open())
+                return BBServer::fail_response_with_message(resp, 500, "Could not open file for writing");
 
-        file << file_part.body;
+            file << content;
 
-        if (!file.good())
-            return BBServer::fail_response_with_message(resp, 500, "Failed to write file?");
+            if (!file.good())
+                return BBServer::fail_response_with_message(resp, 500, "Failed to write file?");
 
-        file.close();
+            file.close();
+        }
+
+        if (auto image_or_end = msg.part_map.find("image"); image_or_end != msg.part_map.end()) {
+            std::ofstream file{ dir_path + "image.png" };
+
+            if (file.is_open())
+                file << image_or_end->second.body;
+
+            file.close();
+
+            if (file.good()) {
+                bots_with_image.insert(bot_id);
+            } else {
+                std::cerr << "Image upload failed??\n";
+                resp.body += "Image upload failed?;\n";
+            }
+        }
 
         io_service.post([bot_id]{
             BBServer::create_elevated_bot_in_container(bot_id);
         });
 
-        resp.end("Bot uploaded");
+        resp.end("Bot uploaded successfully");
     });
 
     CROW_ROUTE(app, "/api/elevated/leaderboard")
