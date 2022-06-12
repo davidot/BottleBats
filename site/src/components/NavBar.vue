@@ -138,29 +138,26 @@ export default {
 
 .open-doors::before {
   display: block;
+  box-sizing: border-box;
   content: "";
-  /*z-index: 10;*/
-  width: 0;
+  width: 50%;
   height: 100%;
   position: absolute;
   top: 0;
   left: 0;
-  background-color: transparent;
-  border-left: gray solid 25px;
+  background-color: gray;
   animation: opening-door linear 1.5s forwards;
 }
 
 .open-doors::after {
   display: block;
   content: "";
-  /*z-index: 10;*/
-  width: 0;
+  width: 50%;
   height: 100%;
   position: absolute;
   top: 0;
   right: 0;
-  background-color: transparent;
-  border-right: gray solid 25px;
+  background-color: gray;
   animation: opening-door linear 1.5s forwards;
 }
 
@@ -179,26 +176,22 @@ export default {
 @keyframes opening-door {
   0% {
     top: 100%;
-    width: 0;
-    border-width: 25px;
+    width: 50%;
   }
 
   40% {
     top: 0;
-    width: 0;
-    border-width: 25px;
+    width: 50%;
   }
 
   60% {
     top: 0;
-    width: 0;
-    border-width: 25px;
+    width: 50%;
   }
 
   100% {
     top: 0;
-    width: 50%;
-    border-width: 0;
+    width: 0;
   }
 }
 
