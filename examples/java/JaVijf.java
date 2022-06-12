@@ -32,10 +32,10 @@ public static void main(String[] args) {
 
         String rawLines[] = new String[lines];
 
-        int i = 0;
+        Floor i = new Floor(0);
 
         while (lines-- > 0) {
-            rawLines[i++] = scanner.nextLine();
+            rawLines[i.floor++] = scanner.nextLine();
         }
 
         String myHand = rawLines[playerIndex];
