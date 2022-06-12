@@ -549,10 +549,6 @@ ScenarioResult parse_scenario(const std::string& value, long initial_seed)
 //        }
     }
 
-#ifndef NDEBUG
-    std::cerr << "Got output:" << settings.value() << "\nFrom Input:" << value << '\n';
-#endif
-
     if (result.generator != nullptr && settings.value() != value)
         std::cerr << "Input and output passed but not identical!\n";
 
