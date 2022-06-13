@@ -9,6 +9,7 @@ public:
     virtual void on_elevator_opened_doors(Time time, const ElevatorState& state) override;
     virtual void on_elevator_moved(Time time, Height distance_travelled, Height before_height, const ElevatorState& state) override;
     virtual void on_elevator_stopped(Time at, Time duration, const ElevatorState& state) override;
+    void on_initial_building(BuildingBlueprint const& blueprint) override;
 
     [[nodiscard]] Height max_travel_distance() const { return m_distance_travelled.max_value(); }
     [[nodiscard]] Height min_travel_distance() const { return m_distance_travelled.min_value(); }

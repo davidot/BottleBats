@@ -17,4 +17,13 @@ void ElevatorStatsListener::on_elevator_stopped(Time, Time duration, const Eleva
     m_time_stopped.add_to_observation(state.id, duration);
 }
 
+void ElevatorStatsListener::on_initial_building(BuildingBlueprint const& blueprint)
+{
+    for (ElevatorID elevator_id = 0; elevator_id < blueprint.elevators.size(); ++elevator_id) {
+        m_times_doors_opened.add_to_observation(elevator_id, 0);
+        m_distance_travelled.add_to_observation(elevator_id, 0);
+        m_time_stopped.add_to_observation(elevator_id, 0);
+    }
+}
+
 }
