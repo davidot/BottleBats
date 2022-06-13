@@ -1,6 +1,6 @@
 <template>
   <div>
-    <canvas id="image-convert" :width="width" :height="height" ref="canvas" style="padding: 5px; border: black 3px dashed; width: 124px; height: 124px;"
+    <canvas id="image-convert" :width="width" :height="height" ref="canvas" style="padding: 5px; border: black 3px dashed; width: 124px; height: 124px; cursor: crosshair"
             @mousedown="draw" @mouseup="draw" @mousemove="draw" @mouseleave="draw" @mouseenter="draw"
             @drop.prevent="drop"
             @dragenter.prevent=""
@@ -34,6 +34,7 @@ export default {
         x: -1,
         y: -1,
       },
+      fillNum: 0,
     };
   },
   methods: {
@@ -41,8 +42,8 @@ export default {
       this.context2D.drawImage(img, 0, 0, this.width, this.height);
     },
     draw(event) {
-      this.location.x = event.offsetX;
-      this.location.y = event.offsetY;
+      this.location.x = event.offsetX - 5;
+      this.location.y = event.offsetY - 5;
 
       if (event.type === "mouseup" || event.type === "mouseleave") {
         this.pressed = false;
@@ -96,8 +97,8 @@ export default {
 
         this.anyDrawn = true;
         const start = [
-          event.offsetX - event.movementX,
-          event.offsetY - event.movementY,
+          this.location.x - event.movementX,
+          this.location.y - event.movementY,
         ];
         const step = [event.movementX, event.movementY];
 
@@ -125,10 +126,13 @@ export default {
       this.context2D.clearRect(0, 0, 128, 128);
       this.anyDrawn = false;
     },
-    updateColor(event) {
+    updateColor() {
       this.currentColor = this.$refs.colorPicker.value;
     },
     async floodFill(ctx, x, y, fillColor) {
+      this.fillNum++;
+      const thisFill = this.fillNum;
+
       function wait(delay = 1) {
         return new Promise((resolve) => {
           setTimeout(resolve, delay);
@@ -157,7 +161,6 @@ export default {
 
       // get the color we're filling
       const targetColor = getPixel(pixelData, x, y);
-      console.log('target color', targetColor, fillColor);
 
       let waits = 0;
 
@@ -180,7 +183,7 @@ export default {
             ++tickCount;
             if (tickCount % ticksPerUpdate === 0) {
               waits++;
-              if (waits >= 600)
+              if (waits >= 600 || this.fillNum !== thisFill)
                 return;
               await wait();
             }
