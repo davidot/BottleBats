@@ -21,6 +21,9 @@
                 <option value="max-wait">Max wait time</option>
                 <option value="max-travel">Max travel time</option>
                 <option value="total-time">Total simulation time</option>
+                <option value="max-door-open-passenger">Times doors opened on "wrong" floor</option>
+                <option value="rollercoaster-events">Rollercoaster events</option>
+                <option value="avg-stops-until-arrival">Average stops until correct</option>
               </select>
             </div>
             <div style="position: absolute; bottom: 0" title="Click to sort on names" @click="sortOn('name')">
