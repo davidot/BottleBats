@@ -93,6 +93,7 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
 
         full_result.add_stat("max-door-open-passenger", passenger_stats->max_times_door_opened());
         full_result.add_stat("done-at-first-stop", passenger_stats->first_stop_passengers());
+        full_result.add_stat("avg-stops-until-arrival", passenger_stats->average_stops_passengers());
 
         full_result.add_stat("power", power_stats->time_stopped_with_passengers() + power_stats->times_door_opened() + power_stats->total_distance_travelled());
 
@@ -202,7 +203,6 @@ void run_and_store_simulation(uint32_t bot_id, uint32_t case_id)
         for (auto& message : result.messages)
             output += message + '\n';
     }
-    
     ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
         pqxx::work transaction{connection};
         connection.prepare("UPDATE elevated_run SET completed = now(), done = TRUE, success = $2, status = $3, output = $4 WHERE run_id = $1");
