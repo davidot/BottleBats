@@ -15,6 +15,7 @@ public:
     Time max_wait_times() const { return m_wait_times.max_value(); }
     Time max_travel_times() const { return m_travel_times.max_value(); }
     uint32_t max_times_door_opened() const { return m_times_door_opened.max_value(); }
+    uint32_t first_stop_passengers() const { return m_times_door_opened.total_entries() - m_wait_times.total_entries(); }
 
     [[nodiscard]] double average_wait_time() const { return (m_wait_times.sum_of_values<double>()) / (double)m_wait_times.total_entries(); }
     [[nodiscard]] double average_travel_time() const { return (m_travel_times.sum_of_values<double>()) / (double)m_travel_times.total_entries(); }
