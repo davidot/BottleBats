@@ -39,6 +39,7 @@ add_library(LibElevated
         elevated/stats/PowerStatsListener.cpp
         elevated/stats/SpecialEventsListener.cpp
         elevated/stats/ReplayListener.cpp
+        elevated/stats/ElevatorStatsListener.cpp
         elevated/algorithm/Algorithm.cpp
         elevated/algorithm/CyclingAlgorithm.cpp
         elevated/algorithm/ProcessAlgorithm.cpp
