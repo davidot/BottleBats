@@ -7,6 +7,7 @@
 #include "elevated/generation/factory/StringSettings.h"
 #include <crow/json.h>
 #include <elevated/Simulation.h>
+#include <elevated/stats/ElevatorStatsListener.h>
 #include <elevated/stats/PassengerStats.h>
 #include <elevated/stats/PowerStatsListener.h>
 #include <elevated/stats/SpecialEventsListener.h>
@@ -74,6 +75,7 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
 
     auto passenger_stats = simulation.construct_and_add_listener<Elevated::PassengerStatsListener>();
     auto power_stats = simulation.construct_and_add_listener<Elevated::PowerStatsListener>();
+    auto elevator_stats = simulation.construct_and_add_listener<Elevated::ElevatorStatsListener>();
     auto special_stats = simulation.construct_and_add_listener<Elevated::SpecialEventsListener>();
 
     auto result = simulation.run();
@@ -84,10 +86,31 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
 
     if (result.type == Elevated::SimulatorResult::Type::SuccessFull) {
         full_result.add_stat("avg-wait", passenger_stats->average_wait_time());
-        full_result.add_stat("avg-travel", passenger_stats->average_travel_time());
         full_result.add_stat("max-wait", passenger_stats->max_wait_times());
+
         full_result.add_stat("max-travel", passenger_stats->max_travel_times());
+        full_result.add_stat("avg-travel", passenger_stats->average_travel_time());
+
+        full_result.add_stat("max-door-open-passenger", passenger_stats->max_times_door_opened());
+        full_result.add_stat("done-at-first-stop", passenger_stats->first_stop_passengers());
+
         full_result.add_stat("power", power_stats->time_stopped_with_passengers() + power_stats->times_door_opened() + power_stats->total_distance_travelled());
+
+        full_result.add_stat("rollercoaster-events", special_stats->total_roller_coaster_events());
+        full_result.add_stat("travelling-stops-events", special_stats->total_travelling_stops());
+
+        full_result.add_stat("max-elevator-travel-distance", elevator_stats->max_travel_distance());
+        full_result.add_stat("min-elevator-travel-distance", elevator_stats->min_travel_distance());
+        full_result.add_stat("avg-elevator-travel-distance", elevator_stats->avg_travel_distance());
+        full_result.add_stat("sum-elevator-travel-distance", elevator_stats->total_travel_distance());
+
+        full_result.add_stat("max-times-elevator-doors-opened", elevator_stats->max_doors_opened());
+        full_result.add_stat("min-times-elevator-doors-opened", elevator_stats->min_doors_opened());
+        full_result.add_stat("avg-times-elevator-doors-opened", elevator_stats->avg_doors_opened());
+
+        full_result.add_stat("max-elevator-time-stopped", elevator_stats->max_time_stopped());
+        full_result.add_stat("min-elevator-time-stopped", elevator_stats->min_time_stopped());
+        full_result.add_stat("avg-elevator-time-stopped", elevator_stats->avg_time_stopped());
     } else if (result.type == Elevated::SimulatorResult::Type::AlgorithmRejected) {
         full_result.rejected = true;
     } else {
