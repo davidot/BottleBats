@@ -35,6 +35,8 @@ void PassengerStatsListener::on_passenger_leave_elevator(Time at, PassengerID id
     if (auto times_opened = m_door_opened_counts.find(id); times_opened != m_door_opened_counts.end()) {
         m_times_door_opened.add_observation(times_opened->second);
         m_door_opened_counts.erase(times_opened);
+    } else {
+        m_times_door_opened.add_observation(0);
     }
 }
 
