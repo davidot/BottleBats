@@ -29,4 +29,11 @@ uint64_t SpecialEventsListener::total_roller_coaster_events() const
     });
 }
 
+uint64_t SpecialEventsListener::total_travelling_stops() const
+{
+    return std::accumulate(m_travelling_stop.begin(), m_travelling_stop.end(), uint64_t(0), [](uint64_t acc, auto& entry) {
+        return acc + entry.second;
+    });
+}
+
 }
