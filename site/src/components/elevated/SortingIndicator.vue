@@ -27,5 +27,7 @@ export default {
   display: inline-block;
   transition: transform 0.5s ease;
   transform-origin: center;
+  position: absolute;
+  bottom: 0;
 }
 </style>

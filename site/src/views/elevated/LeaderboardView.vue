@@ -317,6 +317,7 @@ export default {
 
 <style scoped>
 .case-name {
+  position: relative;
   writing-mode: vertical-lr;
   min-width: 35px;
   max-width: 35px;
