@@ -28,8 +28,9 @@
               <SortingIndicator property-name="name" />
             </div>
           </td>
-          <td v-for="cs in cases" :key="'case-' + cs.id" class="case-name">
+          <td v-for="cs in cases" :key="'case-' + cs.id" class="case-name" :data-case-id="cs.id" @click="sortOn('cs-' + $event.target.getAttribute('data-case-id'))">
             {{ cs.name }}
+            <SortingIndicator :property-name="'cs-' + cs.id" />
           </td>
           <td style="width: 70%"></td>
           <td class="case-name" @click="sortOn('worst')">
@@ -61,6 +62,9 @@
             </div>
             <div v-else-if="b.runs[cs.id].status !== 'done'" class="failed" :title="b.runs[cs.id].reason || 'Failed'">
               &#10060;
+            </div>
+            <div v-else-if="b.runs[cs.id].result[stat] === undefined" class="missing-data" title="Did run but no result for this statistic">
+              ❓
             </div>
             <div v-else style="min-height: 35px; display: flex; align-items: center; justify-content: center;"
                  :title="b.runs[cs.id].result[stat] + ' (' + Math.round(percentage(b.runs[cs.id].result[stat], cs.best[stat]) * 100.0) + '%)'"
@@ -126,7 +130,9 @@ export default {
       return this.userDetails.values.value.isRuben;
     },
     highBetterStat() {
-      return this.stat in {};
+      return this.stat in {
+        "done-at-first-stop": true,
+      };
     },
     cases() {
       if (!this.results?.cases)
@@ -182,15 +188,19 @@ export default {
           if (runs.length === 0)
             return Object.assign({runs: {}}, {id: id, ...val})
 
-          const summary = {};
+          let summary = {};
 
           let worst = null;
           let worstId = null;
           let sum = 0;
 
           const lowStat = !this.highBetterStat;
+          const runsWithStat = runs.filter(([id, run]) => run.result[this.stat] != null);
 
-          for (const [id, run] of runs) {
+          for (const [id, run] of runsWithStat) {
+            if (run.result[this.stat] === undefined)
+              continue;
+
             const extremes = this.cases[id]?.best?.[this.stat];
             if (extremes == null)
               continue;
@@ -203,16 +213,51 @@ export default {
             sum += value;
           }
 
-          sum /= runs.length;
+          let hasSummary = false;
 
-          summary['worst'] = { percentage: worst, text: `${Math.round(worst * 100)}% (For case: ${this.cases[worstId].name}`};
-          summary['avg'] = { percentage: sum, text: `On average ${Math.round(sum * 100)}%` };
+          if (runsWithStat.length !== 0) {
+            sum /= runsWithStat.length;
+            summary['avg'] = { percentage: sum, text: `On average ${Math.round(sum * 100)}%` };
+            hasSummary = true;
+          }
 
-          return Object.assign({ summary, runs: {} }, { id: id, ...val })
+          if (worstId != null) {
+            summary['worst'] = {
+              percentage: worst,
+              text: `${Math.round(worst * 100)}% (For case: ${this.cases[worstId].name}`
+            };
+
+            hasSummary = true;
+          }
+
+          if (!hasSummary)
+            summary = undefined;
+
+          return Object.assign({ summary: summary, runs: {} }, { id: id, ...val })
         })
         .sort((lhs, rhs) => {
           const leftKeys = Object.entries(lhs.runs);
           const rightKeys = Object.entries(rhs.runs);
+
+          if (this.sortingOn.startsWith('cs-')) {
+            const caseId = parseInt(this.sortingOn.split('-')[1]);
+            const stat = this.stat;
+            const leftValue = lhs.runs[caseId]?.result?.[stat];
+            const rightValue = rhs.runs[caseId]?.result?.[stat];
+
+            if (leftValue != null && rightValue == null)
+              return -1;
+            if (leftValue == null && rightValue != null)
+              return 1;
+
+            if (leftValue === rightValue)
+                return lhs.name.localeCompare(rhs.name);
+
+            const lowStat = !this.highBetterStat;
+
+            return ((this.invertSorting ^ lowStat) ? 1 : -1) * (leftValue - rightValue);
+          }
+
           if (leftKeys.length !== rightKeys.length)
             return rightKeys.length - leftKeys.length;
 
@@ -222,7 +267,11 @@ export default {
           if (leftDone !== rightDone)
             return rightDone - leftDone;
 
-          if ((this.sortingOn === 'worst' || this.sortingOn === 'avg') && lhs.summary && rhs.summary) {
+          if ((this.sortingOn === 'worst' || this.sortingOn === 'avg') && (lhs.summary || rhs.summary)) {
+            if (!rhs.summary && lhs.summary)
+              return -1;
+            if (!lhs.summary)
+              return 1;
             const lhsValue = lhs.summary[this.sortingOn].percentage;
             const rhsValue = rhs.summary[this.sortingOn].percentage;
             // Default (invert = false) means -1 since highest value is best for percentage
@@ -302,7 +351,6 @@ export default {
       }
     },
     sortOn(name) {
-      console.log('sortOn', name, this.sortingOn, this.invertSorting);
       if (this.sortingOn === name) {
         this.invertSorting = !this.invertSorting;
       } else {
@@ -383,6 +431,17 @@ table td {
 }
 
 .failed {
+  min-height: 35px;
+  max-height: 35px;
+  min-width: 35px;
+  font-size: 30px;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  text-align: center;
+}
+
+.missing-data {
   min-height: 35px;
   max-height: 35px;
   min-width: 35px;
