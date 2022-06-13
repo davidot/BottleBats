@@ -1,13 +1,14 @@
+#include <ctime>
+#include <elevated/Simulation.h>
+#include <elevated/algorithm/ProcessAlgorithm.h>
 #include <elevated/generation/FullGenerators.h>
+#include <elevated/generation/factory/NamedScenarios.h>
+#include <elevated/generation/factory/StringSettings.h>
+#include <elevated/stats/ElevatorStatsListener.h>
 #include <elevated/stats/MetaListener.h>
 #include <elevated/stats/PassengerStats.h>
 #include <elevated/stats/PowerStatsListener.h>
 #include <elevated/stats/SpecialEventsListener.h>
-#include <ctime>
-#include <elevated/Simulation.h>
-#include <elevated/algorithm/ProcessAlgorithm.h>
-#include <elevated/generation/factory/NamedScenarios.h>
-#include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -82,6 +83,7 @@ int main(int argc, char** argv) {
 
     auto passenger_stats_listener = simulation.construct_and_add_listener<PassengerStatsListener>();
     auto power_stats = simulation.construct_and_add_listener<PowerStatsListener>();
+    auto elevator_stats = simulation.construct_and_add_listener<ElevatorStatsListener>();
     auto special_stats = simulation.construct_and_add_listener<SpecialEventsListener>();
 
     auto meta_listener = simulation.construct_and_add_listener<MetaListener>();
@@ -97,6 +99,8 @@ int main(int argc, char** argv) {
         std::cout << "Max time door opened: " << passenger_stats_listener->max_times_door_opened() << '\n';
         std::cout << "Power: Doors opened: " << power_stats->times_door_opened() << " total distance travelled: " << power_stats->total_distance_travelled() << " time stopped with passengers: " << power_stats->time_stopped_with_passengers() << '\n';
         std::cout << "Roller coaster events: " << special_stats->total_roller_coaster_events()  << '\n';
+
+        std::cout << "Avg travel distance " << elevator_stats->avg_travel_distance()  << '\n';
         break;
     case SimulatorResult::Type::GenerationFailed:
         std::cout << "Something went wrong in the generation of the scenario\n";
