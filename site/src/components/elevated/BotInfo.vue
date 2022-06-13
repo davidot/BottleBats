@@ -125,6 +125,9 @@ export default {
       setTimeout(() => this.updateIfBuilding(), 1000);
     },
     updateIfBuilding() {
+      if (this.$route.name !== 'bots')
+        return;
+
       if (this.building || !this.cases || this.cases.length === 0) {
         this.getStats();
         this.$emit('build-update');
