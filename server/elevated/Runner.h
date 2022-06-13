@@ -14,14 +14,35 @@ struct SimulationResult {
     bool failed {false};
     std::vector<std::string> messages;
 
-    double avg_wait_time {0};
-    Elevated::Time max_wait_time {0};
+    struct ResultStats {
+        std::string name;
+        std::variant<double, uint64_t, uint32_t> value;
 
-    double avg_travel_time {0};
-    Elevated::Time max_travel_time{0};
+        ResultStats(std::string name_, double val)
+            : name(std::move(name_))
+            , value(val)
+        {
+        }
 
-    Elevated::Time total_time{0};
-    uint64_t power_usage{0};
+        ResultStats(std::string name_, uint64_t val)
+            : name(std::move(name_))
+            , value(val)
+        {
+        }
+
+        ResultStats(std::string name_, uint32_t val)
+            : name(std::move(name_))
+            , value(val)
+        {
+        }
+    };
+
+    std::vector<ResultStats> stats;
+
+    template<typename ValueType>
+    void add_stat(std::string name, ValueType value) {
+        stats.emplace_back(std::move(name), value);
+    }
 };
 
 SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm>, std::unique_ptr<Elevated::ScenarioGenerator>);

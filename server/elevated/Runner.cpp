@@ -79,16 +79,15 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
     auto result = simulation.run();
 
     SimulationResult full_result{};
-    full_result.total_time = simulation.building().current_time();
+    full_result.add_stat("total-time", simulation.building().current_time());
     full_result.messages = std::move(result.output_messages);
 
     if (result.type == Elevated::SimulatorResult::Type::SuccessFull) {
-        full_result.avg_wait_time = passenger_stats->average_wait_time();
-        full_result.max_wait_time = passenger_stats->max_wait_times();
-        full_result.max_travel_time = passenger_stats->max_travel_times();
-        full_result.power_usage = power_stats->time_stopped_with_passengers() + power_stats->times_door_opened() + power_stats->total_distance_travelled();
-        full_result.avg_wait_time = passenger_stats->average_wait_time();
-        full_result.avg_travel_time = passenger_stats->average_travel_time();
+        full_result.add_stat("avg-wait", passenger_stats->average_wait_time());
+        full_result.add_stat("avg-travel", passenger_stats->average_travel_time());
+        full_result.add_stat("max-wait", passenger_stats->max_wait_times());
+        full_result.add_stat("max-travel", passenger_stats->max_travel_times());
+        full_result.add_stat("power", power_stats->time_stopped_with_passengers() + power_stats->times_door_opened() + power_stats->total_distance_travelled());
     } else if (result.type == Elevated::SimulatorResult::Type::AlgorithmRejected) {
         full_result.rejected = true;
     } else {
@@ -169,12 +168,11 @@ void run_and_store_simulation(uint32_t bot_id, uint32_t case_id)
 
     if (success) {
         crow::json::wvalue encoded_result;
-        encoded_result["avg-wait"] = result.avg_wait_time;
-        encoded_result["avg-travel"] = result.avg_travel_time;
-        encoded_result["max-wait"] = result.max_wait_time;
-        encoded_result["max-travel"] = result.max_travel_time;
-        encoded_result["power"] = result.power_usage;
-        encoded_result["total-time"] = result.total_time;
+        for (auto& stat : result.stats) {
+            std::visit([&](auto arg) {
+                encoded_result[stat.name] = arg;
+            }, stat.value);
+        }
 
         output = encoded_result.dump();
     } else {
