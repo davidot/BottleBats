@@ -14,7 +14,7 @@
         <tr>
           <td style="max-width: 250px; min-width: 250px; position: relative;">
             <div>
-              <select v-model="stat">
+              <select v-model="stat" style="width: 90%">
                 <option selected value="avg-wait">Average wait time</option>
                 <option value="avg-travel">Average travel time</option>
                 <option value="power">Power usage</option>
@@ -44,8 +44,8 @@
         </tr>
       </thead>
       <transition-group name="list" tag="tbody">
-        <tr v-for="b in bots" :key="'bot-' + b.id">
-          <td class="bot-name" :title="b.name" :data-bot-id="b.id">
+        <tr v-for="b in bots" :key="'bot-' + b.id" :class="[highlighted.includes(b.id) && 'highlighted']">
+          <td class="bot-name" :title="b.name" :data-bot-id="b.id" @click="toggleHighlight(b.id)">
             <img v-if="b.hasImage" :src="'/api/elevated/bot-image/' + b.id" style="width: 31px; height: 31px" alt="" loading="lazy"/>
             <span style="text-overflow: ellipsis; max-width: calc(100% - 33px); overflow-x: visible">
               {{ b.name }} (by {{ b.author }})
@@ -115,6 +115,7 @@ export default {
       connectionLost: false,
       sortingOn: "name",
       invertSorting: false,
+      highlighted: [],
     };
   },
   provide() {
@@ -236,6 +237,14 @@ export default {
           return Object.assign({ summary: summary, runs: {} }, { id: id, ...val })
         })
         .sort((lhs, rhs) => {
+          const leftHighlighted = this.highlighted.includes(lhs.id);
+          const rightHighlighted = this.highlighted.includes(rhs.id);
+          if (leftHighlighted !== rightHighlighted) {
+            if (leftHighlighted)
+              return -1;
+            return 1;
+          }
+
           const leftKeys = Object.entries(lhs.runs);
           const rightKeys = Object.entries(rhs.runs);
 
@@ -357,7 +366,12 @@ export default {
         this.sortingOn = name;
         this.invertSorting = false;
       }
-      console.log('sortOn', name, this.sortingOn, this.invertSorting);
+    },
+    toggleHighlight(botId) {
+      if (this.highlighted.includes(botId))
+        this.highlighted.splice(this.highlighted.indexOf(botId), 1);
+      else
+        this.highlighted.push(botId);
     }
   },
 };
@@ -470,6 +484,11 @@ table td {
 .leaderboard-holder {
   padding-right: 30px;
   padding-left: 10px;
+}
+
+.highlighted td:first-child {
+  font-weight: bold;
+  outline: #2d6788 groove 2px;
 }
 
 </style>
