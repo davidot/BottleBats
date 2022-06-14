@@ -40,6 +40,7 @@ export default {
   methods: {
     drawImage(img) {
       this.context2D.drawImage(img, 0, 0, this.width, this.height);
+      this.anyDrawn = true;
     },
     draw(event) {
       this.location.x = event.offsetX - 5;
