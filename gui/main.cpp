@@ -291,12 +291,19 @@ int main() {
                 }
             }
 
+            ImGui::SameLine(0, 10.0);
+            if (ImGui::Button("Pause"))
+                tickSpeed = 0;
+
+            ImGui::SameLine(0, 10.0);
+            if (ImGui::Button("Single step") && simulation.has_value() && done != Elevated::Simulation::SimulationDone::Yes)
+                done = simulation->tick();
+
             if (!lastError.empty()) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0, 0, 1.0));
                 ImGui::Text("%s", lastError.c_str());
                 ImGui::PopStyleColor();
             }
-
 
             if (ImGui::SliderInt("Simulation speed", &tickSpeed, -10, 100))
                 tick = 0;
