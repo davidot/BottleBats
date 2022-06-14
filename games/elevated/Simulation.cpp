@@ -84,6 +84,9 @@ Simulation::SimulationDone Simulation::tick()
     do { m_result = {type, messages}; return SimulationDone::Yes; } while(false)
 
     NextRequests next_request_time = m_generator->next_requests_at();
+    if (next_request_time < m_last_requests)
+        STOP_SIMULATION(SimulatorResult::Type::RequestGenerationFailed, {});
+
     if (next_request_time.type == NextRequests::Type::Done && m_building.passengers_done())
         STOP_SIMULATION(SimulatorResult::Type::SuccessFull, {});
 
