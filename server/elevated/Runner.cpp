@@ -78,7 +78,7 @@ SimulationResult run_simulation(std::unique_ptr<Elevated::ElevatedAlgorithm> alg
     auto elevator_stats = simulation.construct_and_add_listener<Elevated::ElevatorStatsListener>();
     auto special_stats = simulation.construct_and_add_listener<Elevated::SpecialEventsListener>();
 
-    auto result = simulation.run();
+    auto result = simulation.run_full_simulation();
 
     SimulationResult full_result{};
     full_result.add_stat("total-time", simulation.building().current_time());

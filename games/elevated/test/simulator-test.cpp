@@ -24,7 +24,7 @@ TEST_CASE("Simulator", "[simulator]") {
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is failed generation") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::GenerationFailed);
@@ -44,7 +44,7 @@ TEST_CASE("Simulator", "[simulator]") {
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is rejected run") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmRejected);
@@ -64,7 +64,7 @@ TEST_CASE("Simulator", "[simulator]") {
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is a run which failed because of no algorithm action") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::NoNextEvent);
@@ -92,7 +92,7 @@ TEST_CASE("Simulator", "[simulator]") {
         auto& algorithm = dynamic_cast<StoringAlgorithm&>(simulation.algorithm());
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is a run which failed because of no algorithm action") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::NoNextEvent);
@@ -124,7 +124,7 @@ TEST_CASE("Simulator", "[simulator]") {
         algorithm.add_response(12, { AlgorithmResponse::move_elevator_to(0, 1) });
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is a run which failed because of no algorithm action") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
@@ -153,7 +153,7 @@ TEST_CASE("Simulator", "[simulator]") {
             algorithm.add_response(7, { AlgorithmResponse::set_timer_at(10), AlgorithmResponse::move_elevator_to(0, 10) });
             algorithm.add_response(10, { AlgorithmResponse::set_timer_at(20), AlgorithmResponse::move_elevator_to(0, 10) });
 
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is a run which passed with the given timer events having been triggered") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
@@ -198,7 +198,7 @@ TEST_CASE("Simulator", "[simulator]") {
         algorithm.add_response(5, { AlgorithmResponse::set_timer_at(2) });
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("The result is a run which failed because of no algorithm action") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmMisbehaved);
@@ -210,7 +210,7 @@ TEST_CASE("Simulator", "[simulator]") {
         Simulation simulation { hardcoded({ { 1, { 0, 10 } } }, { { 10, { { 0, 10, 0 } } }, { 0, { { 0, 10, 0 } } } }, true), std::make_unique<StoringAlgorithm>() };
 
         WHEN("Simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("Fails with request generation") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::RequestGenerationFailed);
@@ -227,7 +227,7 @@ TEST_CASE("Simulator", "[simulator]") {
             algorithm.add_response(t, { AlgorithmResponse::set_timer_at(t + 1000) });
 
         WHEN("Simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("Fails with did not move all passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::FailedToResolveAllRequests);
@@ -243,7 +243,7 @@ TEST_CASE("Simulator", "[simulator]") {
         algorithm.add_response(0, { AlgorithmResponse::algorithm_failed({"Oh no", "Whoops"}) });
 
         WHEN("Simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("Fails with did not move all passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmFailed);
@@ -262,7 +262,7 @@ TEST_CASE("Simulator", "[simulator]") {
         algorithm.add_response(0, { AlgorithmResponse::algorithm_misbehaved({"Naughty", "Disable"}) });
 
         WHEN("Simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("Fails with did not move all passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::AlgorithmMisbehaved);
@@ -295,7 +295,7 @@ TEST_CASE("Simulator", "[simulator]") {
 
         WHEN("The simulation is run") {
 
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("It is successful and got all the passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
@@ -353,7 +353,7 @@ TEST_CASE("Simulator", "[simulator]") {
         listener->elevator_stopped_events.reserve(45000);
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("It is successful and got all the passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);
@@ -385,7 +385,7 @@ TEST_CASE("Simulator", "[simulator]") {
         simulation.add_listener(listener);
 
         WHEN("The simulation is run") {
-            auto result = simulation.run();
+            auto result = simulation.run_full_simulation();
 
             THEN("It is successful and got all the passengers") {
                 REQUIRE(result.type == Elevated::SimulatorResult::Type::SuccessFull);

@@ -17,11 +17,17 @@ struct SimulatorResult {
         AlgorithmMisbehaved,
         AlgorithmFailed,
         NoNextEvent,
-        FailedToResolveAllRequests
+        FailedToResolveAllRequests,
+        Starting,
+        Running,
     };
 
     Type type = Type::SuccessFull;
     std::vector<std::string> output_messages;
+
+    bool is_in_progress() const {
+        return type == Type::Starting || type == Type::Running;
+    }
 };
 
 class Simulation {
@@ -43,8 +49,15 @@ public:
 
     BuildingState const& building() const { return m_building; }
 
-    SimulatorResult run();
+    SimulatorResult run_full_simulation();
 
+    SimulatorResult result() const;
+
+    enum class SimulationDone {
+        Yes,
+        No
+    };
+    SimulationDone tick();
 private:
     bool setup_for_run();
 
@@ -53,7 +66,10 @@ private:
     BuildingState m_building;
     EventDistributor m_event_distributor;
 
-    std::optional<SimulatorResult> result;
+    SimulatorResult m_result{SimulatorResult::Type::Starting, {}};
+
+    Time m_last_requests = 0;
+    std::optional<Time> m_next_timer = 0;
 };
 
 }

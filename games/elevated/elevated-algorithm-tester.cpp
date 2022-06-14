@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 
     auto meta_listener = simulation.construct_and_add_listener<MetaListener>();
 
-    auto result = simulation.run();
+    auto result = simulation.run_full_simulation();
 
     switch (result.type) {
     case SimulatorResult::Type::SuccessFull:
