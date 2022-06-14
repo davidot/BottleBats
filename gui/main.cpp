@@ -8,6 +8,7 @@
 #include "implot.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Clipboard.hpp>
@@ -20,14 +21,17 @@
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 
+const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
-    sf::RenderWindow window(sf::VideoMode(1000, 1000), "Elevated");
+    sf::RenderWindow window(sf::VideoMode(1000, 800), "Elevated");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
+    sf::CircleShape upShape{10.f};
+    upShape.setFillColor(sf::Color::Green);
+    sf::CircleShape downShape{10.f};
+    downShape.setFillColor(sf::Color::Red);
 
     Elevated::VisualGeneratorSettings bSettings;
 
@@ -48,8 +52,40 @@ int main() {
     view.viewSize(500, 500);
 
     std::optional<Elevated::Simulation> simulation;
+    std::optional<Elevated::SimulatorResult> simulation_result;
+    Elevated::Simulation::SimulationDone done = Elevated::Simulation::SimulationDone::Yes;
+    std::vector<Elevated::Height> simulation_floors;
 
     std::vector<std::array<char, 128>> command_text{1};
+    std::array<char, 256> working_dir{};
+    std::string lastError = "";
+
+    struct StoredCase {
+        std::string text;
+        std::optional<Elevated::SimulatorResult> result;
+    };
+
+    std::vector<StoredCase> stored_cases;
+    bool running_all = false;
+    size_t running_case = 0;
+    size_t all_ticks = 0;
+    std::optional<Elevated::Simulation> all_simulator;
+    Elevated::Simulation::SimulationDone all_done = Elevated::Simulation::SimulationDone::Yes;
+
+
+
+    {
+        // FIXME: REMOVE THIS!!
+        command_text.resize(2);
+        command_text[0] = std::array<char, 128> { "python.exe" };
+        command_text[1] = std::array<char, 128> { "cycle.py" };
+        working_dir = std::array<char, 256> { "examples/python" };
+        Elevated::StringSettings initSettings{"split(named-building(basic-1), uniform-random(10000, 0.28, 1))"};
+        factory->visit(initSettings);
+    }
+
+    size_t tick = 0;
+    int tickSpeed = 1;
 
     sf::Clock deltaClock;
     while (window.isOpen()) {
@@ -85,14 +121,28 @@ int main() {
 
         }
 
+        if (done == Elevated::Simulation::SimulationDone::No && simulation.has_value()) {
+            simulation_result.reset();
+            if (tickSpeed < 0) {
+                if (tick == 0) {
+                    done = simulation->tick();
+                    tick = -tickSpeed;
+                } else {
+                    --tick;
+                }
+            } else if (tickSpeed > 0) {
+                for (int i = 0; i < tickSpeed && done != Elevated::Simulation::SimulationDone::Yes; ++i)
+                    done = simulation->tick();
+            }
+        }
+
         ImGui::SFML::Update(window, deltaClock.restart());
 
         if (ImGui::Begin("Factory")) {
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
             bool seedChanged = false;
-            if (ImGui::Button("Regenerate")) {
-                // TODO: invalidate any building
+            if (ImGui::Button("Change seed")) {
                 seed = ((long)(rand() ^ rand()) << 32) + (long)(rand() ^ rand());
                 seedChanged = true;
             }
@@ -135,6 +185,8 @@ int main() {
                     sf::Clipboard::getString().toAnsiString());
                 factory->visit(strSettings);
             }
+            if (ImGui::Button("Add to stored cases"))
+                stored_cases.push_back(StoredCase{settings.value(), std::nullopt});
             if (copied > 0) {
                 copied--;
                 ImGui::SameLine();
@@ -157,6 +209,7 @@ int main() {
                 oldSettingsValue = settings.value();
 
                 blueprint_result = v->generate_building();
+                view.reset();
             }
 
             if (v) {
@@ -206,10 +259,14 @@ int main() {
             ImGui::PopID();
 
             ImGui::Separator();
+            ImGui::Text("Working directory (relative or absolute?)");
+            ImGui::PushID("cwd");
+            ImGui::InputText("", working_dir.data(), working_dir.size());
+            ImGui::PopID();
+
+            ImGui::Separator();
 
             if (ImGui::Button("Run!")) {
-
-
 
                 std::vector<std::string> command;
                 for (auto i = 0; i < 5; ++i) {
@@ -219,17 +276,70 @@ int main() {
                     command.push_back(value);
                 }
 
-                std::cout << "Have command with " << command.size() << " parts!\n";
-
-                if (v) {
-                    if (simulation.has_value())
-                        std::cout << "Overwriting previous simulation\n";
-
-                    simulation = std::move(Elevated::Simulation(std::move(v), std::make_unique<Elevated::ProcessAlgorithm>(command, Elevated::ProcessAlgorithm::InfoLevel::Low, util::SubProcess::StderrState::Forwarded)));
+                if (v && !command.empty()) {
+                    simulation = Elevated::Simulation(
+                        std::move(v),
+                        std::make_unique<Elevated::ProcessAlgorithm>(command,
+                            Elevated::ProcessAlgorithm::InfoLevel::Low,
+                            util::SubProcess::StderrState::Forwarded,
+                            std::string{working_dir.data()}
+                        ));
+                    done = simulation->tick();
+                    simulation_floors = simulation->building().all_floors();
                 } else {
-                    std::cout << "No valid generator right now\n";
+                    lastError = "No valid building";
                 }
             }
+
+            if (!lastError.empty()) {
+                ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0, 0, 1.0));
+                ImGui::Text("%s", lastError.c_str());
+                ImGui::PopStyleColor();
+            }
+
+
+            if (ImGui::SliderInt("Simulation speed", &tickSpeed, -10, 100))
+                tick = 0;
+
+            ImGui::Separator();
+
+            if (ImGui::Button("Run all stored cases")) {
+                running_all = true;
+                running_case = 0;
+                all_simulator.reset();
+            }
+
+            ImGui::PushID("stored-cases");
+            size_t to_remove = -1;
+            for (size_t i = 0; i < stored_cases.size(); ++i) {
+                ImGui::PushID(i);
+                if (ImGui::Button("Remove"))
+                    to_remove = i;
+                ImGui::SameLine(0, 3.0);
+                ImGui::Text("%s", stored_cases[i].text.c_str());
+                ImGui::Indent();
+
+                if (running_all && running_case == i)
+                    ImGui::Text("Loading %c %lu", "|/-\\"[(int)(ImGui::GetTime() / 0.05f) & 3], all_ticks);
+
+                if (stored_cases[i].result.has_value()) {
+                    bool failed = stored_cases[i].result->type != Elevated::SimulatorResult::Type::SuccessFull;
+                    if (failed)
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0, 0, 1.0));
+                    else
+                        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0, 1.0, 0, 1.0));
+                    ImGui::Text("%s", result_to_string(stored_cases[i].result->type));
+                    ImGui::PopStyleColor();
+                }
+
+                ImGui::Unindent();
+                ImGui::PopID();
+            }
+            ImGui::PopID();
+
+            if (to_remove != size_t(-1))
+                stored_cases.erase(std::next(stored_cases.begin(), to_remove));
+
         }
         ImGui::End();
 
@@ -245,17 +355,198 @@ int main() {
             ImGui::Image(texture);
             if (scroll != 0.0 && ImGui::IsWindowHovered()) {
                 view.scroll(static_cast<int>(event.mouseWheelScroll.delta));
+                scroll = 0.0;
             }
         }
         ImGui::End();
 
+        if (done == Elevated::Simulation::SimulationDone::Yes && (simulation_result.has_value() || simulation.has_value())) {
+            if (ImGui::Begin("Result")) {
+                if (!simulation_result.has_value()) {
+                    simulation_result = simulation->result();
+                    simulation.reset();
+                }
+                char const* result_string;
+                auto result_type = simulation_result->type;
+                result_string = result_to_string(result_type);
+                ImGui::Text("%s", result_string);
+                ImGui::PushID("result-message");
+                for (int i = 0; i < simulation_result->output_messages.size(); ++i) {
+                    ImGui::PushID(i);
+                    ImGui::Text("%s", simulation_result->output_messages[i].c_str());
+                    ImGui::PopID();
+                }
+                ImGui::PopID();
+            }
+            ImGui::End();
+        }
+
+
         window.clear();
-        window.draw(shape);
+
+        if (simulation.has_value()) {
+
+            float floorWidth = 250.0;
+            sf::RectangleShape floorShape(sf::Vector2f(floorWidth, 45.0));
+            floorShape.setFillColor(sf::Color::Transparent);
+            floorShape.setOutlineColor(sf::Color::White);
+            floorShape.setOutlineThickness(3);
+
+            for (auto floor : simulation_floors) {
+                double floorHeight = window.getSize().y - 60.0 - 10.0 * floor;
+                floorShape.setPosition(5.0, floorHeight);
+                window.draw(floorShape);
+
+                auto& queue = simulation->building().passengers_at(floor);
+                double spot = floorWidth - 5.0;
+                double offsets[] = {3.0, 20.};
+                size_t i = 0;
+
+                for(auto& passenger : queue) {
+                    bool up = passenger.to > floor;
+                    auto& shape = up ? upShape : downShape;
+                    shape.setPosition(spot, floorHeight + offsets[i % 2]);
+                    spot -= 7.5;
+                    if (spot < -10)
+                        break;
+
+                    window.draw(shape);
+                    ++i;
+                }
+            }
+
+            double elevator_width = 100.0;
+
+            sf::RectangleShape elevatorShape(sf::Vector2f(elevator_width, 45.0));
+            elevatorShape.setFillColor(sf::Color::Transparent);
+            elevatorShape.setOutlineColor(sf::Color::White);
+            elevatorShape.setOutlineThickness(3);
+
+            sf::RectangleShape elevatorTarget(sf::Vector2f(elevator_width, 45.0));
+            elevatorTarget.setFillColor(sf::Color::Transparent);
+            elevatorTarget.setOutlineColor(sf::Color::Red);
+            elevatorTarget.setOutlineThickness(1);
+
+            double elevator_x = floorWidth + 10.0;
+
+            for (Elevated::ElevatorID id = 0; id < simulation->building().num_elevators(); ++id) {
+                auto& elevator = simulation->building().elevator(id);
+                double elevatorHeight = window.getSize().y - 60.0 - 10.0 * elevator.height();
+                double targetHeight = window.getSize().y - 60.0 - 10.0 * elevator.target_height();
+                if (targetHeight != elevatorHeight) {
+                    elevatorTarget.setPosition(elevator_x, targetHeight);
+                    window.draw(elevatorTarget);
+                }
+
+                elevatorShape.setPosition(elevator_x, elevatorHeight);
+                window.draw(elevatorShape);
+
+
+                double spot = elevator_x;
+                double offsets[] = {3.0, 20.};
+                size_t i = 0;
+
+                for (auto& passenger : elevator.passengers()) {
+                    bool up = passenger.to > elevator.height();
+                    auto& shape = up ? upShape : downShape;
+                    shape.setPosition(spot, elevatorHeight + offsets[i % 2]);
+                    spot += 7.5;
+                    if (spot > elevator_x + elevator_width)
+                        break;
+
+                    window.draw(shape);
+                    ++i;
+                }
+
+                elevator_x += elevator_width + 10.;
+            }
+
+
+        }
+
+
         ImGui::SFML::Render(window);
+
+        if (running_all) {
+            if (!all_simulator.has_value()) {
+                if (running_case < stored_cases.size()) {
+                    auto all_factory = Elevated::scenarioFactories().createGenerator("all-root");
+                    Elevated::StringSettings strSettings(stored_cases[running_case].text);
+                    auto generator = all_factory->visit(strSettings);
+
+                    std::vector<std::string> command;
+                    for (auto i = 0; i < 5; ++i) {
+                        std::string value {command_text[i].data()};
+                        if (value.empty())
+                            break;
+                        command.push_back(value);
+                    }
+
+                    if (command.empty()) {
+                        running_all = false;
+                    } else {
+                        stored_cases[running_case].result.reset();
+                        all_simulator = Elevated::Simulation{std::move(generator), std::make_unique<Elevated::ProcessAlgorithm>(command,
+                                                                     Elevated::ProcessAlgorithm::InfoLevel::Low,
+                                                                     util::SubProcess::StderrState::Forwarded,
+                                                                     std::string{working_dir.data()}
+                                                                     )};
+                        all_done = all_simulator->tick();
+                        all_ticks = 1;
+                    }
+                } else {
+                    running_all = false;
+                }
+            } else {
+                if (all_done == Elevated::Simulation::SimulationDone::Yes) {
+                    stored_cases[running_case].result = all_simulator->result();
+                    all_simulator.reset();
+                    ++running_case;
+                }
+            }
+        }
+
+        while (deltaClock.getElapsedTime().asMilliseconds() <= 14 && all_simulator.has_value() && all_done == Elevated::Simulation::SimulationDone::No) {
+            ++all_ticks;
+            all_done = all_simulator->tick();
+        }
+
+
         window.display();
     }
 
     ImGui::SFML::Shutdown();
 
     return 0;
+}
+const char* result_to_string(Elevated::SimulatorResult::Type result_type)
+{
+    const char* result_string;
+    switch (result_type) {
+    case Elevated::SimulatorResult::Type::SuccessFull:
+        result_string = "Successful! :)";
+        break;
+    case Elevated::SimulatorResult::Type::GenerationFailed:
+        result_string = "Something went wrong in the generation of the scenario";
+        break;
+    case Elevated::SimulatorResult::Type::RequestGenerationFailed:
+        result_string = "Something went wrong in the generation of the requests";
+        break;
+    case Elevated::SimulatorResult::Type::AlgorithmRejected:
+        result_string = "Your algorithm rejected this case";
+        break;
+    case Elevated::SimulatorResult::Type::AlgorithmMisbehaved:
+        result_string = "Your algorithm did something which was not allowed";
+        break;
+    case Elevated::SimulatorResult::Type::AlgorithmFailed:
+        result_string = "Your algorithm was too slow to/didn't respond properly";
+        break;
+    case Elevated::SimulatorResult::Type::NoNextEvent:
+        result_string = "There were still requests left to handle but there was nothing to do, (i.e. people are waiting somewhere)";
+        break;
+    case Elevated::SimulatorResult::Type::FailedToResolveAllRequests:
+        result_string = "There was too long a period after the last new request where nothing happened";
+        break;
+    }
+                return result_string;
 }

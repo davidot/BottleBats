@@ -24,6 +24,7 @@ public:
                        const BuildingBlueprint& blueprint);
 
     void scroll(int amount);
+    void reset();
 
     bool viewSize(int width, int height);
 

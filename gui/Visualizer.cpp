@@ -87,6 +87,10 @@ void BuildingView::scroll(int amount) {
     }
 }
 
+void BuildingView::reset() {
+    m_scrollHeight = 0;
+}
+
 bool BuildingView::viewSize(int width, int height) {
     if (width != m_width || height != m_height) {
         m_width = width;
