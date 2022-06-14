@@ -1,8 +1,10 @@
 <template>
-  <span v-if="hasCrown" :class="['poop-crown', isRuben && 'spinning']" :style="{'animation-delay': (Math.random() * 5) + 's', 'animation-duration': (Math.random() * 4.0) + 's'}">
+  <span v-if="hasCrown" :class="['poop-crown', isRuben && 'spinning']"
+        :style="{'animation-delay': (isRuben ? (Math.random() * 5) : '0') + 's', 'animation-duration': (isRuben ? (Math.random() * 4.0 + 2.1) : '0') + 's'}">
     👑
   </span>
-  <span v-if="hasPoop" :class="['poop-crown', isRuben && 'spinning']" :style="{'animation-delay': (Math.random() * 5.2) + 's', 'animation-duration': (Math.random() * 6.5) + 's'}">
+  <span v-if="hasPoop" :class="['poop-crown', isRuben && 'spinning']"
+        :style="{'animation-delay': (isRuben ? (Math.random() * 5.2) : '0') + 's', 'animation-duration': (isRuben ? (Math.random() * 10.5 + 17.3) : '0') + 's'}">
     💩
   </span>
 </template>
@@ -46,7 +48,7 @@ export default {
 /*}*/
 
 .spinning {
-  animation: 0.25s spinning linear infinite;
+  animation: spinning linear infinite;
 }
 
 @keyframes spinning {
@@ -58,10 +60,10 @@ export default {
   }
 
   100% {
-    transform: translateX(250px);
-    /*transform: rotate3d(1, 2, -1, 192deg) scale(1.2);*/
-    /*rotate: 360deg;*/
-    /*opacity: 1;*/
+    /*transform: translateX(250px);*/
+    transform: rotate3d(1, 2, -1, 192deg) scale(1.2);
+    rotate: 360deg;
+    opacity: 1;
   }
 }
 </style>
