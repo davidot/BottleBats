@@ -4,6 +4,8 @@ next_line = read_line()
 
 floors = []
 
+num_elevators = 1
+
 while next_line != 'done':
     next_line = read_line()
 
@@ -12,6 +14,7 @@ while next_line != 'done':
         if int(parts[1]) > 1:
             write_line('reject only work for single groups')
             exit()
+        num_elevators = int(parts[2])
         group = read_line()
         group_parts = group.split(' ')
         if len(group_parts) != 4 or not group.startswith('group '):
@@ -43,7 +46,10 @@ while True:
         break
 
     if next_line.startswith('events 0'):
-        write_line('move 0 ' + str(floors[0]))
+        start_floor = floors[0]
+        for i in range(num_elevators):
+            write_line(f'move {i} ' + str(start_floor))
+            start_floor = next_floors[next_floors[start_floor]]
         write_line('set-timer 100')
 
     if next_line == 'done':
@@ -51,4 +57,5 @@ while True:
     else:
         parts = next_line.split(' ')
         if parts[0] == 'closed':
-            write_line('move 0 ' + str(next_floors[int(parts[3])]))
+
+            write_line(f'move {parts[1]} ' + str(next_floors[int(parts[3])]))
