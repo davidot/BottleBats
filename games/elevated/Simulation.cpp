@@ -171,10 +171,6 @@ Simulation::SimulationDone Simulation::tick()
         }
     }
 
-    next_request_time = m_generator->next_requests_at();
-    if (next_request_time < m_last_requests)
-        STOP_SIMULATION(SimulatorResult::Type::RequestGenerationFailed, {});
-
     return SimulationDone::No;
 #undef STOP_SIMULATION
 }
