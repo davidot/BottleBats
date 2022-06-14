@@ -24,6 +24,17 @@
                 <option value="max-door-open-passenger">Times doors opened on "wrong" floor</option>
                 <option value="rollercoaster-events">Rollercoaster events</option>
                 <option value="avg-stops-until-arrival">Average stops until correct</option>
+                <option value="avg-elevator-travel-distance">Average elevator travel distance</option>
+                <option value="min-elevator-travel-distance">Min elevator travel distance</option>
+                <option value="max-elevator-travel-distance">Max elevator travel distance</option>
+                <option value="sum-elevator-travel-distance">Total elevator travel distance</option>
+                <option value="avg-times-elevator-doors-opened">Average times elevator opened doors</option>
+                <option value="max-times-elevator-doors-opened">Maximum times elevator opened doors</option>
+                <option value="min-times-elevator-doors-opened">Minimum times elevator opened doors</option>
+                <option value="avg-elevator-time-stopped">Average time elevator stopped</option>
+                <option value="min-elevator-time-stopped">Minimum time elevator stopped</option>
+                <option value="max-elevator-time-stopped">Maximum time elevator stopped</option>
+                <option value="travelling-stops-events">Airbag event</option>
               </select>
             </div>
             <div style="position: absolute; bottom: 0" title="Click to sort on names" @click="sortOn('name')">
