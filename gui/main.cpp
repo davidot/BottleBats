@@ -10,6 +10,8 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Font.hpp>
+#include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Clipboard.hpp>
 #include <SFML/Window/Event.hpp>
@@ -21,12 +23,28 @@
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 
+#include "fonts.h"
+
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
     sf::RenderWindow window(sf::VideoMode(1000, 800), "Elevated");
     window.setFramerateLimit(60);
-    ImGui::SFML::Init(window);
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    ImGui::SFML::Init(window, false);
+
+    sf::Font mainFont;
+    {
+        auto& io = ImGui::GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+        ImFontConfig font_cfg{};
+        font_cfg.FontDataOwnedByAtlas = false;
+        auto* font = io.Fonts->AddFontFromMemoryTTF((void*)OpenSansRegular_data, OpenSansRegular_size, 18.0, &font_cfg);
+        io.Fonts->AddFontDefault();
+        ImGui::SFML::UpdateFontTexture();
+        mainFont.loadFromMemory((void*)OpenSansRegular_data, OpenSansRegular_size);
+    }
+
+    sf::Text text{"Hallo", mainFont, 18};
 
     sf::CircleShape upShape{10.f};
     upShape.setFillColor(sf::Color::Green);
@@ -76,10 +94,10 @@ int main() {
 
     {
         // FIXME: REMOVE THIS!!
-        command_text.resize(2);
-        command_text[0] = std::array<char, 128> { "python.exe" };
-        command_text[1] = std::array<char, 128> { "cycle.py" };
-        working_dir = std::array<char, 256> { "examples/python" };
+//        command_text.resize(2);
+//        command_text[0] = std::array<char, 128> { "python.exe" };
+//        command_text[1] = std::array<char, 128> { "cycle.py" };
+//        working_dir = std::array<char, 256> { "examples/python" };
         Elevated::StringSettings initSettings{"split(named-building(basic-1), uniform-random(10000, 0.28, 1))"};
         factory->visit(initSettings);
     }
@@ -519,6 +537,9 @@ int main() {
         }
 
 
+        window.draw(text);
+
+
         window.display();
     }
 
@@ -555,5 +576,5 @@ const char* result_to_string(Elevated::SimulatorResult::Type result_type)
         result_string = "There was too long a period after the last new request where nothing happened";
         break;
     }
-                return result_string;
+    return result_string;
 }
