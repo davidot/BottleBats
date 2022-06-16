@@ -438,6 +438,12 @@ int main() {
                     window.draw(shape);
                     ++i;
                 }
+                sf::Text text{std::to_string(queue.size()), mainFont, 18};
+                text.setOutlineColor(sf::Color::Black);
+                text.setOutlineThickness(1.0);
+                text.setFillColor(sf::Color::White);
+                text.setPosition(10.0, floorHeight + 22.5 - text.getLocalBounds().height / 2.);
+                window.draw(text);
             }
 
             double elevator_width = 100.0;
@@ -482,6 +488,13 @@ int main() {
                     window.draw(shape);
                     ++i;
                 }
+
+                sf::Text text{std::to_string(elevator.passengers().size()), mainFont, 18};
+                text.setOutlineColor(sf::Color::Black);
+                text.setOutlineThickness(1.0);
+                text.setFillColor(sf::Color::White);
+                text.setPosition(elevator_x + 5.0, elevatorHeight + 22.5 - text.getLocalBounds().height / 2.);
+                window.draw(text);
 
                 elevator_x += elevator_width + 10.;
             }
