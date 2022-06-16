@@ -1,23 +1,25 @@
-# Backend
-- [ ] Run tests
-- [ ] Run games async
-- [ ] Store results
-- [ ] Store "special" events
-- [ ] Auto create containers
-  - [ ] "Detect" type 
-  - [ ] Add zig
-
-
-# Web
-- [ ] Uploading files
-  - [ ] Store user data? 
-- [ ] Getting data for leader board
-- [ ] Play vijf game
-- [ ] Show upcoming "events"
-
-Options of web servers:
-- https://gitlab.com/eidheim/Simple-Web-Server
-- https://matt-42.github.io/lithium/
-- https://github.com/CrowCpp/Crow
-
-All use (boost) asio so seems like a good choice 
+## Elevated
+ - [ ] Lib
+   - [ ] Inconsistent behavior of basic-1 case Ruben bot??
+   - [ ] Stats
+     - [ ] Longest queue
+     - [ ] Most elevators opened doors (with group?)
+ - [ ] Server stats
+ - [ ] Requests
+ - [ ] Uptime
+ - [ ] Runs
+ - [ ] ??
+ - [ ] GUI visibility
+   - [ ] Roller coaster events / Airbag events
+   - [x] Numbers on floors and elevators
+ - [ ] GUI usability
+   - [ ] Store program, working dir, last case and stored cases
+   - [ ] Allow running stored case easier
+   - [ ] Load cases from server
+   - [ ] Show live stats of current run
+   - [ ] Auto run on file change in working directory
+   - [ ] Store (small) buffer to rewind
+ - [ ] Bots
+   - [ ] Add "meta" commands to control GUI
+ - [ ] Fun & Extra
+   - [ ] Bots jammen of crm
