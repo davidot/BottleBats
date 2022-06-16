@@ -470,6 +470,11 @@ int main() {
                 }
 
                 elevatorShape.setPosition(elevator_x, elevatorHeight);
+                if (elevator.current_state() == Elevated::ElevatorState::State::Stopped || elevator.current_state() == Elevated::ElevatorState::State::Travelling) {
+                    elevatorShape.setOutlineColor(sf::Color::White);
+                } else {
+                    elevatorShape.setOutlineColor(sf::Color::Blue);
+                }
                 window.draw(elevatorShape);
 
 
