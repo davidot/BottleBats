@@ -85,6 +85,7 @@ add_executable(elevated
         VisualGeneratorSettings.cpp
         ImGui/ImGuiExtensions.cpp
         Visualizer.cpp
+        Config.cpp
         )
 
 target_link_libraries(elevated PUBLIC sfml-graphics LibElevated ImGui-SFML::ImGui-SFML Implot)

@@ -23,6 +23,7 @@
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 
+#include "Config.h"
 #include "fonts.h"
 
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
@@ -30,6 +31,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode(1000, 800), "Elevated");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window, false);
+    Elevated::Config config{};
 
     sf::Font mainFont;
     {
@@ -94,10 +96,10 @@ int main() {
 
     {
         // FIXME: REMOVE THIS!!
-//        command_text.resize(2);
-//        command_text[0] = std::array<char, 128> { "python.exe" };
-//        command_text[1] = std::array<char, 128> { "cycle.py" };
-//        working_dir = std::array<char, 256> { "examples/python" };
+        command_text.resize(2);
+        command_text[0] = std::array<char, 128> { "python.exe" };
+        command_text[1] = std::array<char, 128> { "cycle.py" };
+        working_dir = std::array<char, 256> { "examples/python" };
         Elevated::StringSettings initSettings{"split(named-building(basic-1), uniform-random(10000, 0.28, 1))"};
         factory->visit(initSettings);
     }
@@ -191,7 +193,7 @@ int main() {
                     ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
             }
             if (ImGui::Button("Copy string value") && !disabled) {
-                sf::Clipboard::setString(settings.value());
+                ImGui::SetClipboardText(settings.value().c_str());
                 copied = 90;
             }
             if (disabled) {
@@ -559,6 +561,7 @@ int main() {
 
 
         window.display();
+        config.tick_config(deltaClock.getElapsedTime().asSeconds());
     }
 
     ImGui::SFML::Shutdown();
