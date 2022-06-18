@@ -93,6 +93,7 @@ int main() {
     struct StoredCase {
         std::string text;
         std::optional<Elevated::SimulatorResult> result = std::nullopt;
+        double lastTicks = -1;
     };
 
     std::vector<StoredCase> stored_cases;
@@ -360,8 +361,15 @@ int main() {
                 ImGui::Text("%s", stored_cases[i].text.c_str());
                 ImGui::Indent();
 
-                if (running_all && running_case == i)
-                    ImGui::Text("Loading %c %lu", "|/-\\"[(int)(ImGui::GetTime() / 0.05f) & 3], all_ticks);
+                if (running_all && running_case == i) {
+                    ImGui::Text("Loading %c", "|/-\\"[(int)(ImGui::GetTime() / 0.1f) & 3]);
+                    ImGui::SameLine();
+                    ImGui::SameLine((std::floor(ImGui::GetCursorPosX() / 10.) + 2) * 10);
+                    if (stored_cases[i].lastTicks < 0.)
+                        ImGui::Text(" (??.?%%) %lu ", all_ticks);
+                    else
+                        ImGui::Text(" %3.1f%% %lu ", all_ticks, (all_ticks / stored_cases[i].lastTicks) * 100.);
+                }
 
                 if (stored_cases[i].result.has_value()) {
                     bool failed = stored_cases[i].result->type != Elevated::SimulatorResult::Type::SuccessFull;
@@ -561,6 +569,8 @@ int main() {
             } else {
                 if (all_done == Elevated::Simulation::SimulationDone::Yes) {
                     stored_cases[running_case].result = all_simulator->result();
+                    stored_cases[running_case].lastTicks = all_ticks;
+                    all_ticks = 0;
                     all_simulator.reset();
                     ++running_case;
                 }
