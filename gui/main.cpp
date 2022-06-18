@@ -5,6 +5,7 @@
 #include "Visualizer.h"
 #include "imgui-SFML.h"
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include "implot.h"
 
 #include <SFML/Graphics/CircleShape.hpp>
@@ -80,7 +81,10 @@ int main() {
     std::vector<Elevated::Height> simulation_floors;
 
     std::vector<std::array<char, 128>> command_text{1};
-    std::array<char, 256> working_dir{};
+    std::string working_dir;
+    if (auto& cwd = config.get_value("working-dir"); !cwd.empty())
+        working_dir = cwd[0];
+
     std::string lastError = "";
 
     struct StoredCase {
@@ -284,7 +288,8 @@ int main() {
             ImGui::Separator();
             ImGui::Text("Working directory (relative or absolute?)");
             ImGui::PushID("cwd");
-            ImGui::InputText("", working_dir.data(), working_dir.size());
+            if (ImGui::InputText("", &working_dir))
+                config.set_value("working-dir", {working_dir});
             ImGui::PopID();
 
             ImGui::Separator();
@@ -305,7 +310,7 @@ int main() {
                         std::make_unique<Elevated::ProcessAlgorithm>(command,
                             Elevated::ProcessAlgorithm::InfoLevel::Low,
                             util::SubProcess::StderrState::Forwarded,
-                            std::string{working_dir.data()}
+                            working_dir
                         ));
                     done = simulation->tick();
                     simulation_floors = simulation->building().all_floors();
@@ -567,6 +572,8 @@ int main() {
         config.tick_config(deltaClock.getElapsedTime().asSeconds());
     }
 
+    // Tick config with high value to ensure changes get written if needed
+    config.tick_config(1000.0);
     ImGui::SFML::Shutdown();
 
     return 0;
