@@ -49,6 +49,8 @@ int main() {
 
     sf::Text text{"Hallo", mainFont, 18};
 
+    sf::CircleShape sameShape{10.f};
+    sameShape.setFillColor(sf::Color::Blue);
     sf::CircleShape upShape{10.f};
     upShape.setFillColor(sf::Color::Green);
     sf::CircleShape downShape{10.f};
@@ -486,8 +488,8 @@ int main() {
                 size_t i = 0;
 
                 for (auto& passenger : elevator.passengers()) {
-                    bool up = passenger.to > elevator.height();
-                    auto& shape = up ? upShape : downShape;
+                    auto& shape = passenger.to == elevator.height() ? sameShape :
+                                passenger.to > elevator.height() ? upShape : downShape;
                     shape.setPosition(spot, elevatorHeight + offsets[i % 2]);
                     spot += 7.5;
                     if (spot > elevator_x + elevator_width)
