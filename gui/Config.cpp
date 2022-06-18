@@ -71,6 +71,9 @@ void Config::write_config()
     file << m_last_imgui_data << elevated_separator << '\n';
 
     for (auto& [key, value] : m_own_values) {
+        if (value.empty())
+            continue;
+
         file << "\n[" << key << "]\n";
         for (auto& v : value)
             file << v << '\n';
