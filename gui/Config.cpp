@@ -21,7 +21,7 @@ void Config::read_config()
 
     std::string line;
     {
-        std::stringstream imgui_data;
+        std::ostringstream imgui_data;
 
         while (std::getline(file, line)) {
             if (line.starts_with(elevated_separator))
@@ -30,9 +30,8 @@ void Config::read_config()
             imgui_data << line << '\n';
         }
 
-        auto imgui_view = imgui_data.view();
-        ImGui::LoadIniSettingsFromMemory(imgui_view.data(), imgui_view.size());
-        m_last_imgui_data = imgui_data.str();
+        m_last_imgui_data = std::move(*imgui_data.rdbuf()).str();
+        ImGui::LoadIniSettingsFromMemory(m_last_imgui_data.c_str(), m_last_imgui_data.size());
     }
 
     std::string value_name;
