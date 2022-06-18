@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
+#include <unordered_map>
+
 namespace Elevated {
 
 constexpr char const* filename = "elevated.ini";
@@ -13,13 +16,14 @@ public:
 
     std::vector<std::string> const& get_value(std::string const& name) const;
 
-    void set_value(std::string const& name, std::string const& value);
+    void set_value(std::string const& name, std::vector<std::string> value);
 
     Config();
 private:
     void read_config();
     void write_config();
 
+    std::string m_last_imgui_data;
     float m_config_dirty_timer = 0.0f;
     std::unordered_map<std::string, std::vector<std::string>> m_own_values{};
 };
