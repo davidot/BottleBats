@@ -28,7 +28,8 @@
 
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
-    sf::RenderWindow window(sf::VideoMode(1000, 800), "Elevated");
+    sf::IntRect windowSize{0, 0, 1000, 800};
+    sf::RenderWindow window(sf::VideoMode(windowSize.width, windowSize.height), "Elevated");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window, false);
     Elevated::Config config{};
@@ -420,7 +421,7 @@ int main() {
             floorShape.setOutlineThickness(3);
 
             for (auto floor : simulation_floors) {
-                double floorHeight = window.getSize().y - 60.0 - 10.0 * floor;
+                double floorHeight = windowSize.height - 60.0 - 10.0 * floor;
                 floorShape.setPosition(5.0, floorHeight);
                 window.draw(floorShape);
 
@@ -464,8 +465,8 @@ int main() {
 
             for (Elevated::ElevatorID id = 0; id < simulation->building().num_elevators(); ++id) {
                 auto& elevator = simulation->building().elevator(id);
-                double elevatorHeight = window.getSize().y - 60.0 - 10.0 * elevator.height();
-                double targetHeight = window.getSize().y - 60.0 - 10.0 * elevator.target_height();
+                double elevatorHeight = windowSize.height - 60.0 - 10.0 * elevator.height();
+                double targetHeight = windowSize.height - 60.0 - 10.0 * elevator.target_height();
                 if (targetHeight != elevatorHeight) {
                     elevatorTarget.setPosition(elevator_x, targetHeight);
                     window.draw(elevatorTarget);
