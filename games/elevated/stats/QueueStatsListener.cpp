@@ -1,5 +1,6 @@
 #include "QueueStatsListener.h"
 #include "../../../util/Assertions.h"
+#include <algorithm>
 
 namespace Elevated {
 
