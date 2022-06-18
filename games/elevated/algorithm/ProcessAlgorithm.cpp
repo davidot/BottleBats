@@ -20,8 +20,11 @@ ProcessAlgorithm::ProcessAlgorithm(std::vector<std::string> command, InfoLevel i
 
 ProcessAlgorithm::~ProcessAlgorithm()
 {
-    if (m_process)
-        m_process->writeToWithTimeout("stop\n", 10);
+    if (m_process) {
+        m_process->writeToWithTimeout("stop\n", 50);
+        std::string fake_line;
+        m_process->readLineWithTimeout(fake_line, 50);
+    }
 }
 
 void ProcessAlgorithm::write_building(BuildingGenerationResult const& building, std::ostringstream& stream)
