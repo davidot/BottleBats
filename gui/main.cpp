@@ -80,7 +80,10 @@ int main() {
     Elevated::Simulation::SimulationDone done = Elevated::Simulation::SimulationDone::Yes;
     std::vector<Elevated::Height> simulation_floors;
 
-    std::vector<std::array<char, 128>> command_text{1};
+    auto command_text = config.get_value("command");
+    if (command_text.empty())
+        command_text.resize(1);
+
     std::string working_dir;
     if (auto& cwd = config.get_value("working-dir"); !cwd.empty())
         working_dir = cwd[0];
@@ -89,27 +92,26 @@ int main() {
 
     struct StoredCase {
         std::string text;
-        std::optional<Elevated::SimulatorResult> result;
+        std::optional<Elevated::SimulatorResult> result = std::nullopt;
     };
 
     std::vector<StoredCase> stored_cases;
+    for (auto& config_case : config.get_value("stored-cases"))
+        stored_cases.push_back(StoredCase{config_case});
+
+    auto stored_cases_changed = [&]{
+        std::vector<std::string> strings;
+        strings.reserve(stored_cases.size());
+        for (auto& scenario : stored_cases)
+            strings.push_back(scenario.text);
+        config.set_value("stored-cases", std::move(strings));
+    };
+
     bool running_all = false;
     size_t running_case = 0;
     size_t all_ticks = 0;
     std::optional<Elevated::Simulation> all_simulator;
     Elevated::Simulation::SimulationDone all_done = Elevated::Simulation::SimulationDone::Yes;
-
-
-
-    {
-        // FIXME: REMOVE THIS!!
-        command_text.resize(2);
-        command_text[0] = std::array<char, 128> { "python.exe" };
-        command_text[1] = std::array<char, 128> { "cycle.py" };
-        working_dir = std::array<char, 256> { "examples/python" };
-        Elevated::StringSettings initSettings{"split(named-building(basic-1), uniform-random(10000, 0.28, 1))"};
-        factory->visit(initSettings);
-    }
 
     size_t tick = 0;
     int tickSpeed = 1;
@@ -212,8 +214,10 @@ int main() {
                     sf::Clipboard::getString().toAnsiString());
                 factory->visit(strSettings);
             }
-            if (ImGui::Button("Add to stored cases"))
-                stored_cases.push_back(StoredCase{settings.value(), std::nullopt});
+            if (ImGui::Button("Add to stored cases")) {
+                stored_cases.push_back(StoredCase { settings.value() });
+                stored_cases_changed();
+            }
             if (copied > 0) {
                 copied--;
                 ImGui::SameLine();
@@ -278,12 +282,15 @@ int main() {
             else if (command_text.size() > 2 && command_text[command_text.size() - 2u][0] == '\0')
                 command_text.pop_back();
 
+            bool changed = false;
             for (auto i = 0; i < command_text.size(); ++i) {
                 ImGui::PushID(i);
-                ImGui::InputText("", command_text[i].data(), command_text[i].size());
+                changed |= ImGui::InputText("", &command_text[i]);
                 ImGui::PopID();
             }
             ImGui::PopID();
+            if (changed)
+                config.set_value("command", command_text);
 
             ImGui::Separator();
             ImGui::Text("Working directory (relative or absolute?)");
@@ -297,11 +304,10 @@ int main() {
             if (ImGui::Button("Run!")) {
 
                 std::vector<std::string> command;
-                for (auto i = 0; i < 5; ++i) {
-                    std::string value {command_text[i].data()};
-                    if (value.empty())
+                for (auto& part : command_text) {
+                    if (part.empty())
                         break;
-                    command.push_back(value);
+                    command.push_back(part);
                 }
 
                 if (v && !command.empty()) {
@@ -372,8 +378,10 @@ int main() {
             }
             ImGui::PopID();
 
-            if (to_remove != size_t(-1))
+            if (to_remove != size_t(-1)) {
                 stored_cases.erase(std::next(stored_cases.begin(), to_remove));
+                stored_cases_changed();
+            }
 
         }
         ImGui::End();
