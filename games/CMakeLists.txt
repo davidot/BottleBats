@@ -78,5 +78,5 @@ target_link_libraries(elevated-tester PUBLIC LibElevated)
 add_test(NAME elevated-protocol-test COMMAND elevated-tester python3 examples/python/cycle.py WORKING_DIRECTORY ..)
 add_test(NAME elevated-protocol-test2 COMMAND elevated-tester python3 examples/python/random_travel.py WORKING_DIRECTORY ..)
 
-add_test(NAME elevated-cwd-test1 COMMAND elevated-tester --cwd examples/ python3 python/random_travel.py WORKING_DIRECTORY ..)
-add_test(NAME elevated-cwd-test2 COMMAND elevated-tester --cwd examples/python python3 random_travel.py WORKING_DIRECTORY ..)
+add_test(NAME elevated-cwd-test1 COMMAND elevated-tester --gen "named-scenario(basic-1)" --cwd examples/ python3 python/random_travel.py WORKING_DIRECTORY ..)
+add_test(NAME elevated-cwd-test2 COMMAND elevated-tester --gen "named-scenario(ruben-2-2)" --cwd examples/python python3 random_travel.py WORKING_DIRECTORY ..)
