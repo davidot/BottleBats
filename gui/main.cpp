@@ -1,5 +1,4 @@
 #include "ImGui/ImGuiExtensions.h"
-#include "ImGui/ImGuiSFMLExtensions.h"
 #include "ImGui/ImPlotExtensions.h"
 #include "VisualGeneratorSettings.h"
 #include "Visualizer.h"
@@ -11,6 +10,7 @@
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Text.hpp>
 #include <SFML/System/Clock.hpp>
@@ -33,6 +33,7 @@ int main() {
     sf::RenderWindow window(sf::VideoMode(windowSize.width, windowSize.height), "Elevated");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window, false);
+    ImPlot::CreateContext();
     Elevated::Config config{};
 
     sf::Font mainFont;
@@ -167,6 +168,9 @@ int main() {
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());
+
+        ImGui::ShowDemoWindow();
+        ImPlot::ShowDemoWindow();
 
         if (ImGui::Begin("Factory")) {
             ImGui::TextWrapped("%ld", seed);
@@ -433,6 +437,30 @@ int main() {
         }
 
 
+        static std::vector<double> valuesX;
+        static std::vector<double> valuesY;
+        static double xxx = 0;
+
+        if (xxx < 10.) {
+            valuesX.push_back(xxx);
+            valuesY.push_back(rand() % 10);
+
+
+            xxx += .05;
+        }
+
+
+        if (ImGui::Begin("Statistics")) {
+//            ImPlot::SetNextPlotLimitsY(0, 75);
+            if (ImPlot::BeginPlot("Users")) {
+                ImPlot::SetupAxisLimits(ImAxis_X1, 0, xxx, ImGuiCond_Always);
+                ImPlot::PlotLine("Test", valuesX.data(), valuesY.data(), valuesX.size());
+                ImPlot::VerticalLine(5, ImPlot::fromSFMLColor(sf::Color::Yellow));
+                ImPlot::EndPlot();
+            }
+        }
+        ImGui::End();
+
         window.clear();
 
         if (simulation.has_value()) {
@@ -544,8 +572,7 @@ int main() {
                     auto generator = all_factory->visit(strSettings);
 
                     std::vector<std::string> command;
-                    for (auto i = 0; i < 5; ++i) {
-                        std::string value {command_text[i].data()};
+                    for (auto& value : command_text) {
                         if (value.empty())
                             break;
                         command.push_back(value);
@@ -558,7 +585,7 @@ int main() {
                         all_simulator = Elevated::Simulation{std::move(generator), std::make_unique<Elevated::ProcessAlgorithm>(command,
                                                                      Elevated::ProcessAlgorithm::InfoLevel::Low,
                                                                      util::SubProcess::StderrState::Forwarded,
-                                                                     std::string{working_dir.data()}
+                                                                     working_dir
                                                                      )};
                         all_done = all_simulator->tick();
                         all_ticks = 1;
@@ -592,6 +619,7 @@ int main() {
 
     // Tick config with high value to ensure changes get written if needed
     config.tick_config(1000.0);
+    ImPlot::DestroyContext();
     ImGui::SFML::Shutdown();
 
     return 0;

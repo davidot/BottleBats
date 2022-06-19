@@ -1,7 +1,7 @@
 fetchcontent_declare(
         sfml
         GIT_REPOSITORY https://github.com/SFML/SFML
-        GIT_TAG 2.5.1
+        GIT_TAG 12c091e0ce57675526b55297c856968e8800a3e2
         GIT_PROGRESS TRUE
 )
 
@@ -26,7 +26,7 @@ endif ()
 fetchcontent_declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui
-        GIT_TAG 90ea7e2f2f3c4096a58b8bd14c274d80ae63e1ce
+        GIT_TAG e135cdbc247490df2e070ad515bec0cd18ecce6f
         GIT_PROGRESS TRUE
 )
 
@@ -40,7 +40,7 @@ endif ()
 fetchcontent_declare(
         imgui-sfml
         GIT_REPOSITORY https://github.com/eliasdaler/imgui-sfml
-        GIT_TAG c518f2868bd91454ef97a74c6e27957bf9b7bf21
+        GIT_TAG a80d9547832c57a149cda452ed9456def5bb6328
         GIT_PROGRESS TRUE
 )
 
@@ -50,6 +50,9 @@ if (NOT imgui-sfml_POPULATED)
 
     # Set relevant vars
     set(IMGUI_DIR ${imgui_SOURCE_DIR})
+    # This is a hacky way to force imconfig settings, this may infact be written multiple times
+    # which is why the #undef is also written.
+    file(APPEND ${imgui_SOURCE_DIR}/imconfig.h "\n#undef ImDrawIdx\n#define ImDrawIdx unsigned int")
     set(IMGUI_SFML_FIND_SFML CACHE BOOL FALSE)
     set(IMGUI_SFML_IMGUI_DEMO ON)
 
@@ -64,7 +67,7 @@ endif ()
 fetchcontent_declare(
         implot
         GIT_REPOSITORY https://github.com/epezent/implot
-        GIT_TAG 4d4cac629b0edcda6f8d99d5f34225a7d0878509
+        GIT_TAG dbb461db24b44410786e6fad6cffa3f98656b357
         GIT_PROGRESS TRUE
 )
 
@@ -73,7 +76,7 @@ if (NOT implot_POPULATED)
     FetchContent_Populate(implot)
 
     add_library(Implot INTERFACE)
-    target_sources(Implot INTERFACE ${implot_SOURCE_DIR}/implot.h ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_demo.cpp)
+    target_sources(Implot INTERFACE ${implot_SOURCE_DIR}/implot.cpp ${implot_SOURCE_DIR}/implot_items.cpp ${implot_SOURCE_DIR}/implot_demo.cpp)
     target_include_directories(Implot INTERFACE ${implot_SOURCE_DIR})
 endif ()
 
