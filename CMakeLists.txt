@@ -41,15 +41,15 @@ else()
 endif()
 
 add_library(SubProcess INTERFACE)
-target_sources(SubProcess PUBLIC util/Process_Base.cpp)
+target_sources(SubProcess PUBLIC util/Process_Base.cpp util/FileWatcher_Base.cpp)
 
 if (UNIX)
     target_compile_definitions(SubProcess INTERFACE POSIX_PROCESS=1)
-    target_sources(SubProcess INTERFACE util/Process_Unix.cpp)
+    target_sources(SubProcess INTERFACE util/Process_Unix.cpp util/FileWatcher_Unix.cpp)
     target_link_libraries(SubProcess INTERFACE pthread)
 elseif(WIN32)
     target_compile_definitions(SubProcess INTERFACE WINDOWS_PROCESS=1 WIN32_WINNT=0x0A00 WIN32_LEAN_AND_MEAN=1)
-    target_sources(SubProcess INTERFACE util/Process_Windows.cpp)
+    target_sources(SubProcess INTERFACE util/Process_Windows.cpp util/FileWatcher_Windows.cpp)
 elseif (MINGW)
     message(ERROR "Do not support MINGW at the moment")
     # Explicitly target Windows 10. This allows us to use features that are only available on newer versions of Windows.
