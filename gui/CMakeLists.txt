@@ -11,6 +11,10 @@ set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
 set(SFML_USE_STATIC_STD_LIBS TRUE CACHE BOOL "" FORCE)
 set(BUILD_SHARED_LIBS FALSE CACHE BOOL "" FORCE)
 
+if (WIN32)
+    set(WARNINGS_AS_ERRORS FALSE)
+endif()
+
 FetchContent_GetProperties(sfml)
 if (NOT sfml_POPULATED)
     FetchContent_Populate(sfml)
@@ -22,6 +26,10 @@ if (NOT sfml_POPULATED)
         set_property(TARGET sfml-main PROPERTY INTERPROCEDURAL_OPTIMIZATION False)
     endif ()
 endif ()
+
+if (WIN32)
+    unset(WARNINGS_AS_ERRORS)
+endif()
 
 fetchcontent_declare(
         imgui
