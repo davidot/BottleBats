@@ -28,7 +28,7 @@ private:
     static bool setup(FileWatcher& watcher, std::string const& path);
 
 #ifdef POSIX_PROCESS
-
+    int m_fd{};
 #elif WINDOWS_PROCESS
     HANDLE m_directory = nullptr;
     OVERLAPPED m_overlapped;
