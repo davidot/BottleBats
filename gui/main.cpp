@@ -24,6 +24,7 @@
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 
+#include "../util/FileWatcher.h"
 #include "Config.h"
 #include "fonts.h"
 
@@ -48,6 +49,9 @@ int main() {
         ImGui::SFML::UpdateFontTexture();
         mainFont.loadFromMemory((void*)OpenSansRegular_data, OpenSansRegular_size);
     }
+
+    std::unique_ptr<util::FileWatcher> dir_watcher = util::FileWatcher::create("examples/python");
+    ASSERT(dir_watcher);
 
     sf::Text text{"Hallo", mainFont, 18};
 
@@ -173,6 +177,10 @@ int main() {
         ImPlot::ShowDemoWindow();
 
         if (ImGui::Begin("Factory")) {
+            if (dir_watcher->has_changed()) {
+                ImGui::Text("Change!");
+            }
+
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
             bool seedChanged = false;
