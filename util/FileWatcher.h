@@ -1,6 +1,7 @@
 #include <memory>
 #include <string>
 #include <string_view>
+#include <functional>
 
 #ifdef POSIX_PROCESS
 #elif defined(WINDOWS_PROCESS)
