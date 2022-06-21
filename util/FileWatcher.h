@@ -6,8 +6,9 @@
 #ifdef POSIX_PROCESS
 #elif defined(WINDOWS_PROCESS)
 #pragma warning(push, 0)
-#    include <functional>
+#    define NOMINMAX
 #    include <windows.h>
+#    undef NOMINMAX
 #    pragma warning(pop)
 #else
 #error Must define one of POSIX_PROCESS or WINDOWS_PROCESS

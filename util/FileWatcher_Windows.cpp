@@ -59,12 +59,16 @@ bool FileWatcher::has_changed(const std::function<bool(std::string_view)>& chang
     auto* info = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(m_buffer.start);
 
     bool result = false;
+    size_t filename_in_chars = 0;
+    char filename_buffer[256];
+    filename_buffer[255] = 0;
 
     for(;;) {
         if(info->Action == FILE_ACTION_MODIFIED) {
-            // FIXME: Convert and check with file filter
-            wprintf(L"       Added: %.*s\n", info->FileNameLength, info->FileName);
-            result = true;
+            wcstombs_s(&filename_in_chars, filename_buffer, info->FileName, std::min(info->FileNameLength / sizeof(wchar_t), sizeof(filename_buffer) - 1ul));
+            std::string_view filename {filename_buffer, filename_in_chars};
+            if (!filename.empty() && change_filter(filename))
+                result = true;
         }
 
         if(info->NextEntryOffset) {
