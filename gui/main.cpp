@@ -90,8 +90,8 @@ int main() {
         command_text.resize(1);
 
     std::string working_dir;
-    if (auto& cwd = config.get_value("working-dir"); !cwd.empty())
-        working_dir = cwd[0];
+    if (auto& cwd = config.get_single_value("working-dir"); !cwd.empty())
+        working_dir = cwd;
 
     std::string lastError = "";
 
@@ -323,7 +323,7 @@ int main() {
             ImGui::Text("Working directory (relative or absolute?)");
             ImGui::PushID("cwd");
             if (ImGui::InputText("", &working_dir))
-                config.set_value("working-dir", {working_dir});
+                config.set_single_value("working-dir", working_dir);
             ImGui::PopID();
 
             static bool rerun_on_file_change = true;
