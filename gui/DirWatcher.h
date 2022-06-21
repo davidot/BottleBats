@@ -13,10 +13,10 @@ public:
 
     void render_imgui_config(bool force_change);
 
-    bool update();
+    bool update(float seconds_passed);
 
 private:
-    void rebuild_filter(bool dir_changed = false);
+    void rebuild_watcher(bool dir_changed = false);
     void write_to_config();
 
     Config& m_config;
@@ -24,12 +24,21 @@ private:
 
     bool m_rerun_on_change = true;
 
-    int m_filter_type = 0;
+
+    enum FilterType : int {
+        Anything = 0,
+        ExactMatch = 1,
+        NameContains = 2,
+        EndsWith = 3,
+        AnythingUnlessContains = 4,
+    };
+
+    int m_filter_type = Anything;
     std::string m_filter_value = "";
 
     float m_throttle_time = 5.0;
 
-    float m_until_update = -1.;
+    float m_until_update = -0.;
     std::unique_ptr<util::FileWatcher> m_dir_watcher;
 };
 

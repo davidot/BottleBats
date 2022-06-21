@@ -24,7 +24,6 @@
 #include <elevated/generation/factory/StringSettings.h>
 #include <iostream>
 
-#include "../util/FileWatcher.h"
 #include "Config.h"
 #include "DirWatcher.h"
 #include "fonts.h"
@@ -125,6 +124,8 @@ int main() {
     int tickSpeed = 1;
 
     sf::Clock deltaClock;
+    bool rebuild_because_filechange = false;
+
     while (window.isOpen()) {
         sf::Event event;
         float scroll = 0;
@@ -174,12 +175,13 @@ int main() {
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());
-        dir_watcher.update();
 
         ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
         if (ImGui::Begin("Factory")) {
+            if (rebuild_because_filechange)
+                ImGui::Text("Updating because of file change!!");
 //            static std::unordered_set<std::string> changed_files;
 //            if (dir_watcher->has_changed([&](std::string_view filename) {
 //                    return changed_files.emplace(filename).second;
@@ -325,10 +327,11 @@ int main() {
             ImGui::Separator();
             ImGui::Text("Working directory (relative or absolute?)");
             ImGui::PushID("cwd-and-rerun");
-            if (ImGui::InputText("", &working_dir))
+            bool working_dir_changed = ImGui::InputText("", &working_dir);
+            if (working_dir_changed)
                 config.set_single_value("working-dir", working_dir);
 
-            dir_watcher.render_imgui_config();
+            dir_watcher.render_imgui_config(working_dir_changed);
             ImGui::PopID();
 
             ImGui::Separator();
@@ -642,6 +645,7 @@ int main() {
 
         window.display();
         config.tick_config(deltaClock.getElapsedTime().asSeconds());
+        rebuild_because_filechange = dir_watcher.update(deltaClock.getElapsedTime().asSeconds());
     }
 
     // Tick config with high value to ensure changes get written if needed
