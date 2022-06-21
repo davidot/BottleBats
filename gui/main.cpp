@@ -26,6 +26,7 @@
 
 #include "../util/FileWatcher.h"
 #include "Config.h"
+#include "DirWatcher.h"
 #include "fonts.h"
 
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
@@ -50,8 +51,9 @@ int main() {
         mainFont.loadFromMemory((void*)OpenSansRegular_data, OpenSansRegular_size);
     }
 
-    std::unique_ptr<util::FileWatcher> dir_watcher = util::FileWatcher::create("examples/python");
-    ASSERT(dir_watcher);
+    Elevated::DirWatcher dir_watcher{config};
+//    std::unique_ptr<util::FileWatcher> dir_watcher = util::FileWatcher::create("examples/python");
+//    ASSERT(dir_watcher);
 
     sf::Text text{"Hallo", mainFont, 18};
 
@@ -172,28 +174,29 @@ int main() {
         }
 
         ImGui::SFML::Update(window, deltaClock.restart());
+        dir_watcher.update();
 
         ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
         if (ImGui::Begin("Factory")) {
-            static std::unordered_set<std::string> changed_files;
-            if (dir_watcher->has_changed([&](std::string_view filename) {
-                    return changed_files.emplace(filename).second;
-                })) {
-                ImGui::Text("Change!");
-            }
-
-            ImGui::PushID("changed-files");
-
-            int i = 0;
-            for (auto const& str : changed_files) {
-                ImGui::PushID(i++);
-                ImGui::Text("%s", str.c_str());
-                ImGui::PopID();
-            }
-
-            ImGui::PopID();
+//            static std::unordered_set<std::string> changed_files;
+//            if (dir_watcher->has_changed([&](std::string_view filename) {
+//                    return changed_files.emplace(filename).second;
+//                })) {
+//                ImGui::Text("Change!");
+//            }
+//
+//            ImGui::PushID("changed-files");
+//
+//            int i = 0;
+//            for (auto const& str : changed_files) {
+//                ImGui::PushID(i++);
+//                ImGui::Text("%s", str.c_str());
+//                ImGui::PopID();
+//            }
+//
+//            ImGui::PopID();
 
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
@@ -321,46 +324,12 @@ int main() {
 
             ImGui::Separator();
             ImGui::Text("Working directory (relative or absolute?)");
-            ImGui::PushID("cwd");
+            ImGui::PushID("cwd-and-rerun");
             if (ImGui::InputText("", &working_dir))
                 config.set_single_value("working-dir", working_dir);
+
+            dir_watcher.render_imgui_config();
             ImGui::PopID();
-
-            static bool rerun_on_file_change = true;
-            ImGui::Checkbox("Re-run on file change in working directory", &rerun_on_file_change);
-
-            if (rerun_on_file_change) {
-                ImGui::Indent();
-                static int file_filter = 0;
-                static float until_update = -1.;
-                static float throttle_time = 5.0;
-
-                if (ImGui::Combo("File change filter", &file_filter, {"Any change", "Only file with filename:", "Only file(s) containing:", "Only files ending with:"}))
-                    until_update = throttle_time;
-
-                static std::string file_filter_value = "";
-                if (file_filter != 0)
-                    ImGui::InputText("Filter value", &file_filter_value);
-
-
-                ImGui::SliderFloat("Throttle time", &throttle_time, 0.0, 10.0, "%.3f");
-                if (throttle_time < 0.)
-                    throttle_time = 0;
-
-                if (until_update > 0.)
-                    until_update -= ImGui::GetIO().DeltaTime;
-                else if (until_update < 0.) {
-                    // FIXME: Rerun simulation
-                    until_update = 0.;
-                }
-
-                if (throttle_time > 0) {
-                    std::string label = "Updating in " + std::to_string(int(until_update * 10.) / 10.) + " s";
-                    ImGui::ProgressBar(until_update / throttle_time, ImVec2(-FLT_MIN, 0), label.c_str());
-                }
-
-                ImGui::Unindent();
-            }
 
             ImGui::Separator();
 
