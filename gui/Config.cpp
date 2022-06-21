@@ -97,6 +97,7 @@ void Config::tick_config(float delta_in_seconds)
 }
 
 static const std::vector<std::string> empty_value;
+static const std::string empty_single_value;
 
 std::vector<std::string> const& Config::get_value(std::string const& name) const
 {
@@ -114,6 +115,19 @@ void Config::set_value(std::string const& name, std::vector<std::string> values)
         m_own_values.insert_or_assign(name, std::move(values));
     if (m_config_dirty_timer <= 0.0f)
         m_config_dirty_timer = 5.0f;
+}
+
+std::string const& Config::get_single_value(const std::string& name, std::string const& default_value) const
+{
+    auto& value = get_value(name);
+    if (value.empty())
+        return default_value;
+    return value.front();
+}
+
+void Config::set_single_value(const std::string& name, std::string value)
+{
+    set_value(name, {std::move(value)});
 }
 
 }
