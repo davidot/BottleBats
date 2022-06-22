@@ -38,7 +38,7 @@ private:
 
     float m_throttle_time = 5.0;
 
-    float m_until_update = -0.;
+    float m_until_update = 0.;
     std::unique_ptr<util::FileWatcher> m_dir_watcher;
 };
 
