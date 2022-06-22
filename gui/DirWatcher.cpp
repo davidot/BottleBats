@@ -3,6 +3,8 @@
 #include "misc/cpp/imgui_stdlib.h"
 #include <array>
 #include <charconv>
+#include <iostream>
+#include <unordered_set>
 
 namespace Elevated {
 
@@ -43,8 +45,6 @@ void DirWatcher::render_imgui_config(bool dir_changed)
     if (ImGui::Checkbox("Re-run on file change in working directory", &m_rerun_on_change))
         any_change = true;
 
-
-
     if (m_rerun_on_change) {
         ImGui::Indent();
 
@@ -56,6 +56,8 @@ void DirWatcher::render_imgui_config(bool dir_changed)
             if (ImGui::InputText("Filter value", &m_filter_value))
                 any_change = true;
         }
+
+        ImGui::Text("_%s_ %d", m_filter_value.c_str(), std::string_view{"elevate.py"}.ends_with(m_filter_value));
 
         if (ImGui::SliderFloat("Throttle time", &m_throttle_time, 0.0, 10.0, "%.3f"))
             any_change = true;
@@ -79,6 +81,38 @@ void DirWatcher::render_imgui_config(bool dir_changed)
             ImGui::ProgressBar(value, ImVec2(-FLT_MIN, 0), label.c_str());
         } else {
             ImGui::ProgressBar(1.0, ImVec2(-FLT_MIN, 0), "Instant updates");
+        }
+
+        if (ImGui::CollapsingHeader("Last changes")) {
+            if (ImGui::BeginTable("##recent-file-changes", 3, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV))
+            {
+                ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+                ImGui::TableNextColumn();
+                ImGui::Text("Filename");
+                ImGui::TableNextColumn();
+                ImGui::Text("When");
+                ImGui::TableNextColumn();
+                ImGui::Text("Accepted");
+
+                for (auto& change : m_recent_file_changes) {
+                    ImGui::TableNextRow(ImGuiTableRowFlags_None);
+                    ImGui::TableNextColumn();
+                    ImGui::Text("_%s_", change.filename.c_str());
+                    ImGui::TableNextColumn();
+                    double seconds_ago = ImGui::GetTime() - change.at_time;
+                    if (seconds_ago >= 100.)
+                        ImGui::Text("%4.1f minutes ago", seconds_ago / 60.);
+                    else
+                        ImGui::Text("%4.1f seconds ago", seconds_ago);
+
+                    ImGui::TableNextColumn();
+                    ImGui::BeginDisabled();
+                    ImGui::Checkbox("##file-accepted", &change.accepted);
+                    ImGui::EndDisabled();
+                }
+                ImGui::EndTable();
+            }
+
         }
 
         ImGui::Unindent();
@@ -115,22 +149,46 @@ bool DirWatcher::update(float seconds_passed)
     if (!m_rerun_on_change)
         return false;
 
-    auto any_change = m_dir_watcher->has_changed([&](std::string_view filename) {
+    m_update_toggle = !m_update_toggle;
+
+    std::unordered_set<std::string_view> seen_files;
+
+    auto any_change = m_update_toggle && m_dir_watcher->has_changed([&](std::string_view filename) {
+        bool result = false;
+        std::string_view filter_value {m_filter_value};
+
         switch (m_filter_type) {
         case FilterType::Anything:
-            return true;
+            result = true;
+            break;
         case FilterType::ExactMatch:
-            return filename == m_filter_value;
+            result = filename == filter_value;
+            break;
         case FilterType::NameContains:
-            return filename.find(m_filter_value) != std::string::npos;
+            result = filename.find(filter_value) != std::string::npos;
+            break;
         case FilterType::EndsWith:
-            return filename.ends_with(m_filter_value);
+            result = filename.ends_with(filter_value);
+            std::cout << "    " << filename << "\n    " << filter_value << '\n';
+            std::cout << filename.ends_with(filter_value) << ", " << filename.find(filter_value) << ", " << filename.ends_with(filter_value.back()) << std::endl;
+            break;
         case FilterType::AnythingUnlessContains:
-            return filename.find(m_filter_value) == std::string::npos;
+            result = filename.find(filter_value) == std::string::npos;
+            break;
         }
 
-        return false;
+        if (!seen_files.contains(filename)) {
+            m_recent_file_changes.push_front({std::string { filename }, result, ImGui::GetTime()});
+            seen_files.insert(m_recent_file_changes.front().filename);
+        }
+
+        return result;
     });
+
+    if (!seen_files.empty()) {
+        while (m_recent_file_changes.size() > 10)
+            m_recent_file_changes.pop_back();
+    }
 
     if (m_until_update > 0.) {
         m_until_update -= seconds_passed;

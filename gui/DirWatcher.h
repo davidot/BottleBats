@@ -4,6 +4,7 @@
 #include "../util/FileWatcher.h"
 #include <string>
 #include <memory>
+#include <deque>
 
 namespace Elevated {
 
@@ -40,6 +41,17 @@ private:
 
     float m_until_update = 0.;
     std::unique_ptr<util::FileWatcher> m_dir_watcher;
+
+    struct FileChange {
+        std::string filename = "";
+        bool accepted = false;
+        double at_time = 0.;
+    };
+
+    std::deque<FileChange> m_recent_file_changes;
+
+    bool m_update_toggle;
+
 };
 
 }
