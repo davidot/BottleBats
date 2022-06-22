@@ -77,6 +77,8 @@ void DirWatcher::render_imgui_config(bool dir_changed)
             }
 
             ImGui::ProgressBar(value, ImVec2(-FLT_MIN, 0), label.c_str());
+        } else {
+            ImGui::ProgressBar(1.0, ImVec2(-FLT_MIN, 0), "Instant updates");
         }
 
         ImGui::Unindent();
