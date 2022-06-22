@@ -8,7 +8,6 @@ namespace Elevated {
 
 Config::Config()
 {
-    ImGui::GetIO().IniFilename = nullptr;
     read_config();
 }
 
@@ -31,7 +30,6 @@ void Config::read_config()
         }
 
         m_last_imgui_data = std::move(*imgui_data.rdbuf()).str();
-        ImGui::LoadIniSettingsFromMemory(m_last_imgui_data.c_str(), m_last_imgui_data.size());
     }
 
     std::string value_name;
@@ -62,6 +60,12 @@ void Config::read_config()
         m_own_values.emplace(std::move(value_name), std::move(values));
         value_name.clear();
     }
+}
+
+void Config::load_imgui_settings()
+{
+    ImGui::GetIO().IniFilename = nullptr;
+    ImGui::LoadIniSettingsFromMemory(m_last_imgui_data.c_str(), m_last_imgui_data.size());
 }
 
 void Config::write_config()

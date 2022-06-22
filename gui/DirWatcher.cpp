@@ -8,28 +8,16 @@
 
 namespace Elevated {
 
-template<typename T>
-static T read_from_string(std::string const& value, T default_value)
-{
-    if (value.empty())
-        return default_value;
-    T val;
-    auto [ptr, ec] { std::from_chars(value.data(), value.data() + value.size(), val) };
-    if (ec != std::errc{})
-        return default_value;
-    return val;
-}
-
 DirWatcher::DirWatcher(Config& config)
     : m_config(config)
 {
     m_filter_value = m_config.get_single_value("rerun-filter-value");
     m_rerun_on_change = m_config.get_single_value("rerun-on-change") == "true";
-    m_filter_type = read_from_string<int>(m_config.get_single_value("rerun-filter-type"), 0);
+    m_filter_type = m_config.get_number_setting<int>("rerun-filter-type", 0);
     if (m_filter_type < 0 || m_filter_type > 4)
         m_filter_type = 4;
 
-    m_throttle_time = read_from_string<float>(m_config.get_single_value("rerun-throttle-time"), 5.0);
+    m_throttle_time = m_config.get_number_setting<float>("rerun-throttle-time", 5.0);
     if (m_throttle_time < 0.)
         m_throttle_time = 0.;
 
@@ -211,8 +199,8 @@ void DirWatcher::write_to_config()
 {
     m_config.set_single_value("rerun-on-change", m_rerun_on_change ? "true" : "false");
     m_config.set_single_value("rerun-filter-value", m_filter_value);
-    m_config.set_single_value("rerun-filter-type", std::to_string(m_filter_type));
-    m_config.set_single_value("rerun-throttle-time", std::to_string(m_throttle_time));
+    m_config.set_number_setting("rerun-filter-type", m_filter_type);
+    m_config.set_number_setting("rerun-throttle-time", m_throttle_time);
 }
 
 }

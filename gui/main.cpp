@@ -30,12 +30,14 @@
 
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
+    Elevated::Config config{};
+
     sf::IntRect windowSize{0, 0, 1000, 800};
-    sf::RenderWindow window(sf::VideoMode(windowSize.width, windowSize.height), "Elevated");
+    sf::RenderWindow window(sf::VideoMode(config.get_number_setting<int>("window-width", 1000), config.get_number_setting<int>("window-height", 1000)), "Elevated");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window, false);
     ImPlot::CreateContext();
-    Elevated::Config config{};
+    config.load_imgui_settings();
 
     sf::Font mainFont;
     {
@@ -155,6 +157,11 @@ int main() {
                 || (event.type == sf::Event::KeyPressed
                     && event.key.code == sf::Keyboard::Escape)) {
                 window.close();
+            }
+
+            if (event.type == sf::Event::Resized) {
+                config.set_number_setting("window-width", event.size.width);
+                config.set_number_setting("window-height", event.size.height);
             }
 
         }
