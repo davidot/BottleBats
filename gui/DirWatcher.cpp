@@ -57,8 +57,6 @@ void DirWatcher::render_imgui_config(bool dir_changed)
                 any_change = true;
         }
 
-        ImGui::Text("_%s_ %d", m_filter_value.c_str(), std::string_view{"elevate.py"}.ends_with(m_filter_value));
-
         if (ImGui::SliderFloat("Throttle time", &m_throttle_time, 0.0, 10.0, "%.3f"))
             any_change = true;
 
@@ -78,14 +76,13 @@ void DirWatcher::render_imgui_config(bool dir_changed)
                 label = "Updating in " + std::string(val) + " s";
             }
 
-            ImGui::ProgressBar(value, ImVec2(-FLT_MIN, 0), label.c_str());
+            ImGui::ProgressBar(value, ImVec2(0, 0), label.c_str());
         } else {
-            ImGui::ProgressBar(1.0, ImVec2(-FLT_MIN, 0), "Instant updates");
+            ImGui::ProgressBar(1.0, ImVec2(0, 0), "Instant updates");
         }
 
         if (ImGui::CollapsingHeader("Last changes")) {
-            if (ImGui::BeginTable("##recent-file-changes", 3, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV))
-            {
+            if (ImGui::BeginTable("##recent-file-changes", 3, ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersInnerV)) {
                 ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
                 ImGui::TableNextColumn();
                 ImGui::Text("Filename");
@@ -97,7 +94,7 @@ void DirWatcher::render_imgui_config(bool dir_changed)
                 for (auto& change : m_recent_file_changes) {
                     ImGui::TableNextRow(ImGuiTableRowFlags_None);
                     ImGui::TableNextColumn();
-                    ImGui::Text("_%s_", change.filename.c_str());
+                    ImGui::Text("%s", change.filename.c_str());
                     ImGui::TableNextColumn();
                     double seconds_ago = ImGui::GetTime() - change.at_time;
                     if (seconds_ago >= 100.)
