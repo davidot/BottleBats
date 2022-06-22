@@ -66,7 +66,7 @@ bool FileWatcher::has_changed(const std::function<bool(std::string_view)>& chang
     for(;;) {
         if(info->Action == FILE_ACTION_MODIFIED) {
             wcstombs_s(&filename_in_chars, filename_buffer, info->FileName, std::min(info->FileNameLength / sizeof(wchar_t), sizeof(filename_buffer) - 1ul));
-            std::string_view filename {filename_buffer, filename_in_chars};
+            std::string_view filename {filename_buffer, filename_in_chars - 1};
             if (!filename.empty() && change_filter(filename))
                 result = true;
         }
