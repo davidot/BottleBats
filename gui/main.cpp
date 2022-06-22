@@ -183,29 +183,15 @@ int main() {
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
+        ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_None);
+
+
         ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
         if (ImGui::Begin("Factory")) {
             if (rebuild_because_filechange)
                 ImGui::Text("Updating because of file change!!");
-//            static std::unordered_set<std::string> changed_files;
-//            if (dir_watcher->has_changed([&](std::string_view filename) {
-//                    return changed_files.emplace(filename).second;
-//                })) {
-//                ImGui::Text("Change!");
-//            }
-//
-//            ImGui::PushID("changed-files");
-//
-//            int i = 0;
-//            for (auto const& str : changed_files) {
-//                ImGui::PushID(i++);
-//                ImGui::Text("%s", str.c_str());
-//                ImGui::PopID();
-//            }
-//
-//            ImGui::PopID();
 
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
@@ -438,8 +424,8 @@ int main() {
 
         if (ImGui::Begin("Building preview")) {
             auto size = ImGui::GetContentRegionAvail();
-            if (view.viewSize(size.x, size.y))
-                texture.create(size.x, size.y);
+            if (view.viewSize(size.x, size.y) && size.x >= 1. && size.y >= 1.)
+                texture.create(std::min((uint32_t)size.x, 5000u), std::min((uint32_t)size.y, 5000u));
             texture.clear(sf::Color::White);
             if (!blueprint_result.has_error() && !blueprint_result.blueprint().elevators.empty())
                 view.drawBlueprint(texture, blueprint_result.blueprint());
