@@ -34,7 +34,7 @@ endif()
 fetchcontent_declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui
-        GIT_TAG e135cdbc247490df2e070ad515bec0cd18ecce6f
+        GIT_TAG 9cd9c2eff99877a3f10a7f9c2a3a5b9c15ea36c6
         GIT_PROGRESS TRUE
 )
 
