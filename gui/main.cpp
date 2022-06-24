@@ -189,10 +189,8 @@ int main() {
         ImGui::ShowDemoWindow();
         ImPlot::ShowDemoWindow();
 
+        std::unique_ptr<Elevated::ScenarioGenerator> v;
         if (ImGui::Begin("Factory")) {
-            if (rebuild_because_filechange)
-                ImGui::Text("Updating because of file change!!");
-
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
             bool seedChanged = false;
@@ -203,7 +201,7 @@ int main() {
             ImGui::Separator();
 
             settings.set_initial_seed(seed);
-            auto v = factory->visit(settings);
+            v = factory->visit(settings);
             ImGui::Separator();
             ImGui::Indent();
             ImGui::Dummy(ImVec2(0, 3));
@@ -275,7 +273,7 @@ int main() {
 
                 } else {
                     Elevated::EventListener listener;
-                    Elevated::BuildingState building {blueprint_result.blueprint(), &listener};
+                    Elevated::BuildingState building { blueprint_result.blueprint(), &listener };
                     auto floors = building.all_floors();
                     ImGui::Text("%zu floors, %zu elevators", floors.size(),
                         building.num_elevators());
@@ -285,7 +283,7 @@ int main() {
                         for (Elevated::ElevatorID id = 0; id < building.num_elevators(); ++id) {
                             auto& elevator = building.elevator(id);
                             auto& reachable_group = blueprint_result.blueprint().reachable_per_group[elevator.group_id];
-                            std::set<Elevated::Height> sorted_heights {reachable_group.begin(), reachable_group.end()};
+                            std::set<Elevated::Height> sorted_heights { reachable_group.begin(), reachable_group.end() };
                             std::stringstream s;
                             std::for_each(sorted_heights.begin(), sorted_heights.end(),
                                 [&](auto& flr) { s << flr << ", "; });
@@ -297,9 +295,10 @@ int main() {
             }
 
             settings.clearValue();
+        }
+        ImGui::End();
 
-            ImGui::Separator();
-
+        if (ImGui::Begin("Algorithm")) {
             ImGui::Text("Command to run:");
             ImGui::PushID("command_input");
             if (command_text.back()[0] != '\0')
@@ -327,7 +326,10 @@ int main() {
             dir_watcher.render_imgui_config(working_dir_changed);
             ImGui::PopID();
 
-            ImGui::Separator();
+        }
+        ImGui::End();
+
+        if (ImGui::Begin("Simulation")) {
 
             if (ImGui::Button("Run!")) {
 
@@ -344,8 +346,7 @@ int main() {
                         std::make_unique<Elevated::ProcessAlgorithm>(command,
                             Elevated::ProcessAlgorithm::InfoLevel::Low,
                             util::SubProcess::StderrState::Forwarded,
-                            working_dir
-                        ));
+                            working_dir));
                     done = simulation->tick();
                     simulation_floors = simulation->building().all_floors();
                 } else {
@@ -369,9 +370,9 @@ int main() {
 
             if (ImGui::SliderInt("Simulation speed", &tickSpeed, -10, 100))
                 tick = 0;
-
-            ImGui::Separator();
-
+        }
+        ImGui::End();
+        if (ImGui::Begin("Stored cases")) {
             if (ImGui::Button("Run all stored cases")) {
                 running_all = true;
                 running_case = 0;
