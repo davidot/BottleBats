@@ -54,7 +54,7 @@ jobs:
         if: startsWith(matrix.base.os, 'ubuntu')
         run: |
           sudo apt-get update
-          sudo apt-get install -y ${{ matrix.base.cc }} ninja-build ccache
+          sudo apt-get install -y ${{ matrix.base.cc }} ninja-build ccache libxrandr-dev libxcursor-dev libudev-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libdrm-dev libgbm-dev
           ${{ matrix.base.cc }} --version && cmake --version && ninja --version && ccache --version
 
       - name: Install Dependencies (Windows)
@@ -90,6 +90,7 @@ jobs:
           -DCMAKE_CXX_COMPILER="${{ matrix.base.cc }}"
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -DCMAKE_CXX_FLAGS="${{ matrix.base.extra-flags }}"
+          -DBUILD_GUI="${{ matrix.build_type == 'Release' && 'ON' || 'OFF' }}"
           -DDISABLE_ZI_DEBUG=ON
 
       - name: Build
@@ -104,3 +105,14 @@ jobs:
         run: |
           cd ${{ env.build_folder_location }}
           ctest --verbose
+
+      - name: Upload Artifacts
+        if: matrix.build_type == 'Release'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Elevated build with ${{ matrix.base.cc }}
+          path: |
+            build/gui/elevated.exe
+            build/gui/elevated
+          retention-days: 14
+          if-no-files-found: error
