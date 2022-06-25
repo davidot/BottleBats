@@ -29,6 +29,12 @@ jobs:
               cc: g++-11,
               extra-flags: ''
             }
+          - build_type: Release
+            base: {
+              os: ubuntu-20.04,
+              cc: g++-9,
+              extra-flags: ''
+            }
 
     env:
       build_folder_location: build
