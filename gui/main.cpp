@@ -13,6 +13,7 @@
 #include <SFML/Graphics/RenderTexture.hpp>
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/Text.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/Window/Clipboard.hpp>
 #include <SFML/Window/Event.hpp>
@@ -27,6 +28,7 @@
 #include "Config.h"
 #include "DirWatcher.h"
 #include "fonts.h"
+#include "logo.h"
 
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
@@ -35,7 +37,10 @@ int main() {
     sf::IntRect windowSize{0, 0, 1000, 800};
     sf::RenderWindow window(sf::VideoMode(config.get_number_setting<int>("window-width", 1000), config.get_number_setting<int>("window-height", 1000)), "Elevated");
     window.setFramerateLimit(60);
-    ImGui::SFML::Init(window, false);
+    if (!ImGui::SFML::Init(window, false)) {
+        std::cerr << "Failed to initialize\n";
+        return 1;
+    }
     ImPlot::CreateContext();
     config.load_imgui_settings();
 
@@ -48,15 +53,16 @@ int main() {
         font_cfg.FontDataOwnedByAtlas = false;
         auto* font = io.Fonts->AddFontFromMemoryTTF((void*)OpenSansRegular_data, OpenSansRegular_size, 18.0, &font_cfg);
         io.Fonts->AddFontDefault();
-        ImGui::SFML::UpdateFontTexture();
+        if (!ImGui::SFML::UpdateFontTexture())
+            std::cerr << "Font failed loading?\n";
         mainFont.loadFromMemory((void*)OpenSansRegular_data, OpenSansRegular_size);
+
+        sf::Image icon_logo;
+        icon_logo.loadFromMemory(logo_big_png, logo_big_png_len);
+        window.setIcon(icon_logo.getSize().x, icon_logo.getSize().y, icon_logo.getPixelsPtr());
     }
 
     Elevated::DirWatcher dir_watcher{config};
-//    std::unique_ptr<util::FileWatcher> dir_watcher = util::FileWatcher::create("examples/python");
-//    ASSERT(dir_watcher);
-
-    sf::Text text{"Hallo", mainFont, 18};
 
     sf::CircleShape sameShape{10.f};
     sameShape.setFillColor(sf::Color::Blue);
@@ -632,10 +638,6 @@ int main() {
             ++all_ticks;
             all_done = all_simulator->tick();
         }
-
-
-        window.draw(text);
-
 
         window.display();
         config.tick_config(deltaClock.getElapsedTime().asSeconds());
