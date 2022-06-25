@@ -30,6 +30,8 @@
 #include "fonts.h"
 #include "logo.h"
 
+static bool demos = true;
+
 const char* result_to_string(Elevated::SimulatorResult::Type result_type);
 int main() {
     Elevated::Config config{};
@@ -42,7 +44,7 @@ int main() {
         return 1;
     }
     ImPlot::CreateContext();
-    config.load_imgui_settings();
+    auto no_imgui_config = !(config.load_imgui_settings());
 
     sf::Font mainFont;
     {
@@ -189,13 +191,42 @@ int main() {
 
         ImGui::SFML::Update(window, deltaClock.restart());
 
-        ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_None);
+        auto viewport_dock_id = ImGui::DockSpaceOverViewport(nullptr, ImGuiDockNodeFlags_None);
 
+        if (no_imgui_config) {
+            ImGuiDocking::DockPlacementBuilder layout_builder;
+            if (demos) {
+                layout_builder
+                    .add_window("Dear ImGui Demo")
+                    .add_window("ImPlot Demo");
+            }
 
-        ImGui::ShowDemoWindow();
-        ImPlot::ShowDemoWindow();
+            layout_builder
+                .add_side(ImGuiDir_Right)
+                    .add_window("Statistics")
+                    .parent()
+                .add_side(ImGuiDir_Left)
+                    .add_window("Factory")
+                        .add_side(ImGuiDir_Down)
+                        .add_window("Stored cases")
+                        .parent()
+                    .parent()
+                .add_side(ImGuiDir_Down)
+                    .add_window("Simulation")
+                    .add_window("Algorithm")
+                    .parent()
+                .add_window("Building preview")
+                .position(viewport_dock_id, ImGui::GetMainViewport()->Size);
 
-        std::unique_ptr<Elevated::ScenarioGenerator> v;
+            no_imgui_config = false;
+        }
+
+        if (demos) {
+            ImGui::ShowDemoWindow();
+            ImPlot::ShowDemoWindow();
+        }
+
+        std::unique_ptr<Elevated::ScenarioGenerator> current_scenario;
         if (ImGui::Begin("Factory")) {
             ImGui::TextWrapped("%ld", seed);
             ImGui::Separator();
@@ -207,7 +238,7 @@ int main() {
             ImGui::Separator();
 
             settings.set_initial_seed(seed);
-            v = factory->visit(settings);
+            current_scenario = factory->visit(settings);
             ImGui::Separator();
             ImGui::Indent();
             ImGui::Dummy(ImVec2(0, 3));
@@ -216,11 +247,10 @@ int main() {
             ImGui::Unindent();
             ImGui::Separator();
             bool disabled = settings.hasFailed();
-            if (disabled) {
+            if (disabled)
                 ImGui::TextUnformatted("Settings failed");
-            } else if (!v) {
+            else if (!current_scenario)
                 ImGui::TextUnformatted("No unique ptr produced (silent error?)");
-            }
 
             if (disabled) {
                 ImGui::PushStyleColor(ImGuiCol_Button,
@@ -234,9 +264,8 @@ int main() {
                 ImGui::SetClipboardText(settings.value().c_str());
                 copied = 90;
             }
-            if (disabled) {
+            if (disabled)
                 ImGui::PopStyleColor(3);
-            }
             ImGui::SameLine(0.0f, 5.0f);
             if (ImGui::Button("Paste string value")) {
                 Elevated::StringSettings strSettings(
@@ -265,14 +294,14 @@ int main() {
 
             ImGui::Separator();
 
-            if (v && (settings.value() != oldSettingsValue || seedChanged)) {
+            if (current_scenario && (settings.value() != oldSettingsValue || seedChanged)) {
                 oldSettingsValue = settings.value();
 
-                blueprint_result = v->generate_building();
+                blueprint_result = current_scenario->generate_building();
                 view.reset();
             }
 
-            if (v) {
+            if (current_scenario) {
                 if (!blueprint_result.has_error() && blueprint_result.blueprint().elevators.empty()) {
                     ImGui::Text("No building");
                 } else if (blueprint_result.has_error()) {
@@ -346,9 +375,9 @@ int main() {
                     command.push_back(part);
                 }
 
-                if (v && !command.empty()) {
+                if (current_scenario && !command.empty()) {
                     simulation = Elevated::Simulation(
-                        std::move(v),
+                        std::move(current_scenario),
                         std::make_unique<Elevated::ProcessAlgorithm>(command,
                             Elevated::ProcessAlgorithm::InfoLevel::Low,
                             util::SubProcess::StderrState::Forwarded,
@@ -376,6 +405,10 @@ int main() {
 
             if (ImGui::SliderInt("Simulation speed", &tickSpeed, -10, 100))
                 tick = 0;
+
+            ImGui::Separator();
+            if (ImGui::Button("Reset layout"))
+                no_imgui_config = true;
         }
         ImGui::End();
         if (ImGui::Begin("Stored cases")) {
