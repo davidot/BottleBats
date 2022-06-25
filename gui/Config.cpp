@@ -62,10 +62,11 @@ void Config::read_config()
     }
 }
 
-void Config::load_imgui_settings()
+bool Config::load_imgui_settings()
 {
     ImGui::GetIO().IniFilename = nullptr;
     ImGui::LoadIniSettingsFromMemory(m_last_imgui_data.c_str(), m_last_imgui_data.size());
+    return m_last_imgui_data.find_first_not_of(" \n\r\t") != std::string::npos;
 }
 
 void Config::write_config()

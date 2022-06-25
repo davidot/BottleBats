@@ -38,7 +38,7 @@ public:
         set_single_value(name, std::to_string(value));
     }
 
-    void load_imgui_settings();
+    bool load_imgui_settings();
 
     Config();
 private:
