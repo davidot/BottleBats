@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <iostream>
 #include <sys/inotify.h>
+#include <unistd.h>
 
 namespace util {
 

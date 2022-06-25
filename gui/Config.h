@@ -1,6 +1,9 @@
 #pragma once
 
 #include <charconv>
+#ifndef __cpp_lib_to_chars
+#include <sstream>
+#endif
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,10 +30,18 @@ public:
         if (value.empty())
             return default_value;
         T val;
+#       ifdef __cpp_lib_to_chars
         auto [ptr, ec] { std::from_chars(value.data(), value.data() + value.size(), val) };
         if (ec != std::errc{})
             return default_value;
         return val;
+#       else
+        std::istringstream stream{value};
+        stream >> val;
+        if (!stream)
+            return default_value;
+        return val;
+#       endif
     }
 
     template<typename T>

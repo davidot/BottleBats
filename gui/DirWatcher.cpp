@@ -53,16 +53,20 @@ void DirWatcher::render_imgui_config(bool dir_changed)
 
 
         if (m_throttle_time > 0) {
-            std::array<char, 10> output_str;
-
             float value = m_until_update / m_throttle_time;
             std::string label;
+
+#           ifdef __cpp_lib_to_chars
+            std::array<char, 10> output_str;
 
             if(auto [ptr, ec] = std::to_chars(output_str.data(), output_str.data() + output_str.size(), m_until_update, std::chars_format::fixed, 1);
                 ec == std::errc()) {
                 std::string_view val(output_str.data(), ptr - output_str.data());
                 label = "Updating in " + std::string(val) + " s";
             }
+#           else
+            label = "Updating in" + std::to_string(m_until_update) + " s";
+#           endif
 
             ImGui::ProgressBar(value, ImVec2(0, 0), label.c_str());
         } else {
