@@ -87,8 +87,8 @@ int main() {
     std::string oldSettingsValue;
 
     Elevated::BuildingView view;
-    sf::RenderTexture texture;
-    texture.create(500, 500);
+    sf::RenderTexture building_preview_texture;
+    building_preview_texture.create(500, 500);
     view.viewSize(500, 500);
 
     std::optional<Elevated::Simulation> simulation;
@@ -472,12 +472,12 @@ int main() {
         if (ImGui::Begin("Building preview")) {
             auto size = ImGui::GetContentRegionAvail();
             if (view.viewSize(size.x, size.y) && size.x >= 1. && size.y >= 1.)
-                texture.create(std::min((uint32_t)size.x, 5000u), std::min((uint32_t)size.y, 5000u));
-            texture.clear(sf::Color::White);
+                building_preview_texture.create(std::min((uint32_t)size.x, 5000u), std::min((uint32_t)size.y, 5000u));
+            building_preview_texture.clear(sf::Color::White);
             if (!blueprint_result.has_error() && !blueprint_result.blueprint().elevators.empty())
-                view.drawBlueprint(texture, blueprint_result.blueprint());
-            texture.display();
-            ImGui::Image(texture);
+                view.drawBlueprint(building_preview_texture, blueprint_result.blueprint());
+            building_preview_texture.display();
+            ImGui::Image(building_preview_texture);
             if (scroll != 0.0 && ImGui::IsWindowHovered()) {
                 view.scroll(static_cast<int>(event.mouseWheelScroll.delta));
                 scroll = 0.0;
