@@ -139,6 +139,7 @@ int main() {
     while (window.isOpen()) {
         sf::Event event;
         float scroll = 0;
+        bool just_started_simulation = false;
         while (window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event);
 
@@ -367,7 +368,6 @@ int main() {
         if (ImGui::Begin("Simulation")) {
 
             if (ImGui::Button("Run!")) {
-
                 std::vector<std::string> command;
                 for (auto& part : command_text) {
                     if (part.empty())
@@ -384,6 +384,7 @@ int main() {
                             working_dir));
                     done = simulation->tick();
                     simulation_floors = simulation->building().all_floors();
+                    just_started_simulation = true;
                 } else {
                     lastError = "No valid building";
                 }
