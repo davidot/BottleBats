@@ -424,6 +424,13 @@ int main() {
                 ImGui::PushID(i);
                 if (ImGui::Button("Remove"))
                     to_remove = i;
+
+                ImGui::SameLine(0, 3.0);
+                if (ImGui::Button("Copy to simulation")) {
+                    Elevated::StringSettings case_string(stored_cases[i].text);
+                    factory->visit(case_string);
+                }
+
                 ImGui::SameLine(0, 3.0);
                 ImGui::Text("%s", stored_cases[i].text.c_str());
                 ImGui::Indent();
