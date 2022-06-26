@@ -91,6 +91,9 @@ int main() {
     building_preview_texture.create(500, 500);
     view.viewSize(500, 500);
 
+    sf::RenderTexture simulation_texture;
+    simulation_texture.create(windowSize.width, windowSize.height);
+
     std::optional<Elevated::Simulation> simulation;
     std::optional<Elevated::SimulatorResult> simulation_result;
     Elevated::Simulation::SimulationDone done = Elevated::Simulation::SimulationDone::Yes;
@@ -217,6 +220,7 @@ int main() {
                     .add_window("Algorithm")
                     .parent()
                 .add_window("Building preview")
+                .add_window("Simulation view")
                 .position(viewport_dock_id, ImGui::GetMainViewport()->Size);
 
             no_imgui_config = false;
@@ -532,107 +536,112 @@ int main() {
         }
         ImGui::End();
 
-        window.clear();
+        if (just_started_simulation)
+            ImGui::SetNextWindowFocus();
+        if (ImGui::Begin("Simulation view")) {
+            simulation_texture.clear(sf::Color::Black);
 
-        if (simulation.has_value()) {
+            if (simulation.has_value()) {
+                float floorWidth = 250.0;
+                sf::RectangleShape floorShape(sf::Vector2f(floorWidth, 45.0));
+                floorShape.setFillColor(sf::Color::Transparent);
+                floorShape.setOutlineColor(sf::Color::White);
+                floorShape.setOutlineThickness(3);
 
-            float floorWidth = 250.0;
-            sf::RectangleShape floorShape(sf::Vector2f(floorWidth, 45.0));
-            floorShape.setFillColor(sf::Color::Transparent);
-            floorShape.setOutlineColor(sf::Color::White);
-            floorShape.setOutlineThickness(3);
+                for (auto floor : simulation_floors) {
+                    double floorHeight = windowSize.height - 60.0 - 10.0 * floor;
+                    floorShape.setPosition(5.0, floorHeight);
+                    simulation_texture.draw(floorShape);
 
-            for (auto floor : simulation_floors) {
-                double floorHeight = windowSize.height - 60.0 - 10.0 * floor;
-                floorShape.setPosition(5.0, floorHeight);
-                window.draw(floorShape);
+                    auto& queue = simulation->building().passengers_at(floor);
+                    double spot = floorWidth - 5.0;
+                    double offsets[] = {3.0, 20.};
+                    size_t i = 0;
 
-                auto& queue = simulation->building().passengers_at(floor);
-                double spot = floorWidth - 5.0;
-                double offsets[] = {3.0, 20.};
-                size_t i = 0;
+                    for(auto& passenger : queue) {
+                        bool up = passenger.to > floor;
+                        auto& shape = up ? upShape : downShape;
+                        shape.setPosition(spot, floorHeight + offsets[i % 2]);
+                        spot -= 7.5;
+                        if (spot < -10)
+                            break;
 
-                for(auto& passenger : queue) {
-                    bool up = passenger.to > floor;
-                    auto& shape = up ? upShape : downShape;
-                    shape.setPosition(spot, floorHeight + offsets[i % 2]);
-                    spot -= 7.5;
-                    if (spot < -10)
-                        break;
-
-                    window.draw(shape);
-                    ++i;
+                        simulation_texture.draw(shape);
+                        ++i;
+                    }
+                    sf::Text text{std::to_string(queue.size()), mainFont, 18};
+                    text.setOutlineColor(sf::Color::Black);
+                    text.setOutlineThickness(1.0);
+                    text.setFillColor(sf::Color::White);
+                    text.setPosition(10.0, floorHeight + 22.5 - text.getLocalBounds().height / 2.);
+                    simulation_texture.draw(text);
                 }
-                sf::Text text{std::to_string(queue.size()), mainFont, 18};
-                text.setOutlineColor(sf::Color::Black);
-                text.setOutlineThickness(1.0);
-                text.setFillColor(sf::Color::White);
-                text.setPosition(10.0, floorHeight + 22.5 - text.getLocalBounds().height / 2.);
-                window.draw(text);
+
+                double elevator_width = 100.0;
+
+                sf::RectangleShape elevatorShape(sf::Vector2f(elevator_width, 45.0));
+                elevatorShape.setFillColor(sf::Color::Transparent);
+                elevatorShape.setOutlineColor(sf::Color::White);
+                elevatorShape.setOutlineThickness(3);
+
+                sf::RectangleShape elevatorTarget(sf::Vector2f(elevator_width, 45.0));
+                elevatorTarget.setFillColor(sf::Color::Transparent);
+                elevatorTarget.setOutlineColor(sf::Color::Red);
+                elevatorTarget.setOutlineThickness(1);
+
+                double elevator_x = floorWidth + 10.0;
+
+                for (Elevated::ElevatorID id = 0; id < simulation->building().num_elevators(); ++id) {
+                    auto& elevator = simulation->building().elevator(id);
+                    double elevatorHeight = windowSize.height - 60.0 - 10.0 * elevator.height();
+                    double targetHeight = windowSize.height - 60.0 - 10.0 * elevator.target_height();
+                    if (targetHeight != elevatorHeight) {
+                        elevatorTarget.setPosition(elevator_x, targetHeight);
+                        simulation_texture.draw(elevatorTarget);
+                    }
+
+                    elevatorShape.setPosition(elevator_x, elevatorHeight);
+                    if (elevator.current_state() == Elevated::ElevatorState::State::Stopped || elevator.current_state() == Elevated::ElevatorState::State::Travelling) {
+                        elevatorShape.setOutlineColor(sf::Color::White);
+                    } else {
+                        elevatorShape.setOutlineColor(sf::Color::Blue);
+                    }
+                    simulation_texture.draw(elevatorShape);
+
+
+                    double spot = elevator_x;
+                    double offsets[] = {3.0, 20.};
+                    size_t i = 0;
+
+                    for (auto& passenger : elevator.passengers()) {
+                        auto& shape = passenger.to == elevator.height() ? sameShape :
+                            passenger.to > elevator.height() ? upShape : downShape;
+                        shape.setPosition(spot, elevatorHeight + offsets[i % 2]);
+                        spot += 7.5;
+                        if (spot > elevator_x + elevator_width)
+                            break;
+
+                        simulation_texture.draw(shape);
+                        ++i;
+                    }
+
+                    sf::Text text{std::to_string(elevator.passengers().size()), mainFont, 18};
+                    text.setOutlineColor(sf::Color::Black);
+                    text.setOutlineThickness(1.0);
+                    text.setFillColor(sf::Color::White);
+                    text.setPosition(elevator_x + 5.0, elevatorHeight + 22.5 - text.getLocalBounds().height / 2.);
+                    simulation_texture.draw(text);
+
+                    elevator_x += elevator_width + 10.;
+                }
             }
-
-            double elevator_width = 100.0;
-
-            sf::RectangleShape elevatorShape(sf::Vector2f(elevator_width, 45.0));
-            elevatorShape.setFillColor(sf::Color::Transparent);
-            elevatorShape.setOutlineColor(sf::Color::White);
-            elevatorShape.setOutlineThickness(3);
-
-            sf::RectangleShape elevatorTarget(sf::Vector2f(elevator_width, 45.0));
-            elevatorTarget.setFillColor(sf::Color::Transparent);
-            elevatorTarget.setOutlineColor(sf::Color::Red);
-            elevatorTarget.setOutlineThickness(1);
-
-            double elevator_x = floorWidth + 10.0;
-
-            for (Elevated::ElevatorID id = 0; id < simulation->building().num_elevators(); ++id) {
-                auto& elevator = simulation->building().elevator(id);
-                double elevatorHeight = windowSize.height - 60.0 - 10.0 * elevator.height();
-                double targetHeight = windowSize.height - 60.0 - 10.0 * elevator.target_height();
-                if (targetHeight != elevatorHeight) {
-                    elevatorTarget.setPosition(elevator_x, targetHeight);
-                    window.draw(elevatorTarget);
-                }
-
-                elevatorShape.setPosition(elevator_x, elevatorHeight);
-                if (elevator.current_state() == Elevated::ElevatorState::State::Stopped || elevator.current_state() == Elevated::ElevatorState::State::Travelling) {
-                    elevatorShape.setOutlineColor(sf::Color::White);
-                } else {
-                    elevatorShape.setOutlineColor(sf::Color::Blue);
-                }
-                window.draw(elevatorShape);
-
-
-                double spot = elevator_x;
-                double offsets[] = {3.0, 20.};
-                size_t i = 0;
-
-                for (auto& passenger : elevator.passengers()) {
-                    auto& shape = passenger.to == elevator.height() ? sameShape :
-                                passenger.to > elevator.height() ? upShape : downShape;
-                    shape.setPosition(spot, elevatorHeight + offsets[i % 2]);
-                    spot += 7.5;
-                    if (spot > elevator_x + elevator_width)
-                        break;
-
-                    window.draw(shape);
-                    ++i;
-                }
-
-                sf::Text text{std::to_string(elevator.passengers().size()), mainFont, 18};
-                text.setOutlineColor(sf::Color::Black);
-                text.setOutlineThickness(1.0);
-                text.setFillColor(sf::Color::White);
-                text.setPosition(elevator_x + 5.0, elevatorHeight + 22.5 - text.getLocalBounds().height / 2.);
-                window.draw(text);
-
-                elevator_x += elevator_width + 10.;
-            }
-
-
+            simulation_texture.display();
+            ImGui::Image(simulation_texture);
         }
+        ImGui::End();
 
 
+        window.clear();
         ImGui::SFML::Render(window);
 
         if (running_all) {
