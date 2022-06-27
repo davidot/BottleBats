@@ -92,6 +92,7 @@ add_executable(elevated
         main.cpp
         elevated/VisualGeneratorSettings.cpp
         elevated/Visualizer.cpp
+        elevated/TimePlottable.cpp
         ImGui/ImGuiExtensions.cpp
         Config.cpp
         DirWatcher.cpp
