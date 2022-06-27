@@ -20,6 +20,8 @@ public:
 
     [[nodiscard]] double average_wait_time() const { return (m_wait_times.sum_of_values<double>()) / (double)m_wait_times.total_entries(); }
     [[nodiscard]] double average_travel_time() const { return (m_travel_times.sum_of_values<double>()) / (double)m_travel_times.total_entries(); }
+    [[nodiscard]] size_t waiting_passengers() const { return m_arrival_times.size(); }
+    [[nodiscard]] size_t travelling_passengers() const { return m_enter_times.size(); }
 private:
     std::unordered_map<PassengerID, Time> m_arrival_times;
     std::unordered_map<PassengerID, Time> m_enter_times;
