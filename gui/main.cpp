@@ -150,7 +150,7 @@ int main() {
         float scroll = 0;
         bool just_started_simulation = false;
         while (window.pollEvent(event)) {
-            ImGui::SFML::ProcessEvent(event);
+            ImGui::SFML::ProcessEvent(window, event);
 
             if (event.type == sf::Event::MouseWheelScrolled) {
                 scroll += event.mouseWheelScroll.delta;
