@@ -90,9 +90,9 @@ endif ()
 
 add_executable(elevated
         main.cpp
-        VisualGeneratorSettings.cpp
+        elevated/VisualGeneratorSettings.cpp
+        elevated/Visualizer.cpp
         ImGui/ImGuiExtensions.cpp
-        Visualizer.cpp
         Config.cpp
         DirWatcher.cpp
         )
