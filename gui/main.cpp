@@ -39,6 +39,12 @@ int main() {
     sf::IntRect windowSize{0, 0, 1000, 800};
     sf::RenderWindow window(sf::VideoMode(config.get_number_setting<int>("window-width", 1000), config.get_number_setting<int>("window-height", 1000)), "Elevated");
     window.setFramerateLimit(60);
+#ifdef WIN32
+    if (config.get_number_setting<int>("win32-window-maximized", 0) == 1)
+        ShowWindow(window.getSystemHandle(), SW_SHOWMAXIMIZED);
+    WINDOWPLACEMENT placement{};
+    placement.length = sizeof(WINDOWPLACEMENT);
+#endif
     if (!ImGui::SFML::Init(window, false)) {
         std::cerr << "Failed to initialize\n";
         return 1;
@@ -174,6 +180,11 @@ int main() {
             if (event.type == sf::Event::Resized) {
                 config.set_number_setting("window-width", event.size.width);
                 config.set_number_setting("window-height", event.size.height);
+#ifdef WIN32
+                GetWindowPlacement(window.getSystemHandle(), &placement);
+                bool is_maximized = (placement.showCmd & SW_SHOWMAXIMIZED) != 0;
+                config.set_number_setting<int>("win32-window-maximized", is_maximized);
+#endif
             }
 
         }
