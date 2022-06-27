@@ -5,8 +5,9 @@
 
 namespace Elevated {
 
-TimePlottable::TimePlottable(bool force_limits, double initial_value)
-    : m_sizing_policy(force_limits ? AutoSizing::Enabled : AutoSizing::Disabled)
+TimePlottable::TimePlottable(std::string name, bool force_limits, double initial_value)
+    : m_name(std::move(name))
+    , m_sizing_policy(force_limits ? AutoSizing::Enabled : AutoSizing::Disabled)
 {
     if (!std::isnan(initial_value))
         add_entry(0, initial_value);
@@ -33,12 +34,17 @@ void TimePlottable::plot_linear(Time now)
         else
             m_sizing_policy = AutoSizing::Enabled;
     }
+    ImPlotAxisFlags flags = ImPlotAxisFlags_None;
     if (m_sizing_policy == AutoSizing::Enabled) {
-        ImPlot::SetupAxisLimits(ImAxis_X1, 0, m_max_time, ImGuiCond_Always);
-        ImPlot::PlotLine("Test", m_times.data(), m_times.data(), m_times.size(), ImPlotFlags_None);
-        ImPlot::PlotInfLines("Vertical", &m_max_time, 1);
-        ImPlot::EndPlot();
+        ASSERT(m_values.size() == m_times.size());
+        flags = ImPlotAxisFlags_AutoFit;
+        ImPlot::SetupAxes("Time", m_name.c_str(), flags, flags);
     }
+
+    ImPlot::PlotLine(m_name.c_str(), m_times.data(), m_values.data(), m_times.size(), ImPlotFlags_None);
+    ImVec4 col = ImPlot::GetLastItemColor();
+    if (!m_times.empty())
+        ImPlot::Annotation(m_times.back(), m_values.back(), col, ImVec2(15,-15), true, "%3.2f", m_values.back());
 
     // We assume implot::begin has already been called
 }

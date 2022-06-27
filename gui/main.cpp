@@ -27,6 +27,8 @@
 
 #include "Config.h"
 #include "DirWatcher.h"
+#include "elevated/TimePlottable.h"
+#include "elevated/stats/PassengerStats.h"
 #include "fonts.h"
 #include "logo.h"
 
@@ -59,7 +61,7 @@ int main() {
 
         ImFontConfig font_cfg{};
         font_cfg.FontDataOwnedByAtlas = false;
-        auto* font = io.Fonts->AddFontFromMemoryTTF((void*)OpenSansRegular_data, OpenSansRegular_size, 18.0, &font_cfg);
+        io.Fonts->AddFontFromMemoryTTF((void*)OpenSansRegular_data, OpenSansRegular_size, 18.0, &font_cfg);
         io.Fonts->AddFontDefault();
         if (!ImGui::SFML::UpdateFontTexture())
             std::cerr << "Font failed loading?\n";
@@ -138,6 +140,10 @@ int main() {
     size_t all_ticks = 0;
     std::optional<Elevated::Simulation> all_simulator;
     Elevated::Simulation::SimulationDone all_done = Elevated::Simulation::SimulationDone::Yes;
+    std::shared_ptr<Elevated::PassengerStatsListener> passenger_stats;
+    Elevated::TimePlottable avg_wait_plot{"Average waiting time", true, NAN};
+    Elevated::TimePlottable passengers_waiting{"Passengers waiting", false};
+    Elevated::TimePlottable passengers_travelling{"Passengers travelling", false};
 
     size_t tick = 0;
     int tickSpeed = 1;
@@ -194,13 +200,20 @@ int main() {
             if (tickSpeed < 0) {
                 if (tick == 0) {
                     done = simulation->tick();
+                    avg_wait_plot.add_entry(simulation->building().current_time(), passenger_stats->average_wait_time());
+                    passengers_waiting.add_entry(simulation->building().current_time(), passenger_stats->waiting_passengers());
+                    passengers_travelling.add_entry(simulation->building().current_time(), passenger_stats->travelling_passengers());
                     tick = -tickSpeed;
                 } else {
                     --tick;
                 }
             } else if (tickSpeed > 0) {
-                for (int i = 0; i < tickSpeed && done != Elevated::Simulation::SimulationDone::Yes; ++i)
+                for (int i = 0; i < tickSpeed && done != Elevated::Simulation::SimulationDone::Yes; ++i) {
                     done = simulation->tick();
+                    avg_wait_plot.add_entry(simulation->building().current_time(), passenger_stats->average_wait_time());
+                    passengers_waiting.add_entry(simulation->building().current_time(), passenger_stats->waiting_passengers());
+                    passengers_travelling.add_entry(simulation->building().current_time(), passenger_stats->travelling_passengers());
+                }
             }
         }
 
@@ -397,7 +410,11 @@ int main() {
                             Elevated::ProcessAlgorithm::InfoLevel::Low,
                             util::SubProcess::StderrState::Forwarded,
                             working_dir));
+                    passenger_stats = simulation->construct_and_add_listener<Elevated::PassengerStatsListener>();
                     done = simulation->tick();
+                    avg_wait_plot.add_entry(simulation->building().current_time(), passenger_stats->average_wait_time());
+                    passengers_waiting.add_entry(simulation->building().current_time(), passenger_stats->waiting_passengers());
+                    passengers_travelling.add_entry(simulation->building().current_time(), passenger_stats->travelling_passengers());
                     simulation_floors = simulation->building().all_floors();
                     just_started_simulation = true;
                 } else {
@@ -410,8 +427,12 @@ int main() {
                 tickSpeed = 0;
 
             ImGui::SameLine(0, 10.0);
-            if (ImGui::Button("Single step") && simulation.has_value() && done != Elevated::Simulation::SimulationDone::Yes)
+            if (ImGui::Button("Single step") && simulation.has_value() && done != Elevated::Simulation::SimulationDone::Yes) {
                 done = simulation->tick();
+                avg_wait_plot.add_entry(simulation->building().current_time(), passenger_stats->average_wait_time());
+                passengers_waiting.add_entry(simulation->building().current_time(), passenger_stats->waiting_passengers());
+                passengers_travelling.add_entry(simulation->building().current_time(), passenger_stats->travelling_passengers());
+            }
 
             if (!lastError.empty()) {
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0, 0, 0, 1.0));
@@ -538,12 +559,24 @@ int main() {
 
         if (ImGui::Begin("Statistics")) {
 //            ImPlot::SetNextPlotLimitsY(0, 75);
-            if (ImPlot::BeginPlot("Users")) {
-                ImPlot::SetupAxisLimits(ImAxis_X1, 0, xxx, ImGuiCond_Always);
-                ImPlot::PlotLine("Test", valuesX.data(), valuesY.data(), valuesX.size());
-                ImPlot::VerticalLine(5, ImPlot::fromSFMLColor(sf::Color::Yellow));
+            ImPlot::PushStyleVar(ImPlotStyleVar_FitPadding, ImVec2(0.01, 0.1));
+            Elevated::Time now = simulation.has_value() ? simulation->building().current_time() : 0;
+            if (ImPlot::BeginPlot("Passenger times")) {
+                avg_wait_plot.plot_linear(now);
+//                ImPlot::SetupAxisLimits(ImAxis_X1, 0, xxx, ImGuiCond_Always);
+//                ImPlot::PlotLine("Test", valuesX.data(), valuesY.data(), valuesX.size());
+//                ImPlot::VerticalLine(5, ImPlot::fromSFMLColor(sf::Color::Yellow));
                 ImPlot::EndPlot();
             }
+
+            if (ImPlot::BeginPlot("Passenger counts")) {
+                passengers_waiting.plot_linear(now);
+                passengers_travelling.plot_linear(now);
+
+                ImPlot::EndPlot();
+            }
+
+            ImPlot::PopStyleVar();
         }
         ImGui::End();
 

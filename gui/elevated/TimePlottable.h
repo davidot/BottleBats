@@ -1,13 +1,14 @@
 #pragma once
 
 #include "../../games/elevated/Types.h"
+#include <string>
 #include <vector>
 
 namespace Elevated {
 
 class TimePlottable {
 public:
-    explicit TimePlottable(bool force_limits = true, double initial_value = 0);
+    explicit TimePlottable(std::string name, bool force_limits = true, double initial_value = 0);
 
     void add_entry(Time time, double value);
 
@@ -18,7 +19,8 @@ public:
     void simulation_done();
 
 private:
-    std::vector<Time> m_times;
+    std::string m_name;
+    std::vector<double> m_times;
     std::vector<double> m_values;
     uint32_t m_max_time{0};
     enum class AutoSizing {
