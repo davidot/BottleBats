@@ -558,10 +558,14 @@ int main() {
 
 
         if (ImGui::Begin("Statistics")) {
+            static ImPlotPoint x_limits(0, 1);
+            static bool linkTimes = true;
+            ImGui::Checkbox("Link all times", &linkTimes);
 //            ImPlot::SetNextPlotLimitsY(0, 75);
             ImPlot::PushStyleVar(ImPlotStyleVar_FitPadding, ImVec2(0.01, 0.1));
             Elevated::Time now = simulation.has_value() ? simulation->building().current_time() : 0;
             if (ImPlot::BeginPlot("Passenger times")) {
+                ImPlot::SetupAxisLinks(ImAxis_X1, linkTimes ? &x_limits.x : nullptr, linkTimes ? &x_limits.y : nullptr);
                 avg_wait_plot.plot_linear(now);
 //                ImPlot::SetupAxisLimits(ImAxis_X1, 0, xxx, ImGuiCond_Always);
 //                ImPlot::PlotLine("Test", valuesX.data(), valuesY.data(), valuesX.size());
@@ -570,6 +574,7 @@ int main() {
             }
 
             if (ImPlot::BeginPlot("Passenger counts")) {
+                ImPlot::SetupAxisLinks(ImAxis_X1, linkTimes ? &x_limits.x : nullptr, linkTimes ? &x_limits.y : nullptr);
                 passengers_waiting.plot_linear(now);
                 passengers_travelling.plot_linear(now);
 

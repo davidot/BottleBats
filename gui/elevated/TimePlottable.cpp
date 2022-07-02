@@ -28,23 +28,23 @@ void TimePlottable::simulation_done()
 
 void TimePlottable::plot_linear(Time now)
 {
-    if (m_sizing_policy == AutoSizing::Enabled || m_sizing_policy == AutoSizing::TemporarilyDisabled) {
-        if (now < m_max_time)
-            m_sizing_policy = AutoSizing::TemporarilyDisabled;
-        else
-            m_sizing_policy = AutoSizing::Enabled;
-    }
-    ImPlotAxisFlags flags = ImPlotAxisFlags_None;
-    if (m_sizing_policy == AutoSizing::Enabled) {
-        ASSERT(m_values.size() == m_times.size());
-        flags = ImPlotAxisFlags_AutoFit;
-        ImPlot::SetupAxes("Time", m_name.c_str(), flags, flags);
-    }
+//    if (m_sizing_policy == AutoSizing::Enabled || m_sizing_policy == AutoSizing::TemporarilyDisabled) {
+//        if (now < m_max_time)
+//            m_sizing_policy = AutoSizing::TemporarilyDisabled;
+//        else
+//            m_sizing_policy = AutoSizing::Enabled;
+//    }
+//    ImPlotAxisFlags flags = ImPlotAxisFlags_None;
+//    if (m_sizing_policy == AutoSizing::Enabled) {
+//        ASSERT(m_values.size() == m_times.size());
+//        flags = ImPlotAxisFlags_AutoFit;
+//        ImPlot::SetupAxes("Time", m_name.c_str(), flags, flags);
+//    }
 
     ImPlot::PlotLine(m_name.c_str(), m_times.data(), m_values.data(), m_times.size(), ImPlotFlags_None);
     ImVec4 col = ImPlot::GetLastItemColor();
     if (!m_times.empty())
-        ImPlot::Annotation(m_times.back(), m_values.back(), col, ImVec2(15,-15), true, "%3.2f", m_values.back());
+        ImPlot::Annotation(m_times.back(), m_values.back(), col, ImVec2(15, -15), true, "%3.2f", m_values.back());
 
     // We assume implot::begin has already been called
 }
