@@ -2,6 +2,9 @@ name: build-test
 on:
   push
 
+env:
+  CCACHE_DIR: ${{ github.workspace }}/.ccache
+
 jobs:
   build-test:
     name: Build & Test (${{ matrix.build_type }} mode) on ${{ matrix.base.os }}
@@ -14,7 +17,6 @@ jobs:
               os: windows-latest,
               cc: cl.exe,
               extra-flags: '',
-              cache_dir: 'C:\Users\runneradmin\AppData\Roaming/ccache'
           }
         include:
           - build_type: Debug
@@ -71,7 +73,7 @@ jobs:
       - name: Cache CCache
         uses: actions/cache@v2
         with:
-          path: ${{ matrix.base.cache_dir || '/home/runner/.ccache' }}
+          path: ${{ github.workspace }}/.ccache
           key: ${{ matrix.base.os }}-ccache-${{ matrix.build_type }}-${{ matrix.base.cc }}-time-${{ steps.stamps.outputs.time }}
           restore-keys: |
             ${{ matrix.base.os }}-ccache-${{ matrix.build_type }}-${{ matrix.base.cc }}-time-
