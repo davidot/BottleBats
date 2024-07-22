@@ -1,7 +1,11 @@
-<template>
+websocket<template>
   <main>
     <NavBar />
     <div class="main-content">
+    <input id="msg" type="text">
+    <button id="send">Send!</button>
+    <textarea id="log">
+    </textarea>
       <RouterView />
 <!--      <VijfGame :start="start" :moves="moves" />-->
 <!--      <LogoSVG style="width: 400px"/>-->
@@ -57,6 +61,37 @@ provide("userDetails", {
 });
 
 updateUserDetails();
+onMounted(() => {
+const sock = new WebSocket("ws://localhost:18081/ws");
+
+sock.onopen = ()=>{
+    console.log('open')
+}
+sock.onerror = (e)=>{
+    console.log('error',e)
+}
+sock.onclose = (e)=>{
+    console.log('close', e)
+}
+sock.onmessage = (e)=>{
+    const el = document.getElementById('log');
+    el.value = el.value + '\n' + e.data;
+}
+document.getElementById('msg').addEventListener("keypress", (e) => {
+    if (e.which == 13) {
+        const msg = document.getElementById('msg');
+        console.log('Sending', msg.value);
+        sock.send(msg.value);
+        msg.value = "";
+    }
+});
+document.getElementById('send').addEventListener("click", (e) => {
+    const msg = document.getElementById('msg');
+    console.log('Sending', msg.value);
+    sock.send(msg.value);
+    msg.value = "";
+});
+});
 </script>
 
 <style>
