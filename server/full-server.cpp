@@ -116,49 +116,82 @@ int main()
         return 1;
     }
 
+    uint16_t quit_code = 1000;
+    char quit_code_str[] {
+        static_cast<char>(quit_code >> 8),
+        static_cast<char>(quit_code & 0xFF),
+        0
+    };
+    std::string quit_string_code = std::string(quit_code_str);
+
+
     BBServer::ServerType app;
+    CROW_WEBSOCKET_ROUTE(app, "/ws")
+            .onaccept([&](crow::request const& req, void*) -> bool {
+                std::cout << "Accepting " << req.remote_ip_address << " on " << req.url << '\n';
+                return true;
+            })
+            .onopen([&](crow::websocket::connection& conn){
+                std::cout << "Opened ws to " << conn.get_remote_ip() << '\n';
+            })
+            .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t status){
+                std::cout << &conn << '\n';
+                std::cout << "Closed ws with " << conn.get_remote_ip() << " for " << reason << '\n';
+            })
+            .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){
+                std::cout << "Got message " << data << " from " << conn.get_remote_ip() << ' ' << is_binary << " binary?\n";
+                if (data == "quit")
+                    conn.close(std::string(quit_code_str) + "normal exit");
+                else
+                    conn.send_text("Welcome back" + data);
+            });
+
+    std::cout << "Setting up!\n";
 
     BBServer::add_authentication(app);
 
     BBServer::add_vijf_endpoints(app, io_service);
     BBServer::add_elevated_endpoints(app, io_service);
 
-    auto running = app.port(18081)
+
+    auto running =
+            app.port(18081)
                        .bindaddr("127.0.0.1")
                        .concurrency(3)
                        .run_async();
 
     timer.async_wait(tick);
 
-    std::thread t1 {[&]{
-        io_service.run();
-    }};
-
-    std::thread t2 {[&]{
-        io_service.run();
-    }};
-
-    std::thread t3 {[&]{
-        io_service.run();
-    }};
-
-    std::thread t4 {[&]{
-        io_service.run();
-    }};
-
-    std::thread t5 {[&]{
-        io_service.run();
-    }};
+//    std::thread t1 {[&]{
+//        io_service.run();
+//    }};
+//
+//    std::thread t2 {[&]{
+//        io_service.run();
+//    }};
+//
+//    std::thread t3 {[&]{
+//        io_service.run();
+//    }};
+//
+//    std::thread t4 {[&]{
+//        io_service.run();
+//    }};
+//
+//    std::thread t5 {[&]{
+//        io_service.run();
+//    }};
 
 
     running.wait();
+    std::cout << "Running done!\n";
     app.stop();
     io_service.stop();
 
-    t1.join();
-    t2.join();
-    t3.join();
-    t4.join();
-    t5.join();
+//    t1.join();
+//    t2.join();
+//    t3.join();
+//    t4.join();
+//    t5.join();
 
 }
