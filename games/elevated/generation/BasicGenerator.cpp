@@ -2,6 +2,7 @@
 #include "../../../util/Assertions.h"
 
 #include <iterator>
+#include <algorithm>
 
 namespace Elevated {
 

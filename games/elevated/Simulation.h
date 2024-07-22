@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include "generation/Generation.h"
 #include "Building.h"
 #include "algorithm/Algorithm.h"

@@ -1,6 +1,7 @@
 #include <numeric>
 #include <algorithm>
 #include <sstream>
+#include <utility>
 #include "Cards.h"
 
 namespace Vijf {

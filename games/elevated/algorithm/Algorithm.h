@@ -4,6 +4,7 @@
 #include "../Elevator.h"
 #include "../Building.h"
 #include <variant>
+#include <string>
 
 namespace Elevated {
 
