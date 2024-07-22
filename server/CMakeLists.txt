@@ -1,3 +1,19 @@
+fetchcontent_declare(
+        crow
+        GIT_REPOSITORY https://github.com/davidot/Crow
+        GIT_TAG add-ws-exit-status
+)
+
+FetchContent_GetProperties(crow)
+if (NOT crow_POPULATED)
+        FetchContent_Populate(crow)
+        set(CROW_BUILD_EXAMPLES OFF CACHE BOOL "Disable crow examples")
+        set(CROW_BUILD_TESTS OFF CACHE BOOL "Disable crow tests")
+        set(CROW_INSTALL OFF CACHE BOOL "Disable crow install")
+        set(CROW_INSTALL OFF CACHE BOOL "Disable crow install")
+        add_subdirectory(${crow_SOURCE_DIR} ${crow_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif ()
+
 add_library(BBServer INTERFACE)
 
 target_sources(BBServer INTERFACE
@@ -8,8 +24,8 @@ target_sources(BBServer INTERFACE
         database/User.cpp
         )
 
-find_package(Crow)
 target_compile_options(BBServer INTERFACE -Wno-error)
+target_compile_definitions(BBServer INTERFACE ASIO_HAS_BOOST_DATE_TIME BOOST_REGEX_NO_LIB CROW_ENFORCE_WS_SPEC CROW_DISABLE_STATIC_DIR)
 target_link_libraries(BBServer INTERFACE Crow::Crow pq pqxx SubProcess)
 
 add_executable(vijf-server
