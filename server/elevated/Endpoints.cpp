@@ -5,12 +5,13 @@
 #include <pqxx/transaction>
 #include <pqxx/result>
 #include <unordered_set>
+#include <set>
 
 namespace BBServer {
 
 static std::unordered_set<long> bots_with_image;
 
-void add_elevated_endpoints(ServerType& app, boost::asio::io_service& io_service)
+void add_elevated_endpoints(ServerType& app, asio::io_service& io_service)
 {
 
     CROW_ROUTE(app, "/api/elevated/my-bots")

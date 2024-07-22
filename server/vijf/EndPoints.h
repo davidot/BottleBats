@@ -4,6 +4,6 @@
 
 namespace BBServer {
 
-void add_vijf_endpoints(ServerType& app, boost::asio::io_service& io_service);
+void add_vijf_endpoints(ServerType& app, asio::io_service& io_service);
 
 }

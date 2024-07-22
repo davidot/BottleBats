@@ -2,17 +2,14 @@
 #include "elevated/Endpoints.h"
 #include "elevated/Runner.h"
 #include "vijf/EndPoints.h"
-#include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/date_time/posix_time/posix_time_duration.hpp>
-#include <boost/system/error_code.hpp>
 #include <pqxx/transaction>
 #include <pqxx/result>
 #include <thread>
+#include <asio.hpp>
 
-boost::asio::io_service io_service;
-boost::posix_time::seconds interval(3);
-boost::asio::deadline_timer timer(io_service, interval);
+asio::io_service io_service;
+boost::posix_time::seconds interval{3};
+asio::deadline_timer timer(io_service, interval);
 
 struct ToRun {
     uint32_t bot_id;
@@ -54,7 +51,7 @@ void run_case() {
     }
 }
 
-void tick(const boost::system::error_code&) {
+void tick(const asio::system_error&) {
 
     std::vector<ToRun> still_to_run;
     still_to_run.reserve(25);
