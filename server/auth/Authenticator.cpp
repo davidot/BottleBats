@@ -10,6 +10,7 @@ void AdminGuard::after_handle(crow::request&, crow::response&, AdminGuard::conte
 }
 void BaseMiddleware::after_handle(crow::request&, crow::response&, BaseMiddleware::context& ctx)
 {
-    ConnectionPool::return_connection(std::move(ctx.database_connection));
+    if (ctx.database_connection)
+        ConnectionPool::return_connection(std::move(ctx.database_connection));
 }
 }
