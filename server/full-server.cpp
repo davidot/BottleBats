@@ -2,6 +2,7 @@
 #include "elevated/Endpoints.h"
 #include "elevated/Runner.h"
 #include "vijf/EndPoints.h"
+#include "vijf/GamePlayer.h"
 #include <pqxx/transaction>
 #include <pqxx/result>
 #include <thread>
@@ -51,49 +52,35 @@ void run_case() {
     }
 }
 
+void run_top() {
+    auto start_data = BBServer::generate_random_start();
+    auto players = BBServer::top_players();
+    if (!players.has_value())
+        return;
+    BBServer::play_rotated_game(start_data, std::move(players.value()));
+}
+
 void tick(const asio::system_error&) {
-
-    std::vector<ToRun> still_to_run;
-    still_to_run.reserve(25);
-
-    BBServer::ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
-        // Clear any pending results
-        pqxx::read_transaction transaction{connection};
-        auto result = transaction.exec(
-            "SELECT eb.bot_id, ec.case_id\n"
-            "FROM elevated_bots eb\n"
-            "    CROSS JOIN elevated_cases ec\n"
-            "    LEFT JOIN elevated_run er on eb.bot_id = er.bot_id AND er.case_id = ec.case_id\n"
-            "WHERE eb.running_cases AND ec.enabled AND er.run_id IS NULL\n"
-            "ORDER BY case_id, eb.created\n"
-            "LIMIT 25");
-
-        for (auto row : result) {
-            still_to_run.push_back({row[0].as<uint32_t>(), row[1].as<uint32_t>()});
-        }
-    });
-
-    size_t added = 0;
-
-    {
-        std::lock_guard lock(running_lock);
-        for (auto& to_run : still_to_run) {
-            if (running.size() >= 25)
-                break;
-            if (std::find(running.cbegin(), running.cend(), to_run) == running.cend()) {
-                running.push_back(to_run);
-                ++added;
-            }
-        }
-    }
-
-    ++added;
-    while (added--)
-        io_service.post([](){ run_case(); });
-
     timer.expires_at(timer.expires_at() + interval);
     timer.async_wait(tick);
 }
+
+struct WebSocketState {
+    std::mutex _lock{};
+
+    std::optional<std::string> on_input(std::string const& input) {
+        if (input.starts_with("greet"))
+            return "Hello " + input.substr(5);
+
+        return {};
+    }
+
+    std::string startup() {
+        return "Enter command:\n";
+    }
+
+} ws_state;
+
 
 int main()
 {
@@ -126,6 +113,14 @@ int main()
 
 
     BBServer::ServerType app;
+
+    std::cout << "Setting up!\n";
+
+    BBServer::add_authentication(app);
+
+    BBServer::add_vijf_endpoints(app, io_service);
+//    BBServer::add_elevated_endpoints(app, io_service);
+
     CROW_WEBSOCKET_ROUTE(app, "/ws")
             .onaccept([&](crow::request const& req, void*) -> bool {
                 std::cout << "Accepting " << req.remote_ip_address << " on " << req.url << '\n';
@@ -133,6 +128,7 @@ int main()
             })
             .onopen([&](crow::websocket::connection& conn){
                 std::cout << "Opened ws to " << conn.get_remote_ip() << '\n';
+                conn.send_text(ws_state.startup());
             })
             .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t status){
                 std::cout << &conn << '\n';
@@ -140,18 +136,20 @@ int main()
             })
             .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){
                 std::cout << "Got message " << data << " from " << conn.get_remote_ip() << ' ' << is_binary << " binary?\n";
-                if (data == "quit")
+
+
+                if (is_binary)
+                    return;
+
+                if (data == "quit") {
                     conn.close(std::string(quit_code_str) + "normal exit");
-                else
-                    conn.send_text("Welcome back" + data);
+                    return;
+                }
+                auto maybe_response = ws_state.on_input(data);
+                if (maybe_response)
+                    conn.send_text(*maybe_response);
             });
 
-    std::cout << "Setting up!\n";
-
-    BBServer::add_authentication(app);
-
-    BBServer::add_vijf_endpoints(app, io_service);
-    BBServer::add_elevated_endpoints(app, io_service);
 
 
     auto running =
@@ -161,15 +159,18 @@ int main()
                        .run_async();
 
     timer.async_wait(tick);
+    io_service.post([]{
+        run_top();
+    });
 
-//    std::thread t1 {[&]{
-//        io_service.run();
-//    }};
-//
-//    std::thread t2 {[&]{
-//        io_service.run();
-//    }};
-//
+    std::thread t1 {[&]{
+        io_service.run();
+    }};
+
+    std::thread t2 {[&]{
+        io_service.run();
+    }};
+
 //    std::thread t3 {[&]{
 //        io_service.run();
 //    }};
@@ -188,7 +189,7 @@ int main()
     app.stop();
     io_service.stop();
 
-//    t1.join();
+    t1.join();
 //    t2.join();
 //    t3.join();
 //    t4.join();

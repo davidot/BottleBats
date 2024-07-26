@@ -24,8 +24,8 @@ import {endpoint} from "./http";
 const start = ref("");
 const moves = ref("");
 
-// onMounted(() => {
-//   setTimeout(() => {
+onMounted(() => {
+  setTimeout(() => {
 start.value = "379;A6T;27Q;469;89Q;KAQ8KT428J3JT59+2A336545Q6K8*2KJA57*47JT;";
 moves.value = "9A269K63+*Q";
 
@@ -33,8 +33,8 @@ moves.value = "9A269K63+*Q";
 // 2,19,false,5,0
 // 3,20,false,1,0
 
-// }, 1000);
-// });
+}, 1000);
+});
 
 const userDetails = ref({
   displayName: null,
@@ -75,20 +75,26 @@ sock.onclose = (e)=>{
 }
 sock.onmessage = (e)=>{
     const el = document.getElementById('log');
-    el.value = el.value + '\n' + e.data;
+    el.value = el.value + '\n<' + e.data;
 }
+
+function sendMessage(mess) {
+  const el = document.getElementById('log');
+  el.value = el.value + '\n>' + mess;
+  console.log('Sending', mess);
+  sock.send(mess);
+}
+
 document.getElementById('msg').addEventListener("keypress", (e) => {
     if (e.which == 13) {
         const msg = document.getElementById('msg');
-        console.log('Sending', msg.value);
-        sock.send(msg.value);
+        sendMessage(msg.value);
         msg.value = "";
     }
 });
 document.getElementById('send').addEventListener("click", (e) => {
     const msg = document.getElementById('msg');
-    console.log('Sending', msg.value);
-    sock.send(msg.value);
+    sendMessage(msg.value);
     msg.value = "";
 });
 });
