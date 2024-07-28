@@ -1,12 +1,12 @@
 <template>
   <div class="leaderboard-holder" style="position: relative">
-    <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': (isRuben && connectionLost) ? 'column' : 'row'}">
+    <!-- <div class="disconnected" :style="{top: connectionLost ? '0' : '-100%', 'flex-direction': (isRuben && connectionLost) ? 'column' : 'row'}">
       <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
       <span style="border: 1px solid red; padding: 2px 5px; font-weight: bold">
         Connection to server lost!
       </span>
       <img src="/siren1.gif" style="height: 1.5em" alt="siren which means things are going wrong"/>
-    </div>
+    </div> -->
     <span v-if="results === null">Loading...</span>
     <span v-else-if="!results.cases || Object.keys(results.bots || {}).length === 0">No data</span>
     <table v-else>
@@ -118,8 +118,8 @@ export default {
       clearInterval(this.dataInterval);
   },
   mounted() {
-    this.dataInterval = setInterval(() => this.getData(), 2000);
-    this.getData();
+    // this.dataInterval = setInterval(() => this.getData(), 2000);
+    // this.getData();
   },
   inject: ["userDetails"],
   data() {

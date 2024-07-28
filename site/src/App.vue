@@ -6,6 +6,7 @@ websocket<template>
     <button id="send">Send!</button>
     <textarea id="log">
     </textarea>
+    <button id="http">Test!</button>
       <RouterView />
 <!--      <VijfGame :start="start" :moves="moves" />-->
 <!--      <LogoSVG style="width: 400px"/>-->
@@ -20,6 +21,7 @@ import NavBar from "@/components/NavBar.vue";
 import {onMounted, provide, ref} from "vue";
 import LogoSVG from "@/components/LogoSVG.vue";
 import {endpoint} from "./http";
+import axois from "axios";
 
 const start = ref("");
 const moves = ref("");
@@ -62,7 +64,7 @@ provide("userDetails", {
 
 updateUserDetails();
 onMounted(() => {
-const sock = new WebSocket("ws://localhost:18081/ws");
+const sock = new WebSocket("ws://192.168.2.9:18081/ws");
 
 sock.onopen = ()=>{
     console.log('open')
@@ -97,6 +99,12 @@ document.getElementById('send').addEventListener("click", (e) => {
     sendMessage(msg.value);
     msg.value = "";
 });
+
+document.getElementById('http')?.addEventListener('click', () => {
+  const msg = document.getElementById('msg');
+  axois.get("http://192.168.2.9:18081/test?val=" + msg.value);
+});
+
 });
 </script>
 
