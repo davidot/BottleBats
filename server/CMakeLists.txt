@@ -1,7 +1,7 @@
 fetchcontent_declare(
         crow
-        GIT_REPOSITORY https://github.com/davidot/Crow
-        GIT_TAG add-ws-exit-status
+        GIT_REPOSITORY https://github.com/CrowCpp/Crow
+        GIT_TAG 31ca14571678763313d9f4eaa53b049d4791a1e3 # Commit right after my merge :) Update to 1.3 once released
 )
 
 FetchContent_GetProperties(crow)
@@ -56,3 +56,6 @@ add_executable(BBRunGames vijf/runsomegames.cpp
         vijf/GamePlayer.cpp
         )
 target_link_libraries(BBRunGames PUBLIC pq pqxx SubProcess LibVijf)
+
+add_executable(minimal-ws minimal-ws.cpp)
+target_link_libraries(minimal-ws PUBLIC BBServer)
