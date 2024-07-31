@@ -56,6 +56,3 @@ add_executable(BBRunGames vijf/runsomegames.cpp
         vijf/GamePlayer.cpp
         )
 target_link_libraries(BBRunGames PUBLIC pq pqxx SubProcess LibVijf)
-
-add_executable(minimal-ws minimal-ws.cpp)
-target_link_libraries(minimal-ws PUBLIC BBServer)
