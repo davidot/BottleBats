@@ -64,7 +64,7 @@ provide("userDetails", {
 
 updateUserDetails();
 onMounted(() => {
-const sock = new WebSocket("ws://192.168.2.9:18081/ws");
+const sock = new WebSocket("ws://localhost:18081/ws");
 
 sock.onopen = ()=>{
     console.log('open')
@@ -84,7 +84,7 @@ function sendMessage(mess) {
   const el = document.getElementById('log');
   el.value = el.value + '\n>' + mess;
   console.log('Sending', mess);
-  sock.send(mess);
+  sock.send(mess + '\n');
 }
 
 document.getElementById('msg').addEventListener("keypress", (e) => {
@@ -102,7 +102,7 @@ document.getElementById('send').addEventListener("click", (e) => {
 
 document.getElementById('http')?.addEventListener('click', () => {
   const msg = document.getElementById('msg');
-  axois.get("http://192.168.2.9:18081/test?val=" + msg.value);
+  axois.get("http://localhost:18081/test?val=" + msg.value);
 });
 
 });

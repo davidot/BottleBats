@@ -1,4 +1,4 @@
-#include "crow/app.h"
+#include "crow.h"
 #include <chrono>
 #include <mutex>
 #define CROW_DISABLE_STATIC_DIR
@@ -10,6 +10,8 @@
 #include <pqxx/result>
 #include <thread>
 #include <asio.hpp>
+#include <charconv>
+#include <memory>
 
 asio::io_service io_service;
 boost::posix_time::seconds interval{3};
@@ -71,6 +73,149 @@ void tick(const asio::system_error&) {
     timer.async_wait(tick);
 }
 
+class GuessPlayer {
+public:
+    enum class GuessResult {
+        OtherPlayerFailed,
+        Higher,
+        Lower
+    };
+
+    static std::string result_to_string(GuessResult result) {
+        switch (result) {
+            case GuessResult::OtherPlayerFailed:
+                return "incorrect";
+            case GuessResult::Higher:
+                return "higher";
+            case GuessResult::Lower:
+                return "lower";
+        }
+
+        return "?";
+    }
+
+    virtual void guess_made(int value, GuessResult result) {};
+    virtual std::optional<int> guess() = 0;
+    virtual ~GuessPlayer() {}
+};
+
+class IncrementingPlayer : public GuessPlayer {
+public:
+    explicit IncrementingPlayer(int start)
+        : m_value(start) {}
+
+    std::optional<int> guess() override {
+        return m_value++;
+    }
+
+private:
+    int m_value {};
+
+};
+
+class InteractivePlayer: public GuessPlayer {
+public:
+    InteractivePlayer(std::string& input, std::string& output) :
+        m_input_buffer(input), m_output_buffer(output) {}
+
+
+    void guess_made(int value, GuessPlayer::GuessResult result) override {
+        std::ostringstream message {};
+        message << "guess " << value << ", result " << result_to_string(result) << "\n";
+        m_output_buffer += message.str();
+    }
+
+    std::optional<int> guess() override {
+        std::cout << "Guessing for interactive: Have\n" << m_input_buffer << '\n';
+        std::cout << "Current output buffer:\n" << m_output_buffer << '\n';
+        auto end_of_line = m_input_buffer.find('\n');
+        if (end_of_line == std::string::npos) {
+            m_output_buffer += "turn\n";
+            return std::nullopt;
+        }
+
+        int value = -1;
+        auto result = std::from_chars(m_input_buffer.data(), m_input_buffer.data() + end_of_line, value);
+        if (result.ec != std::errc{})
+            return std::nullopt; // INVALID!! STOP HERE!
+
+        m_input_buffer.erase(0, end_of_line + 1);
+
+        return value;
+    }
+
+private:
+    std::string& m_input_buffer;
+    std::string& m_output_buffer;
+};
+
+struct GuessGameState {
+   int number = -1;
+
+   int turnForPlayer = 0;
+   std::array<std::unique_ptr<GuessPlayer>, 4> players{};
+
+   explicit GuessGameState(int value, std::array<std::unique_ptr<GuessPlayer>, 4> new_players)
+    : number(value), players(std::move(new_players)) {
+       std::cout << "Looking for" << number << '\n';
+   }
+
+   ~GuessGameState() {
+       std::cout << "Destroying game state!\n";
+   }
+};
+
+void* start_game(std::string& input, std::string& output) {
+    int number = rand() % 1000;
+    return new GuessGameState{
+        number,
+        {
+            std::make_unique<InteractivePlayer>(input, output),
+            std::make_unique<IncrementingPlayer>(rand() % 1000),
+            std::make_unique<IncrementingPlayer>(rand() % 1000),
+            std::make_unique<IncrementingPlayer>(rand() % 1000),
+        }
+    };
+}
+
+bool tick_game(void* data) {
+    GuessGameState& game_state = *static_cast<GuessGameState*>(data);
+
+    while (true) {
+        size_t this_player = game_state.turnForPlayer;
+        auto& player = game_state.players[game_state.turnForPlayer];
+        auto potential_guess = player->guess();
+        if (!potential_guess.has_value())
+            return false;
+
+        int guess = *potential_guess;
+
+        if (guess == game_state.number) {
+            std::cout << "Win for player " << this_player;
+            break;
+        }
+
+        std::cout << "Player " << this_player << " guessed " << guess << '\n';
+
+        GuessPlayer::GuessResult result = guess < game_state.number ? GuessPlayer::GuessResult::Higher : GuessPlayer::GuessResult::Lower;
+        player->guess_made(guess, result);
+
+        for (size_t i = 0; i < game_state.players.size(); ++i) {
+            if (i == this_player)
+                continue;
+            game_state.players[i]->guess_made(guess, GuessPlayer::GuessResult::OtherPlayerFailed);
+        }
+
+        game_state.turnForPlayer = (game_state.turnForPlayer + 1) % game_state.players.size();
+    }
+
+    return true;
+}
+
+void clean_up_game(void* data) {
+    delete ((GuessGameState*)data);
+}
+
 struct WebSocketState {
     std::mutex _lock{};
 
@@ -78,50 +223,47 @@ struct WebSocketState {
         WaitingForStart,
         Starting,
         Running,
+        Paused,
+        Done
     };
 
     State state { State::WaitingForStart };
 
-    // Fake a game
-    enum class GameState {
-        InitialQuery,
+    void * game_data = nullptr;
 
-
-        Failed,
-        Done
-    } game_state;
-
-    std::vector<std::string> input_buffer;
+    std::string input_buffer;
+    std::string output_buffer;
 
     std::optional<std::string> run() {
         ASSERT(state == State::Running);
+        ASSERT(game_data);
 
-        if (game_state == GameState::InitialQuery)
-            // Pretend this runs the game upto needing "user" input
-            return "Enter command:\n";
+        tick_game(game_data);
 
-        return {};
-    }
+        if (output_buffer.empty())
+            return {};
 
-    bool failed() {
-        return game_state == GameState::Failed;
+        auto result = output_buffer;
+        output_buffer.clear();
+        return result;
     }
 
     std::string startup() {
+        game_data = start_game(input_buffer, output_buffer);
         state = State::Running;
         auto first_result = run();
-        if (!first_result) {
-            // Extract error code???
-            return "";
-        }
+        // For now start has to have one
+        ASSERT(first_result.has_value());
         return *first_result;
     }
 
     void reclaim() {
-        // clean up any game state and reset to be ready
-        game_state = GameState::InitialQuery;
-        
-        
+        if (game_data) {
+            clean_up_game(game_data);
+            game_data = nullptr;
+        }
+
+        output_buffer.clear();
         input_buffer.clear();
         // Show we are ready for new game
         state = State::WaitingForStart;
@@ -152,7 +294,7 @@ int main()
     srand(time(nullptr));
 
     try {
-        BBServer::ConnectionPool::initialize_pool(8, "postgresql://postgres:sergtsop@localhost:5432/bottle_bats");
+        BBServer::ConnectionPool::initialize_pool(8, "postgresql://postgres:passwrd@localhost:6543/postgres");
         // BBServer::ConnectionPool::run_on_temporary_connection([&](pqxx::connection& connection) {
         //     // Clear any pending results and bots
         //     pqxx::work transaction{connection};
@@ -168,23 +310,15 @@ int main()
         return 1;
     }
 
-    uint16_t quit_code = 1000;
-    char quit_code_str[] {
-        static_cast<char>(quit_code >> 8),
-        static_cast<char>(quit_code & 0xFF),
-        0
-    };
-    std::string quit_string_code = std::string(quit_code_str);
-
 
     BBServer::ServerType app;
 
     std::cout << "Setting up!\n";
 
-    // BBServer::add_authentication(app);
+    BBServer::add_authentication(app);
 
-    // BBServer::add_vijf_endpoints(app, io_service);
-//    BBServer::add_elevated_endpoints(app, io_service);
+    BBServer::add_vijf_endpoints(app, io_service);
+    BBServer::add_elevated_endpoints(app, io_service);
 
     CROW_ROUTE(app, "/test")(
         [&](crow::request const& req) {
@@ -194,33 +328,36 @@ int main()
             return "Done!";
         }
     );
-        
-        
+
+
 
     CROW_WEBSOCKET_ROUTE(app, "/ws")
-            .onaccept([&](crow::request const& req, void* userdata) -> bool {
+            .onaccept([&](crow::request const& req, void** userdata) -> bool {
                 std::cout << "Accepting " << req.remote_ip_address << " on " << req.url << '\n';
-                WebSocketState* using_state = find_next_ws_state();
+                auto* using_state = find_next_ws_state();
                 std::cout << "Got state: " << using_state << '\n';
                 if (!using_state)
                     return false;
 
                 std::cout << "Which is index: " << (using_state - websocketStates.data()) << '\n';
-                userdata = using_state;
+                *userdata = using_state;
                 return true;
             })
             .onopen([&](crow::websocket::connection& conn){
                 std::cout << "Opened ws to " << conn.get_remote_ip() << '\n';
-                // std::optional<std::string> response;
-                // {
-                //     ASSERT(conn.userdata());
-                //     WebSocketState* ws_state = static_cast<WebSocketState*>(conn.userdata());
-                //     std::lock_guard _lock(ws_state->_lock);
-                //     ASSERT(ws_state->state == WebSocketState::State::Starting);
+                 {
+                     ASSERT(conn.userdata());
+                     auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
+                     std::lock_guard _lock(ws_state->_lock);
+                     ASSERT(ws_state->state == WebSocketState::State::Starting);
 
-                //     response = ws_state->startup();
-                //     ASSERT(ws_state->state == WebSocketState::State::Running);
-                // }
+                     auto response = ws_state->startup();
+                     ASSERT(ws_state->state == WebSocketState::State::Running);
+                     if (!response.empty()) {
+                         ASSERT(response.ends_with('\n'));
+                         conn.send_text(">" + response);
+                     }
+                 }
 
                 // if (response.has_value())
                 //     conn.send_text(std::move(*response));
@@ -230,24 +367,35 @@ int main()
             .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t status){
                 std::cout << &conn << '\n';
                 std::cout << "Closed ws with " << conn.get_remote_ip() << " for " << reason << '\n';
+                if (!conn.userdata())
+                    return;
+                {
+                    auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
+                    std::lock_guard _lock(ws_state->_lock);
+                    ws_state->reclaim();
+                    conn.userdata(nullptr);
+                }
             })
             .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){
                 std::cout << "Got message " << data << " from " << &conn << ' ' << is_binary << " binary?\n";
-                std::this_thread::sleep_for(std::chrono::seconds(10));
-                std::cout << "Processed " << data << '\n';
 
-                // if (is_binary)
-                //     return;
+                 if (is_binary) {
+                     conn.close("Only text supported!", crow::websocket::CloseStatusCode::UnacceptableData);
+                     return;
+                 }
 
-                // {               
-                //     ASSERT(conn.userdata());
-                //     WebSocketState* ws_state = static_cast<WebSocketState*>(conn.userdata());
-                //     std::lock_guard _lock(ws_state->_lock);
-                //     ASSERT(ws_state->state == WebSocketState::State::Starting);
+                 {
+                     ASSERT(conn.userdata());
+                     auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
+                     std::lock_guard _lock(ws_state->_lock);
+                     ASSERT(ws_state->state == WebSocketState::State::Running);
+                     ws_state->input_buffer += data;
+                     auto response = ws_state->run();
+                     if (response.has_value()) {
+                         conn.send_text(">" + *response);
+                     }
 
-                //     // response = ws_state->startup();
-                //     ASSERT(ws_state->state == WebSocketState::State::Running);
-                // }
+                 }
             });
 
 
@@ -255,7 +403,7 @@ int main()
     auto running =
             app.port(18081)
                        .bindaddr("0.0.0.0")
-                       .concurrency(3)
+                       .concurrency(8)
                        .run_async();
 
     timer.async_wait(tick);
