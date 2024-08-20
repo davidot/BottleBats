@@ -31,15 +31,20 @@
                 </tr>
             </tbody>
         </table>
+        <Console :messages="messages" />
     </div>
 </template>
 
 <script>
 import { endpoint } from "@/http";
+import Console from "./Console.vue";
 
 
 
 export default {
+    components: {
+        Console,
+    },
     props: {
         game: String,
     },
@@ -66,6 +71,12 @@ export default {
                 availableAlgos: [],
             },
             pickedAlgos: [],
+            messages: [
+                {from: "game", content: "Guessed 84 wrong!"},
+                {from: "game", content: "Guessed 1234 wrong!"},
+                {from: "game", content: "guess"},
+                {from: "me", content: "123"},
+            ]
         };
     },
 };
