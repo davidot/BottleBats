@@ -1,11 +1,12 @@
 #pragma once
 
-#include <functional>
+#include <utility>
 
+template<typename Callback>
 class Deferred {
 public:
-    Deferred(std::function<void()>&& function)
-        : m_function(function)
+    Deferred(Callback function)
+        : m_function(std::move(function))
     {
     }
 
@@ -14,5 +15,5 @@ public:
     }
 
 private:
-    std::function<void()> m_function;
+    Callback m_function;
 };
