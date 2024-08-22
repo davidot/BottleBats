@@ -3,7 +3,11 @@
         <div v-for="message in messages" :class="[message.from, 'message']">
             {{ message.content }}
         </div>
-        $> <span @select="print">{{ inputText }}</span><span id="text-input"><input type="text" v-model="inputText" ref="input" v-on:keyup.enter="onEnter"></span>
+        <span :class="{'input-indicator': true, 'waiting': waitingOnUs}">$> </span>
+        <span @select="print">{{ inputText }}</span>
+        <span id="text-input">
+            <input type="text" v-model="inputText" ref="input" v-on:keyup.enter="onEnter">
+        </span>
     </div>
 </template>
 
@@ -13,6 +17,10 @@ export default {
     props: {
         messages: {
             type: Array,
+            required: true,
+        },
+        waitingOnUs: {
+            type: Boolean,
             required: true,
         },
     },
@@ -110,5 +118,14 @@ export default {
 
 .message.game {
     color: red;
+}
+
+.message.system {
+    color: gray;
+    text-decoration: underline;
+}
+
+.input-indicator.waiting {
+    color: yellow;
 }
 </style>

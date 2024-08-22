@@ -17,6 +17,10 @@ export default defineConfig({
         target: 'http://localhost:18081',
         proxyTimeout: 1500,
       },
+      '/ws-api': {
+        target: 'ws://localhost:18081',
+        ws: true
+      },
     },
   },
 });

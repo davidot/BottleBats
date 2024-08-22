@@ -826,7 +826,7 @@ int main()
         res.end();
     });
 
-    CROW_WEBSOCKET_ROUTE(app, "/api/game-join")
+    CROW_WEBSOCKET_ROUTE(app, "/ws-api/game-join")
             .onaccept([&](crow::request const& req, void** userdata) -> bool {
                 std::cout << "Connection request from: " << req.remote_ip_address << " on " << req.raw_url << '\n';
                 auto* match_string = req.url_params.get("match");

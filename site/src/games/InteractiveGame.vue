@@ -3,8 +3,8 @@
     <div v-show="!hasRunningGame">
         <h3>Setup new game of type {{ game }}</h3>
 
-        <button>Quick start single player game</button>
-        <table v-if="gameSetupConfig.numPlayers !== -1">
+        <button v-if="!hasRunningGame" @click="startSingleplayer">Quick start single player game</button>
+        <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
             <thead>
                 <th>
                     <td>
@@ -31,8 +31,8 @@
                 </tr>
             </tbody>
         </table>
-        <Console :messages="messages" @sendMessage="pushMessage"/>
     </div>
+    <Console :messages="messages" :waiting-on-us="waitingOnUs" @sendMessage="pushMessage"/>
 </template>
 
 <script>
@@ -66,6 +66,7 @@ export default {
     data() {
         return {
             ws: null,
+            waitingOnUs: false,
             gameSetupConfig: {
                 numPlayers: -1,
                 availableAlgos: [],
@@ -81,16 +82,57 @@ export default {
     },
     methods: {
         pushMessage(mess) {
-            this.messages.push({from: "me", content: mess});
-            setTimeout(() => {
-                this.messages.push({from: "game", content: "guess 123"});
-                setTimeout(() => {
-                    this.messages.push({from: "game", content: "guess 456"});
-                }, 50);
-                setTimeout(() => {
-                    this.messages.push({from: "game", content: "guess 789"});
-                }, 50)
-            }, 500);
+            if (this.ws != null) {
+                mess = mess.trim();
+                if (mess !== '')
+                    mess = mess + '\n';
+                this.ws.send(mess);
+                this.messages.push({from: "me", content: mess.trim()});
+                this.waitingOnUs = false;
+            }
+
+            // this.messages.push({from: "me", content: mess});
+            // setTimeout(() => {
+            //     this.messages.push({from: "game", content: "guess 123"});
+            //     setTimeout(() => {
+            //         this.messages.push({from: "game", content: "guess 456"});
+            //     }, 50);
+            //     setTimeout(() => {
+            //         this.messages.push({from: "game", content: "guess 789"});
+            //     }, 50)
+            // }, 500);
+        },
+        connectToGame(matchCode) {
+            if (this.ws) {
+                console.log("Already plaing game?");
+                return;
+            }
+
+            const ws = new WebSocket("ws://" + window.location.host + "/ws-api/game-join?match=" + encodeURIComponent(matchCode));
+            // const ws = new WebSocket("ws://localhost:18081/ws-api/game-join?match=" + encodeURIComponent(matchCode));
+            ws.onclose = (ev) => {
+                console.log("Closed ws due to " + ev.reason + " (" + ev.statusCode + ")");
+                if (this.ws === ws)
+                    this.ws = null;
+            };
+            ws.onopen = (ev) => {
+                console.log("Got connection in WS");
+                this.messages = [
+                    {from: "system", content: "Connected to " + matchCode},
+                ];
+                this.ws = ws;
+            };
+            ws.onerror = (ev) => {
+                console.log("Got error on WS:", ev)
+            };
+            ws.onmessage = (ev) => {
+                console.log("Got message: " + ev.data);
+                this.messages.push({from: "game", content: ev.data});
+                this.waitingOnUs = true;
+            };
+        },
+        startSingleplayer() {
+            this.connectToGame(this.game + ";S");
         }
     }
 };
