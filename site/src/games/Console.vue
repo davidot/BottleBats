@@ -1,9 +1,9 @@
 <template>
-    <div id="console">
-        <span v-for="message in messages" :class="[message.from, 'message']">
+    <div id="console" @click="maybeFocus">
+        <div v-for="message in messages" :class="[message.from, 'message']">
             {{ message.content }}
-        </span><br/>
-        $> <span @select="print">{{ inputText }}</span><span id="text-input"><input type="text" v-model="inputText" ref="input" @select="print" @selectionchange="print"></span>
+        </div>
+        $> <span @select="print">{{ inputText }}</span><span id="text-input"><input type="text" v-model="inputText" ref="input" v-on:keyup.enter="onEnter"></span>
     </div>
 </template>
 
@@ -17,15 +17,19 @@ export default {
         },
     },
     mounted() {
-        document.addEventListener("select", (e) => {
-            console.log('body select', e);
-        })
         document.addEventListener("selectionchange", (e) => {
             console.log('body selectionchange', e);
             console.log(document.getSelection())
-            console.log(document.getSelection().anchorNode)
+            console.log(this.$refs.input.selectionStart);
+            console.log(this.$refs.input.selectionEnd);
+
+            if (this.$refs.input.selectionEnd == 6) {
+                this.$refs.input.selectionEnd = 3;
+            }
+            // console.log(document.getSelection().anchorNode)
+            // console.log(document.getSelection().anchorOffset)
         })
-    },  
+    },
     data() {
         return {
             inputText: '',
@@ -33,7 +37,25 @@ export default {
     },
     methods: {
         print(e) {
+            console.log('span select')
             console.log(e);
+        },
+        onEnter() {
+            this.$emit('send-message', this.inputText);
+            this.inputText = '';
+        },
+        maybeFocus() {
+            if (this.$refs.input === document.activeElement)
+                return;
+            const selection = document.getSelection();
+            if (selection.type === "Range")
+                return;
+
+            this.$refs.input.focus();
+            // selection.setBaseAndExtent(this.$refs.input, 0, this.$refs.input, 1);
+            // console.log(document.getSelection());
+            // console.log(document.activeElement, this.$refs.input);
+            // if (this.$refs.input.)
         }
     }
 
@@ -60,6 +82,7 @@ export default {
 
 #text-input > input {
     /* width: 0px; */
+    margin-left: 2em;
     overflow: hidden;
     border: 0;
     outline: 0;
@@ -75,6 +98,10 @@ export default {
   50% {
     border-color: #fff;
   }
+}
+
+.message {
+    padding-left: 1em;
 }
 
 .message.me {

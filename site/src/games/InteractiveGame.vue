@@ -31,7 +31,7 @@
                 </tr>
             </tbody>
         </table>
-        <Console :messages="messages" />
+        <Console :messages="messages" @sendMessage="pushMessage"/>
     </div>
 </template>
 
@@ -79,5 +79,19 @@ export default {
             ]
         };
     },
+    methods: {
+        pushMessage(mess) {
+            this.messages.push({from: "me", content: mess});
+            setTimeout(() => {
+                this.messages.push({from: "game", content: "guess 123"});
+                setTimeout(() => {
+                    this.messages.push({from: "game", content: "guess 456"});
+                }, 50);
+                setTimeout(() => {
+                    this.messages.push({from: "game", content: "guess 789"});
+                }, 50)
+            }, 500);
+        }
+    }
 };
 </script>
