@@ -4,7 +4,7 @@
         <h3>Setup new game of type {{ game }}</h3>
 
         <button v-if="!hasRunningGame" @click="startSingleplayer">Quick start single player game</button>
-        <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
+        <!-- <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
             <thead>
                 <th>
                     <td>
@@ -30,54 +30,103 @@
                     </td>
                 </tr>
             </tbody>
-        </table>
+        </table> -->
     </div>
-    <Console :messages="messages" :waiting-on-us="waitingOnUs" @sendMessage="pushMessage"/>
+    <hr>
+    <div class="foldable">
+        <div v-if="!gameFolded">
+            <span v-if="!hasRunningGame || messages.length === 0">
+                Waiting for game to start...
+            </span>
+            <component v-else :is="gameComponent" :messages="messages" @suggestion="setSuggestion" @sendMessage="pushMessage"/>
+
+        </div>
+    </div>
+    <hr>
+    <Console :messages="messages" :waiting-on-us="waitingOnUs" :suggestion="suggestion" @sendMessage="pushMessage"/>
 </template>
 
 <script>
 import { endpoint } from "@/http";
 import Console from "./Console.vue";
 
+// Game imports
+import GuessGame from "@/games/GuessGame.vue"
+
 
 
 export default {
     components: {
         Console,
+        GuessGame
     },
     props: {
         game: String,
     },
     mounted() {
-        endpoint.get("/game-info/" + this.game)
-            .then((val) => {
-                console.log("Got val: " + val.data);
-                this.gameSetupConfig = val.data;
-                for (let i = 0; i < val.data.numPlayers; ++i) {
-                    this.pickedAlgos.push("");
-                }
-            });
+        // endpoint.get("/game-info/" + this.game)
+        //     .then((val) => {
+        //         console.log("Got val: " + val.data);
+        //         this.gameSetupConfig = val.data;
+        //         for (let i = 0; i < val.data.numPlayers; ++i) {
+        //             this.pickedAlgos.push("");
+        //         }
+        //     });
+        setTimeout(() => {
+
+            this.gameSetupConfig = {
+                numPlayers: 5,
+                availableAlgos: ['internal'],
+                gameBaseName: 'Guess',
+            }
+
+            const lines = [
+                "result 750 lower",
+                "result 335 incorrect",
+                "result 334 incorrect",
+                "result 335 incorrect",
+                "result 346 incorrect",
+                "result 250 higher",
+                "result 336 incorrect",
+                "result 335 incorrect",
+                "result 336 incorrect",
+                "result 347 incorrect",
+                "result 700 lower",
+                "result 337 incorrect",
+                "result 336 incorrect",
+                "result 337 incorrect",
+                "result 348 incorrect",
+            ];
+
+            for (let line of lines) {
+                this.messages.push({from: "game", content: line});
+            }
+        }, 500);
     },
     computed: {
         hasRunningGame() {
-            return this.ws != null;
+            return this.ws != null || this.messages.length > 0;
+        },
+        gameComponent() {
+            if (!this.gameSetupConfig.gameBaseName)
+                return null;
+
+            return this.gameSetupConfig.gameBaseName + 'Game';
         }
     },
     data() {
         return {
             ws: null,
             waitingOnUs: false,
+            suggestion: '',
+            gameFolded: false,
             gameSetupConfig: {
                 numPlayers: -1,
                 availableAlgos: [],
+                gameBaseName: null,
             },
             pickedAlgos: [],
-            messages: [
-                {from: "game", content: "Guessed 84 wrong!"},
-                {from: "game", content: "Guessed 1234 wrong!"},
-                {from: "game", content: "guess"},
-                {from: "me", content: "123"},
-            ]
+            messages: []
         };
     },
     methods: {
@@ -133,6 +182,9 @@ export default {
         },
         startSingleplayer() {
             this.connectToGame(this.game + ";S");
+        },
+        setSuggestion(hint) {
+            this.suggestion = hint;
         }
     }
 };

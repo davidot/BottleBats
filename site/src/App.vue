@@ -22,7 +22,7 @@ import {onMounted, provide, ref} from "vue";
 import LogoSVG from "@/components/LogoSVG.vue";
 import {endpoint} from "./http";
 import axois from "axios";
-import InteractiveGame from "@/games/InteractiveGame.vue";
+import InteractiveGame from "@/views/InteractiveGame.vue";
 
 const start = ref("");
 const moves = ref("");
@@ -64,54 +64,6 @@ provide("userDetails", {
 });
 
 updateUserDetails();
-onMounted(() => {
-let sock = null;
-
-function sendMessage(mess) {
-  if (sock == null) {
-    sock = new WebSocket("ws://localhost:18081/ws?match=" + encodeURIComponent(mess));
-    sock.onopen = ()=>{
-        console.log('open')
-    }
-    sock.onerror = (e)=>{
-        console.log('error',e)
-    }
-    sock.onclose = (e)=>{
-        console.log('close', e)
-    }
-
-    sock.onmessage = (e)=>{
-        const el = document.getElementById('log');
-        el.value = el.value + '\n<' + e.data;
-    }
-    document.getElementById('send').innerText = 'Send!';
-  } else {
-    const el = document.getElementById('log');
-    el.value = el.value + '\n>' + mess;
-    console.log('Sending', mess);
-    sock.send(mess.length === 0 ? mess : mess + '\n');
-  }
-}
-
-document.getElementById('msg').addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        const msg = document.getElementById('msg');
-        sendMessage(msg.value);
-        msg.value = "";
-    }
-});
-document.getElementById('send').addEventListener("click", (e) => {
-    const msg = document.getElementById('msg');
-    sendMessage(msg.value);
-    msg.value = "";
-});
-
-// document.getElementById('http')?.addEventListener('click', () => {
-//   const msg = document.getElementById('msg');
-//   axois.get("http://localhost:18081/test?val=" + msg.value);
-// });
-
-});
 </script>
 
 <style>

@@ -5,6 +5,7 @@
         </div>
         <span :class="{'input-indicator': true, 'waiting': waitingOnUs}">$> </span>
         <span @select="print">{{ inputText }}</span>
+        <span v-if="suggestion != null && suggestion.length > 0" style="color: gray;">{{ suggestion }}</span>
         <span id="text-input">
             <input type="text" v-model="inputText" ref="input" v-on:keyup.enter="onEnter">
         </span>
@@ -23,20 +24,24 @@ export default {
             type: Boolean,
             required: true,
         },
+        suggestion: {
+            type: String,
+            required: true,
+        }
     },
     mounted() {
-        document.addEventListener("selectionchange", (e) => {
-            console.log('body selectionchange', e);
-            console.log(document.getSelection())
-            console.log(this.$refs.input.selectionStart);
-            console.log(this.$refs.input.selectionEnd);
+        // document.addEventListener("selectionchange", (e) => {
+        //     console.log('body selectionchange', e);
+        //     console.log(document.getSelection())
+        //     console.log(this.$refs.input.selectionStart);
+        //     console.log(this.$refs.input.selectionEnd);
 
-            if (this.$refs.input.selectionEnd == 6) {
-                this.$refs.input.selectionEnd = 3;
-            }
-            // console.log(document.getSelection().anchorNode)
-            // console.log(document.getSelection().anchorOffset)
-        })
+        //     if (this.$refs.input.selectionEnd == 6) {
+        //         this.$refs.input.selectionEnd = 3;
+        //     }
+        //     // console.log(document.getSelection().anchorNode)
+        //     // console.log(document.getSelection().anchorOffset)
+        // })
     },
     data() {
         return {
@@ -53,13 +58,13 @@ export default {
             this.inputText = '';
         },
         maybeFocus() {
-            if (this.$refs.input === document.activeElement)
-                return;
-            const selection = document.getSelection();
-            if (selection.type === "Range")
-                return;
+            // if (this.$refs.input === document.activeElement)
+            //     return;
+            // const selection = document.getSelection();
+            // if (selection.type === "Range")
+            //     return;
 
-            this.$refs.input.focus();
+            // this.$refs.input.focus();
             // selection.setBaseAndExtent(this.$refs.input, 0, this.$refs.input, 1);
             // console.log(document.getSelection());
             // console.log(document.activeElement, this.$refs.input);
@@ -67,7 +72,7 @@ export default {
         }
     }
 
-}
+};
 </script>
 
 <style scoped>
