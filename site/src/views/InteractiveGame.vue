@@ -38,12 +38,12 @@
             <span v-if="!hasRunningGame || messages.length === 0">
                 Waiting for game to start...
             </span>
-            <component v-else :is="gameComponent" :messages="messages" @suggestion="setSuggestion" @sendMessage="pushMessage"/>
+            <component v-else :is="gameComponent" :messages="messages" @suggestion="setSuggestion" @sendMessage="sendMessage"/>
 
         </div>
     </div>
     <hr>
-    <Console :messages="messages" :waiting-on-us="waitingOnUs" :suggestion="suggestion" @sendMessage="pushMessage"/>
+    <Console :messages="messages" :waiting-on-us="waitingOnUs" :suggestion="suggestion" @sendMessage="sendMessage"/>
 </template>
 
 <script>
@@ -99,8 +99,12 @@ export default {
             ];
 
             for (let line of lines) {
-                this.messages.push({from: "game", content: line});
+                this.addMessage({from: "game", content: line});
             }
+
+            setTimeout(() => {
+                this.addMessage({from: "game", content: "result 400 higher"});
+            }, 1500)
         }, 500);
     },
     computed: {
@@ -130,7 +134,10 @@ export default {
         };
     },
     methods: {
-        pushMessage(mess) {
+        addMessage(message) {
+            this.messages.push(message);
+        },
+        sendMessage(mess) {
             if (this.ws != null) {
                 mess = mess.trim();
                 if (mess !== '')

@@ -14,12 +14,31 @@
                 </span>
             </div>
 
+            <div class="blocker" :style="{left: '0', right: locationToCSS(rangeEnd - rightMostHigher, 0)}">
+                <div style="position: relative; left: 100%; width: fit-content;">
+                    <span v-show="pickerLocation != null && pickerLocation <= rightMostHigher" style="top: 15px;">
+                        &gt; {{ rightMostHigher }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="blocker" :style="{left: locationToCSS(leftMostLower), right: '0'}">
+                <div style="position: relative; right: 0; width: fit-content;">
+                    <span v-show="pickerLocation != null && pickerLocation >= leftMostLower" style="top: 15px;">
+                        &lt; {{ leftMostLower }}
+                    </span>
+                </div>
+
+            </div>
         </div>
+
         <div v-if="locked" style="position: absolute; top: 0; left: 50%; color: gray;"><span style="position: relative; left: -50%;;">Click to unlock!</span></div>
     </div>
     <button style="width: 100%; margin-top: 5px;">Guess!</button>
     LML: {{ leftMostLower }}
     RMH: {{rightMostHigher}}
+
+    {{ gameMessages.at(-1) }}
 
 </template>
 
@@ -62,7 +81,7 @@ export default {
             for (const mess of this.gameMessages) {
                 if (mess[1] !== "higher")
                     continue;
-                if (highest == null || mess[0] < highest)
+                if (highest == null || mess[0] > highest)
                     highest = mess[0];
             }
             return highest;
@@ -204,6 +223,16 @@ export default {
 .base div span {
     position: relative;
     left: -50%;
+}
+
+.blocker {
+    position: absolute;
+    color: pink;
+    height: 10px;
+    border-left: 2px solid pink;
+    background: repeating-linear-gradient(-45deg, pink, pink 5px, white 5px, white 10px);
+    transition: all 2s ease-out;
+    transition-property: left, right;
 }
 
 </style>
