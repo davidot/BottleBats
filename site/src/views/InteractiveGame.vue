@@ -4,7 +4,7 @@
         <h3>Setup new game of type {{ game }}</h3>
 
         <button v-if="!hasRunningGame" @click="startSingleplayer">Quick start single player game</button>
-        <!-- <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
+        <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
             <thead>
                 <th>
                     <td>
@@ -30,7 +30,10 @@
                     </td>
                 </tr>
             </tbody>
-        </table> -->
+        </table>
+        <div>
+            <label for="game-join-code">Join game</label><input type="text" id="game-join-code" v-model="gameJoinCode"><button @click="joinGame">Join!</button>
+        </div>
     </div>
     <hr>
     <div class="foldable">
@@ -39,7 +42,6 @@
                 Waiting for game to start...
             </span>
             <component v-else :is="gameComponent" :messages="messages" @suggestion="setSuggestion" @sendMessage="sendMessage"/>
-
         </div>
     </div>
     <hr>
@@ -66,15 +68,16 @@ export default {
         game: String,
     },
     mounted() {
-        // endpoint.get("/game-info/" + this.game)
-        //     .then((val) => {
-        //         console.log("Got val: " + val.data);
-        //         this.gameSetupConfig = val.data;
-        //         for (let i = 0; i < val.data.numPlayers; ++i) {
-        //             this.pickedAlgos.push("");
-        //         }
-        //     });
+        endpoint.get("/game-info/" + this.game)
+            .then((val) => {
+                console.log("Got val: ", val.data);
+                this.gameSetupConfig = val.data;
+                for (let i = 0; i < val.data.numPlayers; ++i) {
+                    this.pickedAlgos.push("");
+                }
+            });
         setTimeout(() => {
+            return;
 
             this.gameSetupConfig = {
                 numPlayers: 5,
@@ -98,20 +101,26 @@ export default {
                 "result 336 incorrect",
                 "result 337 incorrect",
                 "result 348 incorrect",
+                "result 400 higher",
             ];
 
-            for (let line of lines) {
-                this.addMessage({from: "game", content: line});
-            }
+            this.addMessage({from: "system", content: "Guess game started!"});
 
-            setTimeout(() => {
-                this.addMessage({from: "game", content: "result 400 higher"});
-            }, 1500)
+            const doMessage = () => {
+                if (lines.length > 0) {
+                    const mess = lines.shift();
+                    this.addMessage({from: "game", content: mess});
+                    setTimeout(doMessage, 1500);
+                }
+            };
+
+            setTimeout(doMessage, 150);
+
         }, 500);
     },
     computed: {
         hasRunningGame() {
-            return this.ws != null || this.messages.length > 0;
+            return this.ws != null;
         },
         gameComponent() {
             if (!this.gameSetupConfig.gameBaseName)
@@ -132,6 +141,7 @@ export default {
                 gameBaseName: null,
             },
             pickedAlgos: [],
+            gameJoinCode: '',
             messages: []
         };
     },
@@ -148,17 +158,6 @@ export default {
                 this.messages.push({from: "me", content: mess.trim()});
                 this.waitingOnUs = false;
             }
-
-            // this.messages.push({from: "me", content: mess});
-            // setTimeout(() => {
-            //     this.messages.push({from: "game", content: "guess 123"});
-            //     setTimeout(() => {
-            //         this.messages.push({from: "game", content: "guess 456"});
-            //     }, 50);
-            //     setTimeout(() => {
-            //         this.messages.push({from: "game", content: "guess 789"});
-            //     }, 50)
-            // }, 500);
         },
         connectToGame(matchCode) {
             if (this.ws) {
@@ -167,7 +166,6 @@ export default {
             }
 
             const ws = new WebSocket("ws://" + window.location.host + "/ws-api/game-join?match=" + encodeURIComponent(matchCode));
-            // const ws = new WebSocket("ws://localhost:18081/ws-api/game-join?match=" + encodeURIComponent(matchCode));
             ws.onclose = (ev) => {
                 console.log("Closed ws due to " + ev.reason + " (" + ev.statusCode + ")");
                 if (this.ws === ws)
@@ -184,13 +182,21 @@ export default {
                 console.log("Got error on WS:", ev)
             };
             ws.onmessage = (ev) => {
-                console.log("Got message: " + ev.data);
-                this.messages.push({from: "game", content: ev.data});
-                this.waitingOnUs = true;
+                console.log("Got message: ", JSON.parse(ev.data));
+                const message = JSON.parse(ev.data);
+                if (message.type === 'message')
+                    this.addMessage({from: "game", content: message.content});
+                else if (message.type === 'you-are-up')
+                    this.waitingOnUs = true;
+                else if (message.type === 'system')
+                    this.addMessage({from: "system", content: message.content});
             };
         },
         startSingleplayer() {
             this.connectToGame(this.game + ";S");
+        },
+        joinGame() {
+            this.connectToGame(this.gameJoinCode);
         },
         setSuggestion(hint) {
             this.suggestion = hint;

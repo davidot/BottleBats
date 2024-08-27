@@ -2,6 +2,7 @@
 #include "crow/common.h"
 #include "crow/json.h"
 #include "crow/returnable.h"
+#include "crow/websocket.h"
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
@@ -69,7 +70,7 @@ public:
 
     void guess_made(int value, GuessPlayer::GuessResult result) override {
         std::ostringstream message {};
-        message << "guess " << value << ", result " << result_to_string(result) << "\n";
+        message << "result " << value << ' ' << result_to_string(result);
         m_output_buffer.emplace_back(message.str());
     }
 
@@ -149,28 +150,67 @@ enum class InteractiveTickResult {
     WaitingOnYou,
     DoneCleanUpState,
     DoneClearStateOnly,
+FailedCleanUpState,
+    FailedClearStateOnly,
 };
 
 struct InteractiveGameState {
-    uint32_t active_interactive_players = 0;
-    bool done = false;
+    bool game_in_progress() {
+        return done.load() == DoneState::Running;
+    }
 
+    void set_done_if_in_progress() {
+        DoneState expected { DoneState::Running };
+    bool exchanged = done.compare_exchange_strong(expected, DoneState::Done);
+        ASSERT(exchanged || expected == DoneState::Failed);
+    }
 
-    bool should_run() {
-        return !running.test_and_set();
+    void mark_failed() {
+        done.store(DoneState::Failed);
+    }
+
+    bool has_failed() {
+        return done.load() == DoneState::Failed;
+    }
+
+    bool can_run_exclusive() {
+        return !run_lock.test_and_set();
     }
 
     void done_running() {
-        running.clear();
+        run_lock.clear();
     }
 
-    // FIXME: Something with done?
+    bool mark_player_done_is_last() {
+        auto old_value = active_interactive_players.fetch_sub(1);
+        ASSERT(old_value >= 1);
+        return old_value == 1;
+    }
 
-    virtual ~InteractiveGameState() {}
+    virtual ~InteractiveGameState() = 0;
 
-public:
-    std::atomic_flag running = ATOMIC_FLAG_INIT;
+    // FIXME: Protect me with friend or something
+    void set_num_interactive_players(uint32_t amount) {
+        active_interactive_players.store(amount);
+    }
+
+private:
+    enum class DoneState {
+        Running,
+        Done,
+        Failed
+    };
+
+    std::atomic<uint32_t> active_interactive_players { 0 };
+    static_assert(std::atomic<uint32_t>::is_always_lock_free);
+
+    std::atomic<DoneState> done { DoneState::Running };
+    static_assert(std::atomic<DoneState>::is_always_lock_free);
+
+    std::atomic_flag run_lock = ATOMIC_FLAG_INIT;
 };
+
+InteractiveGameState::~InteractiveGameState() {}
 
 struct GuessGameState : public InteractiveGameState {
    int number = -1;
@@ -269,8 +309,6 @@ struct GuessGame final : public MultiplayerGame<GuessGameState> {
                 break;
             }
 
-            std::cout << "Player " << this_player << " guessed " << guess << '\n';
-
             GuessPlayer::GuessResult result = guess < game_state.number ? GuessPlayer::GuessResult::Higher : GuessPlayer::GuessResult::Lower;
             player->guess_made(guess, result);
 
@@ -326,6 +364,7 @@ struct InteractiveGameSetup {
 
 struct AvailableGame {
     std::string name;
+    std::string baseName;
     std::unique_ptr<InteractiveGame> game;
 };
 
@@ -383,18 +422,25 @@ std::string random_match_code(std::string const& game)
     return match_code;
 }
 
-InteractiveGame const* get_game(std::string_view game_name) {
+AvailableGame const* find_game(std::string_view game_name) {
     auto game_or_end = std::find_if(games.begin(), games.end(), [&](auto& game) {
         return game.name == game_name;
     });
     if (game_or_end == games.end())
         return nullptr;
 
-    return game_or_end->game.get();
+    return game_or_end.base();
+}
+
+InteractiveGame const* get_game_ptr(std::string_view game_name) {
+    auto* game = find_game(game_name);
+    if (!game)
+        return nullptr;
+    return game->game.get();
 }
 
 std::string prepare_match(std::string const& game_name, std::vector<std::string_view> commands) {
-    auto* game_ptr = get_game(game_name);
+    auto* game_ptr = get_game_ptr(game_name);
     if (!game_ptr)
         return "FAIL: Unknown game!";
 
@@ -514,7 +560,7 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
                     return InteractiveGameSetup::invalid("Failed to setup game for everyone!");
                 }
 
-                match.game_data->active_interactive_players = match.interactive_players_left_to_give_state;
+                match.game_data->set_num_interactive_players(match.interactive_players_left_to_give_state);
             }
 
             --match.interactive_players_left_to_give_state;
@@ -537,7 +583,7 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
 
     // Single player game, serach for game and setup single game
 
-    auto* game_ptr = get_game(std::string_view{match_code_full}.substr(0, seperator - 1));
+    auto* game_ptr = get_game_ptr(std::string_view{match_code_full}.substr(0, seperator - 1));
     std::cout << "Looking for single player game: " << std::string_view{match_code_full}.substr(0, seperator - 1) << '\n';
     if (!game_ptr)
         return InteractiveGameSetup::invalid("Unknown game for single player");
@@ -562,9 +608,7 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
     if (!game_data)
         return InteractiveGameSetup::invalid("Failed to setup game!");
 
-    ASSERT(!game_data->running.test());
-
-    game_data->active_interactive_players = 1;
+    game_data->set_num_interactive_players(1);
 
     return InteractiveGameSetup {
         chosen_spot,
@@ -578,7 +622,7 @@ InteractiveTickResult tick_interactive_game(InteractiveGame const* game, Interac
 
     // NOTE: It is up to the calling code to call game_data->done_running(), to clear it for running the next time
 
-    if (!game_data->done) {
+    if (game_data->game_in_progress()) {
         auto game_tick_result = game->tick_interactive_game(game_data);
 
         if (game_tick_result.has_value()) {
@@ -587,17 +631,17 @@ InteractiveTickResult tick_interactive_game(InteractiveGame const* game, Interac
 
             return InteractiveTickResult::Running;
         }
-        game_data->done = true;
+        game_data->set_done_if_in_progress();
         // Fallthrough to clean up
     }
 
-    // FIXME: Deal with the case where players are stopped halfway through
-    ASSERT(game_data->active_interactive_players > 0);
-    --(game_data->active_interactive_players);
-    if (game_data->active_interactive_players == 0)
-        return InteractiveTickResult::DoneCleanUpState;
+    // Either we are done (already were or just were) or we failed
+    bool is_last_player = game_data->mark_player_done_is_last();
+    bool failed = game_data->has_failed();
+    if (is_last_player)
+        return failed ? InteractiveTickResult::FailedCleanUpState : InteractiveTickResult::DoneCleanUpState;
 
-    return InteractiveTickResult::DoneClearStateOnly;
+    return failed ? InteractiveTickResult::FailedClearStateOnly : InteractiveTickResult::DoneClearStateOnly;
 }
 
 struct WebSocketState {
@@ -624,12 +668,13 @@ struct WebSocketState {
     InteractiveGameState* game_data;
     std::optional<PlayerIdentifier> player_id;
 
-    std::vector<std::string> run() {
+    std::vector<std::string> run(bool failed = false) {
         ASSERT(state != State::WaitingForStart);
         ASSERT(state != State::Done);
         ASSERT(state != State::Failed);
 
         if (state == State::Starting) {
+ASSERT(!failed);
             auto game_setup = setup_game(player_id.has_value(), match_code, input_string, output_buffer);
 
             if (game_setup.has_error()) {
@@ -663,14 +708,27 @@ struct WebSocketState {
         ASSERT(game_data);
 
         // Shortcut, if waiting on us and buffer empty, just get out of here
-        if (state == State::WaitingOnOurInput && input_buffer.empty()) {
+        if (!failed && state == State::WaitingOnOurInput && input_buffer.empty()) {
             ASSERT(output_buffer.empty());
             return {};
         }
 
-        if (!game_data->should_run()) {
+        if (!game_data->can_run_exclusive()) {
             std::cout << "Already running on another call\n";
+if (failed) {
+                game_data->mark_failed();
+
+                auto result = tick_interactive_game(game, game_data, *player_id);
+                ASSERT((result == InteractiveTickResult::FailedCleanUpState)
+                    || (result == InteractiveTickResult::FailedClearStateOnly));
+
+                clean_up_after_game(result);
+                ASSERT(state == State::Failed);
+            }
             return {};
+} else if (failed) {
+            std::cout << "Failing current game (with lock though!)\n";
+            game_data->mark_failed();
         }
 
         state = State::Running;
@@ -702,16 +760,7 @@ struct WebSocketState {
             }
         }
 
-        std::cout << "Done with game!\n";
-
-        // One of the done states
-        ASSERT((result == InteractiveTickResult::DoneCleanUpState) || (result == InteractiveTickResult::DoneClearStateOnly));
-        if (result == InteractiveTickResult::DoneCleanUpState)
-            delete game_data;
-
-        game_data = nullptr;
-
-        state = State::Done;
+        clean_up_after_game(result);
         return {};
     }
 
@@ -727,6 +776,28 @@ struct WebSocketState {
 
         // Show we are ready for new game
         state = State::WaitingForStart;
+    }
+private:
+    void clean_up_after_game(InteractiveTickResult result)
+    {
+
+        std::cout << "Done with game, with " << static_cast<uint32_t>(result) << '\n';
+
+        // One of the done states
+        ASSERT((result == InteractiveTickResult::DoneCleanUpState)
+            || (result == InteractiveTickResult::DoneClearStateOnly)
+            || (result == InteractiveTickResult::FailedCleanUpState)
+            || (result == InteractiveTickResult::FailedClearStateOnly));
+
+        if (result == InteractiveTickResult::DoneCleanUpState || result == InteractiveTickResult::FailedCleanUpState)
+            delete game_data;
+
+        game_data = nullptr;
+
+        if (result == InteractiveTickResult::FailedCleanUpState || result == InteractiveTickResult::FailedClearStateOnly)
+            state = State::Failed;
+        else
+            state = State::Done;
     }
 };
 
@@ -750,26 +821,64 @@ WebSocketState* find_next_ws_state(std::string match_code) {
     return nullptr;
 }
 
-void handle_ws_message(crow::websocket::connection& conn, std::string input)
+void send_ws_game_message(crow::websocket::connection& conn, std::string type, std::string content)
+{
+    crow::json::wvalue message {
+        {"type", type},
+        {"content", content}
+    };
+    conn.send_text(message.dump());
+}
+
+void handle_ws_message(crow::websocket::connection& conn, std::string input, bool closed = false)
 {
     ASSERT(conn.userdata());
     auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
     std::lock_guard _lock(ws_state->_lock);
 
-    // FIXME: This is currently not safe as the game might already be running
-    if (!input.empty())
+    if (ws_state->state == WebSocketState::State::Done) {
+        ASSERT(closed);
+        std::cout << "Closing already done!\n";
+        return;
+    }
+
+    if (ws_state->state == WebSocketState::State::Failed) {
+        std::cout << "Closing failed!\n";
+        if (!closed) {
+            send_ws_game_message(conn, "system", "Other player stopped");
+
+            std::cout << "Closing connection due to failed but not closed\n";
+            auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&conn);
+            ASSERT(ptr);
+            ptr->post([&]{
+                conn.close();
+            });
+        }
+
+        return;
+    }
+
+    if (!input.empty() && !closed)
         ws_state->input_buffer += input;
 
-    auto response = ws_state->run();
+    auto response = ws_state->run(closed);
+
+    if (closed)
+        return;
 
     for (auto& str : response) {
-        conn.send_text(str);
+        send_ws_game_message(conn, "message", str);
+}
+
+    if (ws_state->state == WebSocketState::State::WaitingOnOurInput) {
+        send_ws_game_message(conn, "you-are-up", "");
+        return;
     }
 
     if (ws_state->state == WebSocketState::State::Done) {
-        conn.send_text("Done!");
+        send_ws_game_message(conn, "system", "Game completed!");
     } else if (ws_state->state == WebSocketState::State::Failed) {
-        conn.send_text("Fail!");
+        send_ws_game_message(conn, "system", "Failed / Stopped");
     } else {
         return;
     }
@@ -786,7 +895,7 @@ int main()
 {
     srand(time(nullptr));
 
-    games.emplace_back("guess", std::make_unique<GuessGame>(5));
+    games.emplace_back("guess", "Guess", std::make_unique<GuessGame>(5));
     random_engine.seed(rand());
 
     crow::SimpleApp app;
@@ -805,9 +914,9 @@ int main()
     }
 
     CROW_ROUTE(app, "/api/game-info/<string>")([](crow::response& res, std::string game) {
-        auto* game_ptr = get_game(game);
+        auto* available_game = find_game(game);
         res.add_header("Content-Type", "application/json");
-        if (!game_ptr) {
+        if (!available_game) {
             res.code = crow::status::NOT_FOUND;
 
             res.write(crow::json::wvalue {
@@ -819,8 +928,9 @@ int main()
         }
 
         crow::json::wvalue response;
-        response["numPlayers"] = game_ptr->get_num_players();
-        response["availableAlgos"] = game_ptr->available_algortihms();
+        response["numPlayers"] = available_game->game->get_num_players();
+        response["availableAlgos"] = available_game->game->available_algortihms();
+response["gameBaseName"] = available_game->baseName;
 
         res.write(response.dump());
         res.end();
@@ -846,15 +956,24 @@ int main()
                 std::cout << "Opened ws to " << conn.get_remote_ip() << '\n';
                  handle_ws_message(conn, "");
             })
-            .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t){
-                std::cout << "Closed ws with " << conn.get_remote_ip() << " for " << reason << '\n';
-                if (!conn.userdata())
+            .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t code){
+                std::cout << "Closed ws with " << conn.get_remote_ip() << " for " << reason << '(' << code << ")\n";
+                if (!conn.userdata()) {
+                    std::cout << "Data already cleared for closing\n";
                     return;
+}
+
+                std::cout << "Sending that we are closing!\n";
+                handle_ws_message(conn, "", true);
+                std::cout << "Should be closed now!\n";
+
                 {
                     auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
                     std::lock_guard _lock(ws_state->_lock);
+ASSERT(ws_state->state == WebSocketState::State::Done || ws_state->state == WebSocketState::State::Failed);
                     ws_state->prepare_for_next_game();
                     conn.userdata(nullptr);
+std::cout << "Cleared userdata!\n";
                 }
             })
             .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){

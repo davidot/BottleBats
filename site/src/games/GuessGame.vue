@@ -34,7 +34,7 @@
 
         <div v-if="locked" style="position: absolute; top: 0; left: 50%; color: gray;"><span style="position: relative; left: -50%;;">Click to unlock!</span></div>
     </div>
-    <button style="width: 100%; margin-top: 5px;">Guess!</button>
+    <button style="width: 100%; margin-top: 5px;" @click="sendMessage" :disabled="pickerLocation == null">Guess!</button>
     LML: {{ leftMostLower }}
     RMH: {{rightMostHigher}}
 
@@ -84,7 +84,7 @@ export default {
                 if (highest == null || mess[0] > highest)
                     highest = mess[0];
             }
-            return highest;
+            return highest || this.rangeStart;
         },
         leftMostLower() {
             let lowest = null;
@@ -94,7 +94,7 @@ export default {
                 if (lowest == null || mess[0] < lowest)
                     lowest = mess[0];
             }
-            return lowest;
+            return lowest || this.rangeEnd;
         }
     },
     methods: {
@@ -126,6 +126,13 @@ export default {
         deltaPicker(change) {
             this.pickerLocation += Math.sign(change);
             this.pickerLocation = Math.min(this.rangeEnd, Math.max(0, this.pickerLocation));
+        },
+        sendMessage() {
+            if (this.pickerLocation == null)
+                return;
+            const value = this.pickerLocation + '';
+            this.pickerLocation = null;
+            this.$emit('sendMessage', value);
         }
     },
     watch: {
