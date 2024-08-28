@@ -52,13 +52,15 @@ import Console from "./Console.vue";
 
 // Game imports
 import GuessGame from "@/games/GuessGame.vue"
+import TickTackToeGame from "@/games/TickTackToeGame.vue"
 
 
 
 export default {
     components: {
         Console,
-        GuessGame
+        GuessGame,
+        TickTackToeGame,
     },
     props: {
         game: String,
