@@ -439,13 +439,32 @@ InteractiveGame const* get_game_ptr(std::string_view game_name) {
     return game->game.get();
 }
 
-std::string prepare_match(std::string const& game_name, std::vector<std::string_view> commands) {
+struct PreparedMatch {
+    bool ready{false};
+    std::string code_or_error;
+
+    static PreparedMatch fail(std::string error) {
+        return {
+            false,
+            std::move(error)
+        };
+    }
+
+    static PreparedMatch match_ready(std::string match_code) {
+        return {
+            true,
+            std::move(match_code)
+        };
+    }
+};
+
+PreparedMatch prepare_match(std::string const& game_name, std::vector<std::string_view> commands) {
     auto* game_ptr = get_game_ptr(game_name);
     if (!game_ptr)
-        return "FAIL: Unknown game!";
+        return PreparedMatch::fail("Unknown game!");
 
     if (game_ptr->get_num_players() != commands.size())
-        return "FAIL: Invalid number of players!";
+        return PreparedMatch::fail("Invalid number of players!");
     ASSERT(commands.size() > 0);
 
     std::string match_code = random_match_code(game_name);
@@ -463,7 +482,7 @@ std::string prepare_match(std::string const& game_name, std::vector<std::string_
     }
 
     if (interactive_players == 0)
-        return "FAIL: All bot players";
+        return PreparedMatch::fail("Only bot players, at the moment not allowed!");
 
     {
         std::lock_guard _lock(match_lock);
@@ -474,7 +493,7 @@ std::string prepare_match(std::string const& game_name, std::vector<std::string_
             })) {
                 break;
             } else if (i == 24) {
-                return "FAIL: No space available to play game";
+                return PreparedMatch::fail("No space available to play game, try again later");
             }
 
             match_code = random_match_code(game_name);
@@ -483,7 +502,7 @@ std::string prepare_match(std::string const& game_name, std::vector<std::string_
         prepared_matches.emplace_back(interactive_players, match_code, std::move(player_commands), game_ptr);
     }
 
-    return match_code;
+    return PreparedMatch::match_ready(match_code);
 }
 
 InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full, std::string& input, std::vector<std::string>& output) {
@@ -900,40 +919,44 @@ int main()
 
     crow::SimpleApp app;
 
-    {
-        std::string command = "internal";
-        std::vector<std::string_view> commands {
-            command,
-            {},
-            command,
-            command,
-            {},
-        };
-        auto match_name = prepare_match("guess", commands);
-        std::cout << "match ready with code: " << match_name << '\n';
-    }
-
-    CROW_ROUTE(app, "/api/game-info/<string>")([](crow::response& res, std::string game) {
+    CROW_ROUTE(app, "/api/game-info/<string>")([](std::string game) {
         auto* available_game = find_game(game);
-        res.add_header("Content-Type", "application/json");
-        if (!available_game) {
-            res.code = crow::status::NOT_FOUND;
-
-            res.write(crow::json::wvalue {
-                {"failed", true},
-                {"error", "Unknown game"}
-            }.dump());
-            res.end();
-            return;
-        }
+        if (!available_game)
+            return crow::response(crow::status::NOT_FOUND, "Cannot find game");
 
         crow::json::wvalue response;
         response["numPlayers"] = available_game->game->get_num_players();
         response["availableAlgos"] = available_game->game->available_algortihms();
 response["gameBaseName"] = available_game->baseName;
 
-        res.write(response.dump());
-        res.end();
+        return crow::response{ response };
+    });
+
+    CROW_ROUTE(app, "/api/setup-game/<string>")
+        .methods(crow::HTTPMethod::POST)
+        ([](crow::request const& req, std::string game) -> crow::response {
+            auto msg = crow::json::load(req.body);
+
+            if (msg.t() != crow::json::type::List)
+                return crow::response(crow::status::BAD_REQUEST, "must be json array of appropiate length");
+
+            std::vector<std::string_view> commands;
+
+            for (size_t i = 0; i < msg.size(); ++i) {
+                auto command_view = msg[i].s();
+                std::cout << "Size: " << command_view.size() << '\n';
+                commands.emplace_back(command_view.begin(), command_view.size());
+                std::cout << commands[commands.size() - 1] << '\n';
+            }
+
+            auto result = prepare_match(game, commands);
+            if (!result.ready)
+                return crow::response(crow::status::BAD_REQUEST, std::move(result.code_or_error));
+
+            return crow::json::wvalue {
+                {"ready", true},
+                {"matchCode", result.code_or_error},
+            };
     });
 
     CROW_WEBSOCKET_ROUTE(app, "/ws-api/game-join")

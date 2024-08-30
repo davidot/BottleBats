@@ -26,7 +26,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <button>Start game!</button>
+                        <button @click="startGame">Start game!</button>
                     </td>
                 </tr>
             </tbody>
@@ -200,6 +200,14 @@ export default {
         },
         setSuggestion(hint) {
             this.suggestion = hint;
+        },
+        startGame() {
+            endpoint.post("/setup-game/" + this.game, this.pickedAlgos)
+                .then(v => {
+                    console.log('success', v);
+                }).catch(e => {
+                    console.log('fail :(', e);
+                });
         }
     }
 };
