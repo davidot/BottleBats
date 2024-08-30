@@ -1,9 +1,8 @@
 <template>
-    <div class="base">
+    <div class="base" style="--animation-time: 1s; --hover-col: #aaaaaa; --filled-col: #333333;">
         <table :class="['game', turnFor + '-turn']" v-if="values != null" @mouseleave="hoverOn(null)">
             <tr v-for="i in 3">
                 <td v-for="j in 3" :class="['cell', values[coordToIndex(i, j)] + '-cell']" @mouseover="hoverOn(coordToIndex(i, j))" @click="send(coordToIndex(i, j))">
-                    &nbsp;
                 </td>
             </tr>
         </table>
@@ -116,29 +115,93 @@ export default {
 }
 
 .cell {
-    width: 2em;
-    height: 2em;
+    width: 32px;
+    height: 32px;
     border: 1px solid black;
+    box-sizing: content-box;
+    position: relative;
 }
 
-.x-turn .empty-cell:hover::after {
-    content: 'X';
-    font-size: larger;
-    font-weight: bold;
-}
-
-.o-turn .empty-cell:hover {
-    content: 'O';
-    font-size: larger;
-    font-weight: bold;
-}
-
+.x-turn .empty-cell:hover::before,
+.x-turn .empty-cell:hover::after,
+.x-cell::before,
 .x-cell::after {
-    content: 'X';
+    content: '';
+
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 4px;
+    height: 120%;
+
+    transform-origin: 0% 0%;
 }
 
-.o-cell::after {
-    content: 'O';
+.x-turn .empty-cell:hover::before,
+.x-turn .empty-cell:hover::after {
+    background-color: var(--hover-col);
+}
+
+.x-cell::before, .x-cell::after {
+    background-color: var(--filled-col);
+    animation: xClip calc(var(--animation-time) / 2) linear forwards;
+    visibility: hidden;
+}
+
+@keyframes xClip {
+    0% {
+        height: 0%;
+        visibility: visible;
+    }
+    100% {
+        height: 120%;
+        visibility: visible;
+    }
+}
+
+.x-turn .empty-cell:hover::before,
+.x-cell::before {
+    transform: translate(1px, 4px) rotate(-45deg);
+    animation-delay: calc(var(--animation-time) / 2);
+}
+
+.x-turn .empty-cell:hover::after,
+.x-cell::after {
+    transform: translate(27px, 4px) rotate(45deg) translate(0, -4px);
+}
+
+
+.o-turn .empty-cell:hover::before,
+.o-cell::before {
+    content: '';
+    box-sizing: border-box;
+    position: absolute;
+    border-radius: 50%;
+    border: 4px solid;
+    width: 90%;
+    height: 90%;
+    top: 5%;
+    left: 5%;
+    display: inline-block;
+}
+
+.o-turn .empty-cell:hover::before {
+    border-color: var(--hover-col);
+}
+
+.o-cell::before {
+    animation: circleClip var(--animation-time) linear;
+    border-color: var(--filled-col);
+}
+
+@keyframes circleClip {
+    0%    {clip-path:polygon(50% 50%, 50% 0, 50% 0, 50% 0, 50% 0, 50% 0, 50% 0)}
+    12.5% {clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 0, 100% 0, 100% 0, 100% 0)}
+    37.5% {clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 100% 100%, 100% 100%, 100% 100%)}
+    62.5% {clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 100%, 0 100%)}
+    87.5% {clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0, 0 0)}
+    100%  {clip-path:polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0, 50% 0)}
 }
 
 .cell:hover {
