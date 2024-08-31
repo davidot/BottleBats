@@ -1113,6 +1113,24 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
     });
 }
 
+struct ConnectionHolder {
+    crow::websocket::connection& connection;
+    std::atomic_flag closed = ATOMIC_FLAG_INIT;
+};
+
+std::array<std::atomic<std::shared_ptr<ConnectionHolder>>, 10> observers;
+
+std::weak_ptr<ConnectionHolder> find_observer_slot(crow::websocket::connection& conn) {
+    auto connection_holder = std::make_shared<ConnectionHolder>(conn);
+    for (auto& slot : observers) {
+        std::shared_ptr<ConnectionHolder> empty;
+        if (slot.compare_exchange_strong(empty, connection_holder)) {
+            return std::weak_ptr<ConnectionHolder> { slot.load() };
+        }
+    }
+    return {};
+}
+
 int main()
 {
     srand(time(nullptr));
