@@ -1043,15 +1043,6 @@ WebSocketState* find_next_ws_state(std::string match_code) {
     return nullptr;
 }
 
-void send_ws_game_message(crow::websocket::connection& conn, std::string type, std::string content)
-{
-    crow::json::wvalue message {
-        {"type", type},
-        {"content", content}
-    };
-    conn.send_text(message.dump());
-}
-
 void handle_ws_message(crow::websocket::connection& conn, std::string input, bool closed = false)
 {
     ASSERT(conn.userdata());
@@ -1067,7 +1058,7 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
     if (ws_state->state == WebSocketState::State::Failed) {
         std::cout << "Closing failed!\n";
         if (!closed) {
-            send_ws_game_message(conn, "system", "Other player stopped");
+            conn.send_text("[{\"type\":\"system\",\"content\":\"Other players quit / Failed!\"}]");
 
             std::cout << "Closing connection due to failed but not closed\n";
             auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&conn);
@@ -1088,22 +1079,37 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
     if (closed)
         return;
 
+    crow::json::wvalue messages;
+    auto push_message = [&messages, message_index = 0u](std::string const& type, std::string content = "") mutable {
+        messages[message_index++] = crow::json::wvalue {
+            {"type", type},
+            {"content", std::move(content)},
+        };
+    };
+
+
     for (auto& str : response) {
-        send_ws_game_message(conn, "message", str);
+        push_message("game-message", std::move(str));
 }
 
+    bool close = false;
+
     if (ws_state->state == WebSocketState::State::WaitingOnOurInput) {
-        send_ws_game_message(conn, "you-are-up", "");
-        return;
+        push_message("you-are-up");
+        } else if (ws_state->state == WebSocketState::State::Done) {
+        push_message("system", "Game completed!");
+close = true;
+    } else if (ws_state->state == WebSocketState::State::Failed) {
+        push_message("system", "Failed / Stopped");
+close = true;
+    } else {
+        ASSERT(false);
     }
 
-    if (ws_state->state == WebSocketState::State::Done) {
-        send_ws_game_message(conn, "system", "Game completed!");
-    } else if (ws_state->state == WebSocketState::State::Failed) {
-        send_ws_game_message(conn, "system", "Failed / Stopped");
-    } else {
+conn.send_text(messages.dump());
+
+    if (!close)
         return;
-    }
 
     std::cout << "Closing connection due to done or failed state " << static_cast<int>(ws_state->state) << '\n';
     auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&conn);

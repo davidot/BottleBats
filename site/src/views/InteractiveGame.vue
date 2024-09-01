@@ -183,13 +183,19 @@ export default {
             };
             ws.onmessage = (ev) => {
                 console.log("Got message: ", JSON.parse(ev.data));
-                const message = JSON.parse(ev.data);
-                if (message.type === 'message')
+                const messageList = JSON.parse(ev.data);
+                for (const message of messageList) {
+                    if (message.type === 'game-message') {
                     this.addMessage({from: "game", content: message.content});
-                else if (message.type === 'you-are-up')
+                } else if (message.type === 'you-are-up') {
                     this.waitingOnUs = true;
-                else if (message.type === 'system')
+                } else if (message.type === 'system') {
                     this.addMessage({from: "system", content: message.content});
+} else {
+                        this.addMessage({from: "system", content: 'Unknown message?: ' + JSON.stringify(message)});
+                    }
+                }
+                
             };
         },
         startSingleplayer() {
