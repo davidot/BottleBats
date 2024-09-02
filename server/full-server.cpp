@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <iterator>
 #include <string_view>
 #include <tuple>
 #include <utility>
@@ -533,11 +534,13 @@ private:
 
 };
 
+struct ConnectionHolder;
 
 struct InteractiveGameSetup {
     std::optional<PlayerIdentifier> player_id;
     InteractiveGame const* game = nullptr;
     InteractiveGameState* game_data = nullptr;
+    std::vector<std::weak_ptr<ConnectionHolder>> observers;
 
     std::string error_message{};
 
@@ -554,13 +557,14 @@ struct InteractiveGameSetup {
             0,
             nullptr,
             nullptr,
+            {},
             std::move(message),
         };
     }
 
     static InteractiveGameSetup not_ready(std::optional<PlayerIdentifier> id = std::nullopt) {
         return {
-            id, nullptr, nullptr, ""
+            id, nullptr, nullptr, {}, ""
         };
     }
 };
@@ -582,6 +586,7 @@ struct SetupMatch {
     std::vector<PlayerFactory> players{};
     InteractiveGame const* game = nullptr;
     InteractiveGameState* game_data = nullptr;
+    std::vector<std::weak_ptr<ConnectionHolder>> waiting_observers{};
 
     bool is_empty_spot(uint32_t i) const {
         return players[i].is_interactive() && players[i].contains_input(dummy_string);
@@ -613,7 +618,7 @@ struct SetupMatch {
 std::uniform_int_distribution<char> letter_distribution('A', 'Z');
 std::minstd_rand random_engine;
 
-std::mutex match_lock;
+std::timed_mutex match_lock;
 std::vector<SetupMatch> prepared_matches;
 
 std::string random_match_code(std::string const& game)
@@ -787,10 +792,22 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
 
             --match.interactive_players_left_to_give_state;
 
+            std::vector<std::weak_ptr<ConnectionHolder>> observers;
+            if (!match.waiting_observers.empty()) {
+                observers.reserve(match.waiting_observers.size());
+                observers.insert(
+                    observers.end(), 
+                    std::make_move_iterator(match.waiting_observers.begin()),
+                    std::make_move_iterator(match.waiting_observers.end())
+                );
+                match.waiting_observers.clear();
+            }
+
             InteractiveGameSetup setup{
                 !have_id ? std::optional<PlayerIdentifier>(chosen_spot) : std::nullopt,
                 match.game,
                 match.game_data,
+                observers,
             };
 
 
@@ -836,6 +853,7 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
         chosen_spot,
         game_ptr,
         game_data,
+        {}
     };
 }
 
@@ -866,6 +884,25 @@ InteractiveTickResult tick_interactive_game(InteractiveGame const* game, Interac
     return failed ? InteractiveTickResult::FailedClearStateOnly : InteractiveTickResult::DoneClearStateOnly;
 }
 
+struct ConnectionHolder {
+    crow::websocket::connection& connection() {
+        return *m_connection;
+    }
+
+    bool still_valid() {
+        return closed.test();
+    }
+
+    friend struct ObserverState;
+
+private:
+    ConnectionHolder() {}
+
+    crow::websocket::connection* m_connection { nullptr };
+    // If true, you can no longer use the connection provided, 
+    std::atomic_flag closed = ATOMIC_FLAG_INIT;
+};
+
 struct WebSocketState {
     std::mutex _lock{};
 
@@ -889,6 +926,7 @@ struct WebSocketState {
     InteractiveGame const* game;
     InteractiveGameState* game_data;
     std::optional<PlayerIdentifier> player_id;
+    std::vector<std::weak_ptr<ConnectionHolder>> observers;
 
     std::vector<std::string> run(bool failed = false) {
         ASSERT(state != State::WaitingForStart);
@@ -919,9 +957,18 @@ ASSERT(!failed);
             ASSERT(game_setup.game_data);
             game = game_setup.game;
             game_data = game_setup.game_data;
-
             state = State::Running;
-            std::cout << "State is setup for " << *player_id <<  " starting running!\n";
+
+            observers.reserve(game_setup.observers.size());
+            observers.insert(
+                observers.end(), 
+                std::make_move_iterator(game_setup.observers.begin()),
+                std::make_move_iterator(game_setup.observers.end())
+            );
+
+            // TODO: Send connected message
+
+            // No need to erase game_setup.observers because it will be discarded right ... now
         }
 
         ASSERT((state != State::WaitingForStart) && (state != State::Starting));
@@ -993,6 +1040,7 @@ if (failed) {
         output_buffer.clear();
         input_buffer.clear();
         input_string.clear();
+        observers.clear();
         player_id.reset();
         match_code = "";
 
@@ -1119,23 +1167,74 @@ conn.send_text(messages.dump());
     });
 }
 
-struct ConnectionHolder {
-    crow::websocket::connection& connection;
-    std::atomic_flag closed = ATOMIC_FLAG_INIT;
+struct ObserverState {
+
+    bool can_use() {
+        return !m_in_use.test_and_set();
+    }
+
+    void watch_match(char const* str) {
+        m_watch_code = str;
+        m_waiting_on_match = true;
+    }
+
+    void watch_id(char const* str) {
+        m_watch_code = str;
+        m_waiting_on_match = false;
+    }
+
+    bool set_connection(crow::websocket::connection& conn) {
+        ASSERT(!m_connection);
+        m_connection = std::make_shared<ConnectionHolder>(conn);
+
+        if (m_waiting_on_match) {
+            if (add_to_match_queue())
+                return true;
+        } else {
+
+        }
+
+        // Could not setup!
+        m_connection.reset();
+        return false;
+    }
+
+private:
+    bool add_to_match_queue() const {
+        if (!match_lock.try_lock_for(std::chrono::seconds(15))) {
+            std::cout << "Failed to acquire lock for adding observer to match!\n";
+            return false;
+        }
+        Deferred unlock = [&] { match_lock.unlock(); };
+
+        for (auto& match : prepared_matches) {
+            if (match.code == m_watch_code) {
+                match.waiting_observers.emplace_back(m_connection);
+                return true;
+            }
+        }
+    
+        return false;
+    }
+
+
+    std::atomic_flag m_in_use;
+    bool m_waiting_on_match { false };
+    std::string m_watch_code;
+    std::shared_ptr<ConnectionHolder> m_connection;
 };
 
-std::array<std::atomic<std::shared_ptr<ConnectionHolder>>, 10> observers;
-
-std::weak_ptr<ConnectionHolder> find_observer_slot(crow::websocket::connection& conn) {
-    auto connection_holder = std::make_shared<ConnectionHolder>(conn);
-    for (auto& slot : observers) {
-        std::shared_ptr<ConnectionHolder> empty;
-        if (slot.compare_exchange_strong(empty, connection_holder)) {
-            return std::weak_ptr<ConnectionHolder> { slot.load() };
-        }
-    }
-    return {};
-}
+ObserverState* find_next_observer_state();
+// std::atomic<std::shared_ptr<ConnectionHolder>>* find_observer_slot(crow::websocket::connection& conn) {
+//     auto connection_holder = std::make_shared<ConnectionHolder>(conn);
+//     for (auto& slot : observers) {
+//         std::shared_ptr<ConnectionHolder> empty;
+//         if (slot.compare_exchange_strong(empty, connection_holder)) {
+//             return &slot;
+//         }
+//     }
+//     return nullptr;
+// }
 
 int main()
 {
@@ -1186,6 +1285,40 @@ response["gameBaseName"] = available_game->baseName;
                 {"matchCode", result.code_or_error},
             };
     });
+
+
+    CROW_WEBSOCKET_ROUTE(app, "/ws-api/game-observe")
+            .onaccept([&](crow::request const& req, void** userdata) -> bool {
+                auto* user_id = req.url_params.get("user_id");
+                auto* match_string = req.url_params.get("match");
+                if (!user_id && !match_string)
+                    return false;
+
+                auto* state = find_next_observer_state();
+                if (!state)
+                    return false;
+
+                *userdata = state;
+
+                if (user_id) {
+                    state->watch_id(user_id);
+                } else {
+                    ASSERT(match_string);
+                    state->watch_match(match_string);
+                }
+            })
+            .onopen([&](crow::websocket::connection& conn){
+
+                static_cast<ObserverState*>(conn.userdata())->set_connection(conn);
+            })
+            .onclose([&](crow::websocket::connection& conn, const std::string&, uint16_t) {
+                if (!conn.userdata())
+                    return;
+
+                // static_cast<ObserverState*>(conn.userdata()).clean_up();
+
+                // static_cast<ObserverState*>(conn.userdata()).wait_for_exclusive();
+            });
 
     CROW_WEBSOCKET_ROUTE(app, "/ws-api/game-join")
             .onaccept([&](crow::request const& req, void** userdata) -> bool {
