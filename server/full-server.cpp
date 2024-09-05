@@ -390,6 +390,9 @@ public:
         if (value < 0 || value > 8)
             return std::nullopt; // INVALID!! STOP HERE!
 
+        if (field[value] != TTTPlayer::FieldValue::Empty)
+            return std::nullopt; // INVALID!! STOP HERE!
+
         sent_output = false;
         m_input_buffer.erase(0, end_of_line + 1);
 
@@ -513,6 +516,10 @@ struct TTTGame final : public MultiplayerGame<TTTGameState> {
             }
 
             size_t guess = *potential_guess;
+            if (game_state.field[guess] != TTTPlayer::FieldValue::Empty) {
+                // Player misbehaved!!! Somehow communicate this
+                break;
+            }
             game_state.field[guess] = player_symbol;
 
             if (game_state.win_for(player_symbol)) {
