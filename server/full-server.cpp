@@ -941,7 +941,7 @@ struct WebSocketState {
         ASSERT(state != State::Failed);
 
         if (state == State::Starting) {
-ASSERT(!failed);
+            ASSERT(!failed);
             auto game_setup = setup_game(player_id.has_value(), match_code, input_string, output_buffer);
 
             if (game_setup.has_error()) {
@@ -991,7 +991,7 @@ ASSERT(!failed);
 
         if (!game_data->can_run_exclusive()) {
             std::cout << "Already running on another call\n";
-if (failed) {
+            if (failed) {
                 game_data->mark_failed();
 
                 auto result = tick_interactive_game(game, game_data, *player_id);
@@ -1002,7 +1002,7 @@ if (failed) {
                 ASSERT(state == State::Failed);
             }
             return {};
-} else if (failed) {
+        } else if (failed) {
             std::cout << "Failing current game (with lock though!)\n";
             game_data->mark_failed();
         }
@@ -1145,23 +1145,23 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
 
     for (auto& str : response) {
         push_message("game-message", std::move(str));
-}
+    }
 
     bool close = false;
 
     if (ws_state->state == WebSocketState::State::WaitingOnOurInput) {
         push_message("you-are-up");
-        } else if (ws_state->state == WebSocketState::State::Done) {
+    } else if (ws_state->state == WebSocketState::State::Done) {
         push_message("system", "Game completed!");
-close = true;
+        close = true;
     } else if (ws_state->state == WebSocketState::State::Failed) {
         push_message("system", "Failed / Stopped");
-close = true;
+        close = true;
     } else {
         ASSERT(false);
     }
 
-conn.send_text(messages.dump());
+    conn.send_text(messages.dump());
 
     if (!close)
         return;
@@ -1261,7 +1261,7 @@ int main()
         crow::json::wvalue response;
         response["numPlayers"] = available_game->game->get_num_players();
         response["availableAlgos"] = available_game->game->available_algortihms();
-response["gameBaseName"] = available_game->baseName;
+        response["gameBaseName"] = available_game->baseName;
 
         return crow::response{ response };
     });
@@ -1345,14 +1345,14 @@ response["gameBaseName"] = available_game->baseName;
             })
             .onopen([&](crow::websocket::connection& conn){
                 std::cout << "Opened ws to " << conn.get_remote_ip() << '\n';
-                 handle_ws_message(conn, "");
+                handle_ws_message(conn, "");
             })
             .onclose([&](crow::websocket::connection& conn, const std::string& reason, uint16_t code){
                 std::cout << "Closed ws with " << conn.get_remote_ip() << " for " << reason << '(' << code << ")\n";
                 if (!conn.userdata()) {
                     std::cout << "Data already cleared for closing\n";
                     return;
-}
+                }
 
                 std::cout << "Sending that we are closing!\n";
                 handle_ws_message(conn, "", true);
@@ -1361,10 +1361,10 @@ response["gameBaseName"] = available_game->baseName;
                 {
                     auto* ws_state = static_cast<WebSocketState*>(conn.userdata());
                     std::lock_guard _lock(ws_state->_lock);
-ASSERT(ws_state->state == WebSocketState::State::Done || ws_state->state == WebSocketState::State::Failed);
+                    ASSERT(ws_state->state == WebSocketState::State::Done || ws_state->state == WebSocketState::State::Failed);
                     ws_state->prepare_for_next_game();
                     conn.userdata(nullptr);
-std::cout << "Cleared userdata!\n";
+                    std::cout << "Cleared userdata!\n";
                 }
             })
             .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){
