@@ -155,7 +155,7 @@ export default {
                 if (mess !== '')
                     mess = mess + '\n';
                 this.ws.send(mess);
-                this.messages.push({from: "me", content: mess.trim()});
+                this.messages.push({from: "user", content: mess.trim()});
                 this.waitingOnUs = false;
             }
         },

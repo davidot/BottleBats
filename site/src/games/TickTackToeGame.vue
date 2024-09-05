@@ -1,5 +1,5 @@
 <template>
-    <div class="base" style="--animation-time: 1s; --hover-col: #aaaaaa; --filled-col: #333333;">
+    <div class="base" style="--animation-time: 1s; --hover-col: #aaaaaa; --filled-col: #222222; --client-side-col: #888888;">
         <table :class="['game', turnFor + '-turn']" v-if="values != null" @mouseleave="hoverOn(null)">
             <tr v-for="i in 3">
                 <td v-for="j in 3" :class="['cell', values[coordToIndex(i, j)] + '-cell']" @mouseover="hoverOn(coordToIndex(i, j))" @click="send(coordToIndex(i, j))">
@@ -37,6 +37,18 @@ export default {
                 return null;
             return maybeLastMesasge.content.toLowerCase().split(" ");
         },
+        extraMove() {
+            const maybeLastMove = this.messages.filter(m => m.from.endswith("user") && !Number.isNaN(Number(m.content)))
+                .at(-1);
+            if (this.lastGameState == null || maybeLastMove == null)
+                return null;
+            const probablyTurn = this.lastGameState[1];
+
+            return {
+                "at": Number(maybeLastMove.content),
+                "symbol": probablyTurn,
+            };
+        },
         turnFor() {
             if (this.lastGameState == null)
                 return null;
@@ -56,6 +68,12 @@ export default {
                     } else {
                         values.push(c);
                     }
+                }
+            }
+
+            if (this.extraMove != null) {
+                if (values[this.extraMove.at] == 'empty') {
+                    values[this.extraMove.at] = 'clientside ' + this.extraMove.symbol;
                 }
             }
             return values;
@@ -142,6 +160,16 @@ export default {
 .x-turn .empty-cell:hover::after {
     background-color: var(--hover-col);
 }
+
+.clientside.x-cell::before,
+.clientside.x-cell::after {
+    background-color: var(--client-side-col);
+}
+
+.clientside.o-cell::before {
+    border-color: var(--client-side-col);
+}
+
 
 .x-cell::before, .x-cell::after {
     background-color: var(--filled-col);
