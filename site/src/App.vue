@@ -2,7 +2,7 @@ websocket<template>
   <main>
     <NavBar />
     <div class="main-content">
-      <InteractiveGame game="guess" />
+      <InteractiveGame game="ttt" />
     <!-- <input id="msg" type="text" value="guess;S">
     <button id="send">Connect!</button>
     <textarea id="log">

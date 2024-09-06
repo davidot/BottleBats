@@ -38,7 +38,7 @@ export default {
             return maybeLastMesasge.content.toLowerCase().split(" ");
         },
         extraMove() {
-            const maybeLastMove = this.messages.filter(m => m.from.endswith("user") && !Number.isNaN(Number(m.content)))
+            const maybeLastMove = this.messages.filter(m => m.from.endsWith("user") && !Number.isNaN(Number(m.content)))
                 .at(-1);
             if (this.lastGameState == null || maybeLastMove == null)
                 return null;

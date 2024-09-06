@@ -1,14 +1,10 @@
-#include "crow/app.h"
-#include "crow/common.h"
-#include "crow/http_response.h"
 #include "crow/json.h"
-#include "crow/returnable.h"
-#include "crow/websocket.h"
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <iterator>
 #include <string_view>
+#include <thread>
 #include <tuple>
 #include <utility>
 #include <variant>
@@ -24,6 +20,16 @@
 #include <asio.hpp>
 #include <charconv>
 #include <memory>
+
+void post_close(crow::websocket::connection& connection, std::string const& message = "quit") {
+    auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&connection);
+    ASSERT(ptr);
+    ptr->dispatch([&]{
+        connection.close(message);
+    });
+}
+
+
 
 class GuessPlayer {
 public:
@@ -111,7 +117,6 @@ struct PlayerFactory {
         std::string& input;
         std::vector<std::string>& output;
     };
-    std::variant<std::string, InteractivePlayerInput> data;
 
     explicit PlayerFactory(std::string command_)
         : data(std::move(command_)) {}
@@ -144,6 +149,8 @@ struct PlayerFactory {
         ASSERT(!is_interactive());
         return std::get<std::string>(data);
     }
+private:
+    std::variant<std::string, InteractivePlayerInput> data;
 };
 
 using PlayerIdentifier = uint32_t;
@@ -153,7 +160,7 @@ enum class InteractiveTickResult {
     WaitingOnYou,
     DoneCleanUpState,
     DoneClearStateOnly,
-FailedCleanUpState,
+    FailedCleanUpState,
     FailedClearStateOnly,
 };
 
@@ -164,7 +171,7 @@ struct InteractiveGameState {
 
     void set_done_if_in_progress() {
         DoneState expected { DoneState::Running };
-    bool exchanged = done.compare_exchange_strong(expected, DoneState::Done);
+        bool exchanged = done.compare_exchange_strong(expected, DoneState::Done);
         ASSERT(exchanged || expected == DoneState::Failed);
     }
 
@@ -541,13 +548,80 @@ private:
 
 };
 
-struct ConnectionHolder;
+class ConnectionHolder {
+public:
+    ConnectionHolder(crow::websocket::connection& connection) : m_connection(connection) {}
+private:
+    friend struct ObserverState;
+    friend struct Observers;
+
+    crow::websocket::connection& m_connection;
+    // If true, you can no longer use the connection provided,
+    std::atomic_flag closed = ATOMIC_FLAG_INIT;
+};
+
+struct Observers {
+
+    void extend_with(Observers& observers) {
+        if (observers.m_connections.empty())
+            return;
+
+        m_connections.reserve(m_connections.size() + observers.m_connections.size());
+        m_connections.insert(
+            m_connections.end(),
+            std::make_move_iterator(observers.m_connections.begin()),
+            std::make_move_iterator(observers.m_connections.end())
+        );
+        observers.m_connections.clear();
+    }
+
+    void send_message(std::string const& message) const {
+        std::cout << "Sending \"" << message << "\" to " << m_connections.size() << " observers!\n";
+        std::cout.flush();
+        for_each_connection([&message](auto& connection) {
+            std::cout << "Sending to " << &connection << '\n';
+            connection.send_text(message);
+        });
+        std::cout << "sending done!\n";
+    }
+
+    void close_all(std::string const& reason = "quit") {
+        for_each_connection([&reason](auto& connection) {
+            post_close(connection, reason);
+        });
+        m_connections.clear();
+    }
+
+    void add_observer(std::weak_ptr<ConnectionHolder> connection) {
+        m_connections.emplace_back(connection);
+    }
+
+private:
+
+    template<typename Func>
+    void for_each_connection(Func func) const {
+        for (auto& weak_connection : m_connections) {
+            auto shared_ptr = weak_connection.lock();
+            if (!shared_ptr) {
+                std::cout << "Shared ptr no longer valid!\n";
+                continue;
+            }
+
+            if (!shared_ptr->closed.test())
+                func(shared_ptr->m_connection);
+            else
+                std::cout << "Observer closed!\n";
+        }
+    }
+
+    std::vector<std::weak_ptr<ConnectionHolder>> m_connections;
+};
 
 struct InteractiveGameSetup {
     std::optional<PlayerIdentifier> player_id;
     InteractiveGame const* game = nullptr;
     InteractiveGameState* game_data = nullptr;
-    std::vector<std::weak_ptr<ConnectionHolder>> observers;
+    Observers observers;
 
     std::string error_message{};
 
@@ -593,7 +667,7 @@ struct SetupMatch {
     std::vector<PlayerFactory> players{};
     InteractiveGame const* game = nullptr;
     InteractiveGameState* game_data = nullptr;
-    std::vector<std::weak_ptr<ConnectionHolder>> waiting_observers{};
+    Observers waiting_observers{};
 
     bool is_empty_spot(uint32_t i) const {
         return players[i].is_interactive() && players[i].contains_input(dummy_string);
@@ -790,6 +864,7 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
                 match.game_data = match.game->start_game(match.players);
                 if (!match.game_data) {
                     // Failed to create game data, safest way to shut everyone down is destroying it
+                    match.waiting_observers.close_all("Game could not be setup!");
                     prepared_matches.erase(match_iterator);
                     return InteractiveGameSetup::invalid("Failed to setup game for everyone!");
                 }
@@ -799,16 +874,8 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
 
             --match.interactive_players_left_to_give_state;
 
-            std::vector<std::weak_ptr<ConnectionHolder>> observers;
-            if (!match.waiting_observers.empty()) {
-                observers.reserve(match.waiting_observers.size());
-                observers.insert(
-                    observers.end(), 
-                    std::make_move_iterator(match.waiting_observers.begin()),
-                    std::make_move_iterator(match.waiting_observers.end())
-                );
-                match.waiting_observers.clear();
-            }
+            Observers observers;
+            observers.extend_with(match.waiting_observers);
 
             InteractiveGameSetup setup{
                 !have_id ? std::optional<PlayerIdentifier>(chosen_spot) : std::nullopt,
@@ -891,25 +958,6 @@ InteractiveTickResult tick_interactive_game(InteractiveGame const* game, Interac
     return failed ? InteractiveTickResult::FailedClearStateOnly : InteractiveTickResult::DoneClearStateOnly;
 }
 
-struct ConnectionHolder {
-    crow::websocket::connection& connection() {
-        return *m_connection;
-    }
-
-    bool still_valid() {
-        return closed.test();
-    }
-
-    friend struct ObserverState;
-
-private:
-    ConnectionHolder() {}
-
-    crow::websocket::connection* m_connection { nullptr };
-    // If true, you can no longer use the connection provided, 
-    std::atomic_flag closed = ATOMIC_FLAG_INIT;
-};
-
 struct WebSocketState {
     std::mutex _lock{};
 
@@ -933,7 +981,7 @@ struct WebSocketState {
     InteractiveGame const* game;
     InteractiveGameState* game_data;
     std::optional<PlayerIdentifier> player_id;
-    std::vector<std::weak_ptr<ConnectionHolder>> observers;
+    Observers observers;
 
     std::vector<std::string> run(bool failed = false) {
         ASSERT(state != State::WaitingForStart);
@@ -941,7 +989,7 @@ struct WebSocketState {
         ASSERT(state != State::Failed);
 
         if (state == State::Starting) {
-            ASSERT(!failed);
+                        ASSERT(!failed);
             auto game_setup = setup_game(player_id.has_value(), match_code, input_string, output_buffer);
 
             if (game_setup.has_error()) {
@@ -966,16 +1014,12 @@ struct WebSocketState {
             game_data = game_setup.game_data;
             state = State::Running;
 
-            observers.reserve(game_setup.observers.size());
-            observers.insert(
-                observers.end(), 
-                std::make_move_iterator(game_setup.observers.begin()),
-                std::make_move_iterator(game_setup.observers.end())
-            );
 
-            // TODO: Send connected message
-
-            // No need to erase game_setup.observers because it will be discarded right ... now
+            game_setup.observers.send_message(crow::json::wvalue {
+                {"type", "system"},
+                {"content", "connected"}
+            }.dump());
+            observers.extend_with(game_setup.observers);
         }
 
         ASSERT((state != State::WaitingForStart) && (state != State::Starting));
@@ -1042,12 +1086,12 @@ struct WebSocketState {
 
     void prepare_for_next_game() {
         ASSERT(!game_data);
+        observers.close_all();
         game = nullptr;
 
         output_buffer.clear();
         input_buffer.clear();
         input_string.clear();
-        observers.clear();
         player_id.reset();
         match_code = "";
 
@@ -1078,14 +1122,10 @@ private:
     }
 };
 
-std::mutex websocketStateLock;
-std::array<WebSocketState, 10> websocketStates;
+std::array<WebSocketState, 10> websocketStates{};
 
 WebSocketState* find_next_ws_state(std::string match_code) {
-    // FIXME: This can be blocked by long running games!
-    std::lock_guard _lock(websocketStateLock);
-
-    for (int i = 0; i < 10; ++i) {
+    for (size_t i = 0; i < websocketStates.size(); ++i) {
         std::lock_guard _single_state_lock(websocketStates[i]._lock);
         if (websocketStates[i].state != WebSocketState::State::WaitingForStart)
             continue;
@@ -1116,18 +1156,24 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
             conn.send_text("[{\"type\":\"system\",\"content\":\"Other players quit / Failed!\"}]");
 
             std::cout << "Closing connection due to failed but not closed\n";
-            auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&conn);
-            ASSERT(ptr);
-            ptr->post([&]{
-                conn.close();
-            });
+            post_close(conn);
         }
 
         return;
     }
 
-    if (!input.empty() && !closed)
+    if (!input.empty() && !closed) {
         ws_state->input_buffer += input;
+        // TODO: Trim string and add new line here!
+        // ws_state->input_buffer += '\n';
+
+        std::cout << "Sending input \"" << input << "\" to observers!\n";
+        std::cout.flush();
+        ws_state->observers.send_message(crow::json::wvalue {
+            {"type", "user-message"},
+            {"content", input},
+        }.dump());
+    }
 
     auto response = ws_state->run(closed);
 
@@ -1147,6 +1193,11 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
         push_message("game-message", std::move(str));
     }
 
+    if (messages.t() == crow::json::type::List && messages.size() > 0) {
+        std::cout << "Got " << messages.size() << " messages!\n";
+        ws_state->observers.send_message(messages.dump());
+    }
+
     bool close = false;
 
     if (ws_state->state == WebSocketState::State::WaitingOnOurInput) {
@@ -1157,36 +1208,32 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
     } else if (ws_state->state == WebSocketState::State::Failed) {
         push_message("system", "Failed / Stopped");
         close = true;
-    } else {
-        ASSERT(false);
     }
 
-    conn.send_text(messages.dump());
+    if (messages.t() == crow::json::type::List && messages.size() > 0) {
+        conn.send_text(messages.dump());
+    }
+
 
     if (!close)
         return;
 
     std::cout << "Closing connection due to done or failed state " << static_cast<int>(ws_state->state) << '\n';
-    auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&conn);
-    ASSERT(ptr);
-    ptr->post([&]{
-        conn.close();
-    });
+    post_close(conn);
 }
 
 struct ObserverState {
 
-    bool can_use() {
-        return !m_in_use.test_and_set();
-    }
-
     void watch_match(char const* str) {
+        ASSERT(m_in_use.test());
         m_watch_code = str;
         m_waiting_on_match = true;
     }
 
     void watch_id(char const* str) {
+        ASSERT(m_in_use.test());
         m_watch_code = str;
+        std::cout << "Got watch code: " << m_watch_code << '\n';
         m_waiting_on_match = false;
     }
 
@@ -1198,7 +1245,8 @@ struct ObserverState {
             if (add_to_match_queue())
                 return true;
         } else {
-
+            if (add_to_player())
+                return true;
         }
 
         // Could not setup!
@@ -1206,7 +1254,61 @@ struct ObserverState {
         return false;
     }
 
+    void close() {
+        ASSERT(m_in_use.test());
+
+        // We don't actually care about resetting the code or type of code as that should be overwritten anyway
+
+        {
+            auto lock_ref = m_connection;
+            // Yes technically this is a race but this is just a sanity check
+            ASSERT(!lock_ref->closed.test());
+            lock_ref->closed.test_and_set();
+
+            m_connection.reset();
+
+            while (!lock_ref.unique()) {
+                std::this_thread::yield();
+            }
+        }
+
+        // Finally clear for new use! (Note that even before we exit out of this function it can already be reused)
+        m_in_use.clear();
+    }
+
 private:
+
+    friend ObserverState* find_next_observer_state();
+
+    bool claim() {
+        return !m_in_use.test_and_set();
+    }
+
+
+    bool add_to_player() const {
+        size_t value = 0;
+        auto result = std::from_chars(m_watch_code.data(), m_watch_code.data() + m_watch_code.size(), value);
+        if (result.ec != std::errc{} || result.ptr != (m_watch_code.data() + m_watch_code.size()))
+            return false;
+
+        if (value >= websocketStates.size())
+            return false;
+
+        auto& wanted_state = websocketStates[value];
+        std::lock_guard _lock{wanted_state._lock};
+
+        if (wanted_state.state == WebSocketState::State::WaitingForStart)
+            return false;
+
+        ASSERT(wanted_state.state != WebSocketState::State::Done);
+        ASSERT(wanted_state.state != WebSocketState::State::Failed);
+
+        wanted_state.observers.add_observer(m_connection);
+
+        return true;
+    }
+
+
     bool add_to_match_queue() const {
         if (!match_lock.try_lock_for(std::chrono::seconds(15))) {
             std::cout << "Failed to acquire lock for adding observer to match!\n";
@@ -1216,11 +1318,11 @@ private:
 
         for (auto& match : prepared_matches) {
             if (match.code == m_watch_code) {
-                match.waiting_observers.emplace_back(m_connection);
+                match.waiting_observers.add_observer(m_connection);
                 return true;
             }
         }
-    
+
         return false;
     }
 
@@ -1231,17 +1333,15 @@ private:
     std::shared_ptr<ConnectionHolder> m_connection;
 };
 
-ObserverState* find_next_observer_state();
-// std::atomic<std::shared_ptr<ConnectionHolder>>* find_observer_slot(crow::websocket::connection& conn) {
-//     auto connection_holder = std::make_shared<ConnectionHolder>(conn);
-//     for (auto& slot : observers) {
-//         std::shared_ptr<ConnectionHolder> empty;
-//         if (slot.compare_exchange_strong(empty, connection_holder)) {
-//             return &slot;
-//         }
-//     }
-//     return nullptr;
-// }
+std::array<ObserverState, 10> observerStates{};
+
+ObserverState* find_next_observer_state() {
+    for (auto& slot : observerStates) {
+        if (slot.claim())
+            return &slot;
+    }
+    return nullptr;
+}
 
 int main()
 {
@@ -1278,9 +1378,7 @@ int main()
 
             for (size_t i = 0; i < msg.size(); ++i) {
                 auto command_view = msg[i].s();
-                std::cout << "Size: " << command_view.size() << '\n';
                 commands.emplace_back(command_view.begin(), command_view.size());
-                std::cout << commands[commands.size() - 1] << '\n';
             }
 
             auto result = prepare_match(game, commands);
@@ -1298,33 +1396,57 @@ int main()
             .onaccept([&](crow::request const& req, void** userdata) -> bool {
                 auto* user_id = req.url_params.get("user_id");
                 auto* match_string = req.url_params.get("match");
-                if (!user_id && !match_string)
+
+                if (!user_id == !match_string)
                     return false;
 
+                if (user_id)
+                    std::cout << "Got observer for user " << user_id << '\n';
+                else
+                    std::cout << "Got observer for match " << match_string << '\n';
+
                 auto* state = find_next_observer_state();
-                if (!state)
+                if (!state) {
+                    std::cout << "Could not find open observer slot!\n";
                     return false;
+                }
 
                 *userdata = state;
 
                 if (user_id) {
+                    std::cout << "Setting watch id\n";
                     state->watch_id(user_id);
                 } else {
+                    std::cout << "Setting match id\n";
                     ASSERT(match_string);
                     state->watch_match(match_string);
                 }
+
+                return true;
             })
             .onopen([&](crow::websocket::connection& conn){
-
-                static_cast<ObserverState*>(conn.userdata())->set_connection(conn);
+                auto* observe_state = static_cast<ObserverState*>(conn.userdata());
+                ASSERT(observe_state);
+                if (!observe_state->set_connection(conn)) {
+                    std::cout << "Observer failed to setup!\n";
+                    conn.send_text("[{\"type\":\"system\",\"content\":\"Observer failed, try again later\"}]");
+                    conn.close();
+                } else {
+                    std::cout << "Observer setup properly: " << &conn << "\n";
+                    conn.send_text("[{\"type\":\"system\",\"content\":\"Observer ready, waiting for input\"}]");
+                }
+            })
+            .onmessage([](crow::websocket::connection&, const std::string&, bool) {
+                std::cout << "ignoring message from observer!\n";
             })
             .onclose([&](crow::websocket::connection& conn, const std::string&, uint16_t) {
                 if (!conn.userdata())
                     return;
 
-                // static_cast<ObserverState*>(conn.userdata()).clean_up();
+                std::cout << "Observer being closed!\n";
 
-                // static_cast<ObserverState*>(conn.userdata()).wait_for_exclusive();
+                static_cast<ObserverState*>(conn.userdata())->close();
+                conn.userdata(nullptr);
             });
 
     CROW_WEBSOCKET_ROUTE(app, "/ws-api/game-join")
@@ -1370,12 +1492,13 @@ int main()
             .onmessage([&](crow::websocket::connection& conn, const std::string& data, bool is_binary){
                 std::cout << "Got message " << data << " from " << &conn << ' ' << is_binary << " binary?\n";
 
-                 if (is_binary) {
-                     conn.close("Only text supported!", crow::websocket::CloseStatusCode::UnacceptableData);
-                     return;
-                 }
+                if (is_binary) {
+                    conn.close("Only text supported!", crow::websocket::CloseStatusCode::UnacceptableData);
+                    return;
+                }
 
-                 handle_ws_message(conn, data);
+                // FIXME: I think we want to trim the message here?
+                handle_ws_message(conn, data);
             });
 
 

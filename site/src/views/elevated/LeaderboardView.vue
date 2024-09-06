@@ -365,13 +365,13 @@ export default {
                     + (worstColor[2] * (1 - p) + bestColor[2] * p) + ')';
     },
     async getData() {
-      try {
-        const data = await endpoint.get("/elevated/leaderboard", {timeout: 750});
-        this.results = data.data;
-        this.connectionLost = false;
-      } catch {
+      // try {
+        // const data = await endpoint.get("/elevated/leaderboard", {timeout: 750});
+        // this.results = data.data;
+        // this.connectionLost = false;
+      // } catch {
         this.connectionLost = true;
-      }
+      // }
     },
     sortOn(name) {
       if (this.sortingOn === name) {

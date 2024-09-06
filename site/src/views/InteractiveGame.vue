@@ -4,6 +4,7 @@
         <h3>Setup new game of type {{ game }}</h3>
 
         <button v-if="!hasRunningGame" @click="startSingleplayer">Quick start single player game</button>
+        <button v-if="!hasRunningGame" @click="startObservePlayer0">Observe player 0</button>
         <table v-if="gameSetupConfig.numPlayers !== -1 && !hasRunningGame">
             <thead>
                 <th>
@@ -80,28 +81,35 @@ export default {
             return;
 
             this.gameSetupConfig = {
-                numPlayers: 5,
+                numPlayers: 2,
                 availableAlgos: ['internal'],
-                gameBaseName: 'Guess',
+                gameBaseName: 'TickTackToe',
             }
 
+            this.ws = {};
+
             const lines = [
-                "result 750 lower",
-                "result 335 incorrect",
-                "result 334 incorrect",
-                "result 335 incorrect",
-                "result 346 incorrect",
-                "result 250 higher",
-                "result 336 incorrect",
-                "result 335 incorrect",
-                "result 336 incorrect",
-                "result 347 incorrect",
-                "result 700 lower",
-                "result 337 incorrect",
-                "result 336 incorrect",
-                "result 337 incorrect",
-                "result 348 incorrect",
-                "result 400 higher",
+                "turn X ---|---|---",
+                "turn O ---|-X-|---",
+                "turn X ---|-XO|---",
+                "turn O ---|-XO|-X-",
+                "turn O XOX|XXO|OXO",
+                // "result 750 lower",
+                // "result 335 incorrect",
+                // "result 334 incorrect",
+                // "result 335 incorrect",
+                // "result 346 incorrect",
+                // "result 250 higher",
+                // "result 336 incorrect",
+                // "result 335 incorrect",
+                // "result 336 incorrect",
+                // "result 347 incorrect",
+                // "result 700 lower",
+                // "result 337 incorrect",
+                // "result 336 incorrect",
+                // "result 337 incorrect",
+                // "result 348 incorrect",
+                // "result 400 higher",
             ];
 
             this.addMessage({from: "system", content: "Guess game started!"});
@@ -155,17 +163,18 @@ export default {
                 if (mess !== '')
                     mess = mess + '\n';
                 this.ws.send(mess);
-                this.messages.push({from: "user", content: mess.trim()});
+                if (mess.trim() !== '')
+                    this.messages.push({from: "user", content: mess.trim()});
                 this.waitingOnUs = false;
             }
         },
-        connectToGame(matchCode) {
+        connectToGame(param) {
             if (this.ws) {
                 console.log("Already plaing game?");
                 return;
             }
 
-            const ws = new WebSocket("ws://" + window.location.host + "/ws-api/game-join?match=" + encodeURIComponent(matchCode));
+            const ws = new WebSocket("ws://" + window.location.host + "/ws-api/game-" + param);
             ws.onclose = (ev) => {
                 console.log("Closed ws due to " + ev.reason + " (" + ev.statusCode + ")");
                 if (this.ws === ws)
@@ -174,7 +183,7 @@ export default {
             ws.onopen = (ev) => {
                 console.log("Got connection in WS");
                 this.messages = [
-                    {from: "system", content: "Connected to " + matchCode},
+                    {from: "system", content: "Connected to " + param},
                 ];
                 this.ws = ws;
             };
@@ -183,7 +192,9 @@ export default {
             };
             ws.onmessage = (ev) => {
                 console.log("Got message: ", JSON.parse(ev.data));
-                const messageList = JSON.parse(ev.data);
+                const singleOrList = JSON.parse(ev.data);
+
+                const messageList = Array.isArray(singleOrList) ? singleOrList : [singleOrList];
                 for (const message of messageList) {
                     if (message.type === 'game-message') {
                     this.addMessage({from: "game", content: message.content});
@@ -191,18 +202,21 @@ export default {
                     this.waitingOnUs = true;
                 } else if (message.type === 'system') {
                     this.addMessage({from: "system", content: message.content});
-} else {
+                } else {
                         this.addMessage({from: "system", content: 'Unknown message?: ' + JSON.stringify(message)});
                     }
                 }
-                
+
             };
         },
         startSingleplayer() {
-            this.connectToGame(this.game + ";S");
+            this.connectToGame("join?match=" + encodeURIComponent(this.game + ";S"));
+        },
+        startObservePlayer0() {
+            this.connectToGame("observe?user_id=0");
         },
         joinGame() {
-            this.connectToGame(this.gameJoinCode);
+            this.connectToGame("join?match=" + encodeURIComponent(this.gameJoinCode));
         },
         setSuggestion(hint) {
             this.suggestion = hint;
