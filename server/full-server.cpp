@@ -5,9 +5,7 @@
 #include <iterator>
 #include <string_view>
 #include <thread>
-#include <tuple>
 #include <utility>
-#include <variant>
 #include <optional>
 #define CROW_DISABLE_STATIC_DIR
 #include "crow.h"
@@ -20,533 +18,18 @@
 #include <asio.hpp>
 #include <charconv>
 #include <memory>
+#include "games/simple/TickTackToe.h"
+#include "games/simple/GuessGame.h"
 
-void post_close(crow::websocket::connection& connection, std::string const& message = "quit") {
+using namespace BBServer;
+
+void dispatch_close(crow::websocket::connection& connection, std::string const& message = "quit") {
     auto* ptr = dynamic_cast<crow::websocket::Connection<crow::SocketAdaptor, crow::SimpleApp>*>(&connection);
     ASSERT(ptr);
     ptr->dispatch([&]{
         connection.close(message);
     });
 }
-
-
-
-class GuessPlayer {
-public:
-    enum class GuessResult {
-        OtherPlayerFailed,
-        Higher,
-        Lower
-    };
-
-    static std::string result_to_string(GuessResult result) {
-        switch (result) {
-            case GuessResult::OtherPlayerFailed:
-                return "incorrect";
-            case GuessResult::Higher:
-                return "higher";
-            case GuessResult::Lower:
-                return "lower";
-        }
-
-        return "?";
-    }
-
-    virtual void guess_made(int, GuessResult) {};
-    virtual std::optional<int> guess() = 0;
-    virtual ~GuessPlayer() {}
-};
-
-class IncrementingPlayer : public GuessPlayer {
-public:
-    explicit IncrementingPlayer(int start)
-        : m_value(start) {}
-
-    std::optional<int> guess() override {
-        return m_value++;
-    }
-
-private:
-    int m_value {};
-
-};
-
-class InteractivePlayer: public GuessPlayer {
-public:
-    InteractivePlayer(std::string& input, std::vector<std::string>& output) :
-        m_input_buffer(input), m_output_buffer(output) {}
-
-
-    void guess_made(int value, GuessPlayer::GuessResult result) override {
-        std::ostringstream message {};
-        message << "result " << value << ' ' << result_to_string(result);
-        m_output_buffer.emplace_back(message.str());
-    }
-
-    std::optional<int> guess() override {
-        if (!sent_output) {
-            sent_output = true;
-            m_output_buffer.push_back("guess");
-        }
-
-        std::cout << "Guessing for interactive: Have\n" << m_input_buffer << '\n';
-        std::cout << "Current output buffer:\n" << m_output_buffer.size() << " messages\n";
-        auto end_of_line = m_input_buffer.find('\n');
-        if (end_of_line == std::string::npos)
-            return std::nullopt;
-
-        int value = -1;
-        auto result = std::from_chars(m_input_buffer.data(), m_input_buffer.data() + end_of_line, value);
-        if (result.ec != std::errc{})
-            return std::nullopt; // INVALID!! STOP HERE!
-
-        sent_output = false;
-        m_input_buffer.erase(0, end_of_line + 1);
-
-        return value;
-    }
-
-private:
-    bool sent_output = false;
-    std::string& m_input_buffer;
-    std::vector<std::string>& m_output_buffer;
-};
-
-struct PlayerFactory {
-    struct InteractivePlayerInput {
-        std::string& input;
-        std::vector<std::string>& output;
-    };
-
-    explicit PlayerFactory(std::string command_)
-        : data(std::move(command_)) {}
-
-    explicit PlayerFactory(std::string& input, std::vector<std::string>& output)
-        : data(InteractivePlayerInput{input, output}) {}
-
-    bool is_interactive() const {
-        return !std::holds_alternative<std::string>(data);
-    }
-
-    bool contains_input(std::string const& other) const {
-        ASSERT(is_interactive());
-        return &(std::get<InteractivePlayerInput>(data).input) == &other;
-    }
-
-    template<typename PlayerType>
-    std::unique_ptr<PlayerType> construct_interactive() const {
-        ASSERT(is_interactive());
-        auto& references = std::get<InteractivePlayerInput>(data);
-        return std::make_unique<PlayerType>(references.input, references.output);
-    }
-
-    void override_interactive_player(std::string& input, std::vector<std::string>& output) {
-        ASSERT(is_interactive());
-        data.emplace<InteractivePlayerInput>(input, output);
-    }
-
-    std::string const& command() const {
-        ASSERT(!is_interactive());
-        return std::get<std::string>(data);
-    }
-private:
-    std::variant<std::string, InteractivePlayerInput> data;
-};
-
-using PlayerIdentifier = uint32_t;
-
-enum class InteractiveTickResult {
-    Running,
-    WaitingOnYou,
-    DoneCleanUpState,
-    DoneClearStateOnly,
-    FailedCleanUpState,
-    FailedClearStateOnly,
-};
-
-struct InteractiveGameState {
-    bool game_in_progress() {
-        return done.load() == DoneState::Running;
-    }
-
-    void set_done_if_in_progress() {
-        DoneState expected { DoneState::Running };
-        bool exchanged = done.compare_exchange_strong(expected, DoneState::Done);
-        ASSERT(exchanged || expected == DoneState::Failed);
-    }
-
-    void mark_failed() {
-        done.store(DoneState::Failed);
-    }
-
-    bool has_failed() {
-        return done.load() == DoneState::Failed;
-    }
-
-    bool can_run_exclusive() {
-        return !run_lock.test_and_set();
-    }
-
-    void done_running() {
-        run_lock.clear();
-    }
-
-    bool mark_player_done_is_last() {
-        auto old_value = active_interactive_players.fetch_sub(1);
-        ASSERT(old_value >= 1);
-        return old_value == 1;
-    }
-
-    virtual ~InteractiveGameState() = 0;
-
-    // FIXME: Protect me with friend or something
-    void set_num_interactive_players(uint32_t amount) {
-        active_interactive_players.store(amount);
-    }
-
-private:
-    enum class DoneState {
-        Running,
-        Done,
-        Failed
-    };
-
-    std::atomic<uint32_t> active_interactive_players { 0 };
-    static_assert(std::atomic<uint32_t>::is_always_lock_free);
-
-    std::atomic<DoneState> done { DoneState::Running };
-    static_assert(std::atomic<DoneState>::is_always_lock_free);
-
-    std::atomic_flag run_lock = ATOMIC_FLAG_INIT;
-};
-
-InteractiveGameState::~InteractiveGameState() {}
-
-struct GuessGameState : public InteractiveGameState {
-   int number = -1;
-
-   int turnForPlayer = 0;
-   std::vector<std::unique_ptr<GuessPlayer>> players{};
-
-   explicit GuessGameState(int value, std::vector<std::unique_ptr<GuessPlayer>> new_players)
-    : number(value), players(std::move(new_players)) {
-       std::cout << "Looking for" << number << '\n';
-   }
-
-   virtual ~GuessGameState() {
-       std::cout << "Destroying game state!\n";
-   }
-};
-
-
-struct InteractiveGame {
-    virtual ~InteractiveGame() {}
-
-    virtual uint32_t get_num_players() const = 0;
-    virtual std::vector<std::string> const& available_algortihms() const = 0;
-    virtual InteractiveGameState* start_game(std::vector<PlayerFactory> const& setup) const = 0;
-
-    virtual std::optional<PlayerIdentifier> tick_interactive_game(InteractiveGameState* game_data) const = 0;
-};
-
-template<typename GameState>
-class MultiplayerGame : public InteractiveGame {
-    virtual InteractiveGameState* start_game(std::vector<PlayerFactory> const& setup) const final {
-        return game_from_commands(setup);
-    }
-
-    virtual GameState* game_from_commands(std::vector<PlayerFactory> const& commands) const = 0;
-
-    virtual std::optional<PlayerIdentifier> tick_interactive_game(InteractiveGameState* game_data) const final {
-        ASSERT(dynamic_cast<GameState*>(game_data));
-        return tick_game_state(*static_cast<GameState*>(game_data));
-    }
-
-    virtual std::optional<PlayerIdentifier> tick_game_state(GameState& state) const = 0;
-};
-
-struct GuessGame final : public MultiplayerGame<GuessGameState> {
-
-    explicit GuessGame(uint32_t num_players)
-        : m_num_players(num_players) {
-            ASSERT(m_num_players > 0);
-        }
-
-    uint32_t get_num_players() const override {
-        return m_num_players;
-    }
-
-    std::vector<std::string> const& available_algortihms() const override
-    {
-        return m_algorithms;
-    }
-
-    GuessGameState* game_from_commands(std::vector<PlayerFactory> const& setup) const override
-    {
-        int number = rand() % 1000;
-        std::vector<std::unique_ptr<GuessPlayer>> players;
-        for (auto& command : setup) {
-            if (command.is_interactive()) {
-                players.emplace_back(command.construct_interactive<InteractivePlayer>());
-            } else {
-                int start = 5 + (rand() % 20);
-                players.emplace_back(std::make_unique<IncrementingPlayer>(number - start));
-            }
-        }
-
-        return new GuessGameState {
-            number,
-            std::move(players)
-        };
-    }
-
-    std::optional<PlayerIdentifier> tick_game_state(GuessGameState& game_state) const override
-    {
-
-        while (true) {
-            PlayerIdentifier this_player = game_state.turnForPlayer;
-            auto& player = game_state.players[game_state.turnForPlayer];
-            auto potential_guess = player->guess();
-            if (!potential_guess.has_value()) {
-                std::cout << "Player " << this_player << " has no move ready waiting...\n";
-                return this_player;
-            }
-
-            int guess = *potential_guess;
-
-            if (guess == game_state.number) {
-                std::cout << "Win for player " << this_player;
-                break;
-            }
-
-            GuessPlayer::GuessResult result = guess < game_state.number ? GuessPlayer::GuessResult::Higher : GuessPlayer::GuessResult::Lower;
-            player->guess_made(guess, result);
-
-            for (size_t i = 0; i < game_state.players.size(); ++i) {
-                if (i == this_player)
-                    continue;
-                game_state.players[i]->guess_made(guess, GuessPlayer::GuessResult::OtherPlayerFailed);
-            }
-
-            game_state.turnForPlayer = (game_state.turnForPlayer + 1) % game_state.players.size();
-        }
-
-        return {};
-    };
-private:
-    uint32_t m_num_players{0};
-    std::vector<std::string> m_algorithms {
-        "incrementing",
-        "random",
-    };
-};
-
-class TTTPlayer {
-public:
-    enum class FieldValue {
-        Empty,
-        Cross,
-        Circle
-    };
-
-    static char to_char(FieldValue value) {
-        switch (value) {
-            case FieldValue::Empty:
-                return '-';
-            case FieldValue::Cross:
-                return 'X';
-            case FieldValue::Circle:
-                return 'O';
-        }
-        ASSERT(false);
-    }
-
-    virtual std::optional<size_t> play(std::array<FieldValue, 9> const& field, FieldValue you) = 0;
-    virtual ~TTTPlayer() {}
-};
-
-
-class InteractiveTTTPlayer: public TTTPlayer {
-public:
-    InteractiveTTTPlayer(std::string& input, std::vector<std::string>& output) :
-        m_input_buffer(input), m_output_buffer(output) {}
-
-    std::optional<size_t> play(std::array<FieldValue, 9> const& field, FieldValue you) override {
-        if (!sent_output) {
-            sent_output = true;
-            std::ostringstream message {};
-            ASSERT(you == FieldValue::Circle || you == FieldValue::Cross);
-            message << "turn " << to_char(you) << ' ';
-            for (size_t i = 0; i < field.size(); ++i) {
-                if (i > 0 && i % 3 == 0)
-                    message << '|';
-                message << to_char(field[i]);
-            }
-            m_output_buffer.emplace_back(message.str());
-        }
-
-        auto end_of_line = m_input_buffer.find('\n');
-        if (end_of_line == std::string::npos)
-            return std::nullopt;
-
-        int value = -1;
-        auto result = std::from_chars(m_input_buffer.data(), m_input_buffer.data() + end_of_line, value);
-        if (result.ec != std::errc{})
-            return std::nullopt; // INVALID!! STOP HERE!
-
-        if (value < 0 || value > 8)
-            return std::nullopt; // INVALID!! STOP HERE!
-
-        if (field[value] != TTTPlayer::FieldValue::Empty)
-            return std::nullopt; // INVALID!! STOP HERE!
-
-        sent_output = false;
-        m_input_buffer.erase(0, end_of_line + 1);
-
-        return value;
-    }
-
-private:
-    bool sent_output = false;
-    std::string& m_input_buffer;
-    std::vector<std::string>& m_output_buffer;
-};
-
-class FirstSpotPlayer : public TTTPlayer {
-    std::optional<size_t> play(std::array<FieldValue, 9> const& field, FieldValue) override {
-        for (size_t i = 0; i < field.size(); ++i) {
-            if (field[i] == FieldValue::Empty)
-                return i;
-        }
-        ASSERT(false);
-    }
-};
-
-
-struct TTTGameState : public InteractiveGameState {
-    using FieldValue = TTTPlayer::FieldValue;
-
-    PlayerIdentifier turnForPlayer = 0;
-    std::array<FieldValue, 2> player_mapping{};
-    std::array<FieldValue, 9> field{};
-
-    std::array<std::unique_ptr<TTTPlayer>, 2> players{};
-
-    explicit TTTGameState(std::array<std::unique_ptr<TTTPlayer>, 2> new_players, FieldValue starting_player)
-        : player_mapping({starting_player, invert(starting_player)}), players(std::move(new_players))
-    {
-        field.fill(FieldValue::Empty);
-    }
-
-    static FieldValue invert(FieldValue value) {
-        switch(value) {
-            case FieldValue::Circle:
-                return FieldValue::Cross;
-            case FieldValue::Cross:
-                return FieldValue::Circle;
-            case FieldValue::Empty:
-                return FieldValue::Empty;
-        }
-        ASSERT(false);
-    }
-
-    bool win_for(FieldValue symbol) const {
-        ASSERT(symbol == FieldValue::Cross || symbol == FieldValue::Circle);
-        ASSERT(!triple_for(invert(symbol)));
-        return triple_for(symbol);
-    }
-private:
-
-    static std::array<std::tuple<uint8_t, uint8_t, uint8_t>, 8> constexpr lines = {{
-        {0, 1, 2},
-        {3, 4, 5},
-        {6, 7, 8},
-
-        {0, 3, 6},
-        {1, 4, 7},
-        {2, 5, 8},
-
-        {0, 4, 8},
-        {2, 4, 6}
-    }};
-
-    bool triple_for(FieldValue symbol) const {
-        for (auto& [a, b, c] : lines) {
-            if (field[a] == symbol && field[b] == symbol && field[c] == symbol)
-                return true;
-        }
-        return false;
-    }
-
-};
-
-
-struct TTTGame final : public MultiplayerGame<TTTGameState> {
-    virtual uint32_t get_num_players() const override {
-        return 2;
-    };
-
-    virtual std::vector<std::string> const& available_algortihms() const override {
-        return m_algorithms;
-    };
-
-
-    TTTGameState* game_from_commands(std::vector<PlayerFactory> const& setup) const override
-    {
-        ASSERT(setup.size() == 2);
-        std::array<std::unique_ptr<TTTPlayer>, 2> players;
-        for (size_t i = 0; i < 2; ++i) {
-            auto& command = setup[i];
-            if (command.is_interactive()) {
-                players[i] = command.construct_interactive<InteractiveTTTPlayer>();
-            } else {
-                players[i] = std::make_unique<FirstSpotPlayer>();
-            }
-        }
-
-        return new TTTGameState {
-            std::move(players), TTTGameState::FieldValue::Cross
-        };
-    }
-
-    std::optional<PlayerIdentifier> tick_game_state(TTTGameState& game_state) const override
-    {
-
-        while (true) {
-            PlayerIdentifier this_player = game_state.turnForPlayer;
-            auto& player = game_state.players[game_state.turnForPlayer];
-            TTTGameState::FieldValue player_symbol = game_state.player_mapping[this_player];
-            auto potential_guess = player->play(game_state.field, player_symbol);
-            if (!potential_guess.has_value()) {
-                std::cout << "Player " << this_player << " has no move ready waiting...\n";
-                return this_player;
-            }
-
-            size_t guess = *potential_guess;
-            if (game_state.field[guess] != TTTPlayer::FieldValue::Empty) {
-                // Player misbehaved!!! Somehow communicate this
-                break;
-            }
-            game_state.field[guess] = player_symbol;
-
-            if (game_state.win_for(player_symbol)) {
-                break;
-            }
-
-            game_state.turnForPlayer = (game_state.turnForPlayer + 1) % game_state.players.size();
-        }
-
-        return {};
-    };
-
-private:
-
-    std::vector<std::string> m_algorithms {
-        "random",
-        "first-spot",
-    };
-
-};
 
 class ConnectionHolder {
 public:
@@ -587,7 +70,7 @@ struct Observers {
 
     void close_all(std::string const& reason = "quit") {
         for_each_connection([&reason](auto& connection) {
-            post_close(connection, reason);
+            dispatch_close(connection, reason);
         });
         m_connections.clear();
     }
@@ -1156,7 +639,7 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
             conn.send_text("[{\"type\":\"system\",\"content\":\"Other players quit / Failed!\"}]");
 
             std::cout << "Closing connection due to failed but not closed\n";
-            post_close(conn);
+            dispatch_close(conn);
         }
 
         return;
@@ -1219,7 +702,7 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
         return;
 
     std::cout << "Closing connection due to done or failed state " << static_cast<int>(ws_state->state) << '\n';
-    post_close(conn);
+    dispatch_close(conn);
 }
 
 struct ObserverState {
@@ -1347,8 +830,8 @@ int main()
 {
     srand(time(nullptr));
 
-    games.emplace_back("guess", "Guess", std::make_unique<GuessGame>(5));
-    games.emplace_back("ttt", "TickTackToe", std::make_unique<TTTGame>());
+    games.emplace_back("guess", "Guess", std::make_unique<BBServer::Guessing::GuessGame>());
+    games.emplace_back("ttt", "TickTackToe", std::make_unique<BBServer::TickTackToe::TTTGame>());
     random_engine.seed(rand());
 
     crow::SimpleApp app;

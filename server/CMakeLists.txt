@@ -45,6 +45,9 @@ add_executable(full-server
         vijf/GamePlayer.cpp
         vijf/BotCreator.cpp
         vijf/EndPoints.cpp
+        games/InteractiveGame.cpp
+        games/simple/GuessGame.cpp
+        games/simple/TickTackToe.cpp
         )
 
 target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)
