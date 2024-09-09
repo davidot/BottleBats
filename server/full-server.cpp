@@ -19,6 +19,7 @@
 #include <charconv>
 #include <memory>
 #include "games/simple/TickTackToe.h"
+#include "games/simple/Connect4.h"
 #include "games/simple/GuessGame.h"
 
 using namespace BBServer;
@@ -832,6 +833,7 @@ int main()
 
     games.emplace_back("guess", "Guess", std::make_unique<BBServer::Guessing::GuessGame>());
     games.emplace_back("ttt", "TickTackToe", std::make_unique<BBServer::TickTackToe::TTTGame>());
+    games.emplace_back("connect4", "Connect4", std::make_unique<BBServer::Connect4::Connect4Game>());
     random_engine.seed(rand());
 
     crow::SimpleApp app;
