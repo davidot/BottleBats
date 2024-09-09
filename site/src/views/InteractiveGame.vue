@@ -64,6 +64,7 @@ export default {
         Console,
         GuessGame,
         TickTackToeGame,
+        Connect4Game,
     },
     props: {
         game: String,
@@ -197,12 +198,12 @@ export default {
                 const messageList = Array.isArray(singleOrList) ? singleOrList : [singleOrList];
                 for (const message of messageList) {
                     if (message.type === 'game-message') {
-                    this.addMessage({from: "game", content: message.content});
-                } else if (message.type === 'you-are-up') {
-                    this.waitingOnUs = true;
-                } else if (message.type === 'system') {
-                    this.addMessage({from: "system", content: message.content});
-                } else {
+                        this.addMessage({from: "game", content: message.content});
+                    } else if (message.type === 'you-are-up') {
+                        this.waitingOnUs = true;
+                    } else if (message.type === 'system') {
+                        this.addMessage({from: "system", content: message.content});
+                    } else {
                         this.addMessage({from: "system", content: 'Unknown message?: ' + JSON.stringify(message)});
                     }
                 }
