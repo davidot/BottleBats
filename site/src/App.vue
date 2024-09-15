@@ -67,6 +67,17 @@ updateUserDetails();
 </script>
 
 <style>
+
+*,
+*::before,
+*::after {
+  box-sizing: inherit;
+}
+
+html {
+  box-sizing: border-box;
+}
+
 body {
   margin-top: 0;
   margin-bottom: 0;
