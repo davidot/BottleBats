@@ -1,21 +1,18 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Leaderboard from "@/views/vijf/Leaderboard.vue";
 import AccountView from "@/views/AccountView.vue";
 import BotView from "@/views/vijf/BotView.vue";
 import ExplainView from "@/views/vijf/ExplainView.vue";
-import GameView from "@/views/vijf/GameView.vue";
-import VijfView from "@/views/vijf/VijfView.vue";
-import ElevatedBotView from "@/views/elevated/BotView.vue";
-import ElevatedExplainView from "@/views/elevated/ExplainView.vue";
-import ElevatedLeaderboardView from "@/views/elevated/LeaderboardView.vue";
+import LeaderboardAll from "@/views/leaderboard/Testing.vue";
+import InteractiveGame from "@/views/InteractiveGame.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
-      path: "/",
+      path: "",
       name: "home",
-      component: ElevatedLeaderboardView,
+      component: AccountView,
+      alias: ['/']
     },
     {
       path: "/login",
@@ -23,27 +20,34 @@ const router = createRouter({
       component: AccountView,
     },
     {
-      path: "/rules",
+      path: "/:game",
+      name: "leaderboard",
+      alias: ["/:game/", "/:game/leaderboard"],
+      component: LeaderboardAll,
+    },
+    {
+      path: "/:game/play",
+      name: "play",
+      component: InteractiveGame,
+    },
+    {
+      path: "/:game/rules",
       name: "rules",
-      component: ElevatedExplainView,
+      component: ExplainView,
     },
     {
-      path: "/bots",
+      path: "/:game/my-bots",
       name: "bots",
-      component: ElevatedBotView,
+      component: BotView,
     },
     {
-      path: "/vijf",
-      name: "vijf",
-      component: VijfView,
-      children: [
-        { path: "", component: Leaderboard },
-        { path: "games", component: GameView },
-        { path: "rules", component: ExplainView },
-        { path: "bots", component: BotView },
-      ],
+      path: "/:game/admin",
+      name: "admin",
+      component: LeaderboardAll,
     },
   ],
 });
 
 export default router;
+
+export const defaultGame = 'ttt';

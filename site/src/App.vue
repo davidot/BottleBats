@@ -1,14 +1,8 @@
 websocket<template>
   <main>
-    <NavBar />
+    <NavBar class="bb-nav" />
     <div class="main-content">
-      <InteractiveGame game="connect4" />
-    <!-- <input id="msg" type="text" value="guess;S">
-    <button id="send">Connect!</button>
-    <textarea id="log">
-    </textarea>
-    <button id="http">Test!</button> -->
-      <!-- <RouterView /> -->
+      <RouterView :key="$route.params.game + '-view'" />
     </div>
 
   </main>
@@ -23,6 +17,7 @@ import LogoSVG from "@/components/LogoSVG.vue";
 import {endpoint} from "./http";
 import axois from "axios";
 import InteractiveGame from "@/views/InteractiveGame.vue";
+import LeaderboardAll from "./views/leaderboard/LeaderboardAll.vue";
 
 const start = ref("");
 const moves = ref("");
@@ -64,6 +59,21 @@ provide("userDetails", {
 });
 
 updateUserDetails();
+
+
+const gameList = ref({
+    'ttt': {
+      name: 'Tick tack toe',
+    },
+    'c4': {
+      name: 'Connect four',
+    },
+    'vijf': {
+      name: 'Vijf',
+    },
+});
+
+provide("gameList", gameList);
 </script>
 
 <style>

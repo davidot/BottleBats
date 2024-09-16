@@ -1,5 +1,5 @@
 <template>
-  <div class="bb-nav">
+  <div class="top-bar">
     <div class="open-doors" style="height: 100%; float: left; z-index: 1; border: 0">
       <div style="width: 100%; height: 100%; background-color: #ebffcf; animation: behind-doors step-end 1.5s forwards">
       </div>
@@ -9,23 +9,23 @@
       Bottle Bats
     </span>
 
-    <NavBarButton :to="{name: 'home'}">
+    <NavBarButton to="leaderboard">
       LeaderBoard
     </NavBarButton>
-<!--    <NavBarButton :to="{name: 'games'}">-->
-<!--      Games-->
-<!--    </NavBarButton>-->
-    <NavBarButton :to="{name: 'bots'}" :enabled="loggedIn">
-      Bots
+    <NavBarButton to="play">
+      Play / Watch
     </NavBarButton>
-    <NavBarButton :to="{name: 'rules'}">
-      Regels
+    <NavBarButton to="bots">
+      My bots
     </NavBarButton>
-    <NavBarButton :to="{path: '/vijf'}">
-      Vijf
+    <NavBarButton to="rules">
+      Rules
+    </NavBarButton>
+    <NavBarButton to="admin" v-if="isAdmin">
+      Configure
     </NavBarButton>
 
-    <NavBarButton :to="{name: 'login'}" :clazz="'login-side'" v-if="!loggedIn">
+    <NavBarButton to="login" :clazz="'login-side'" v-if="!loggedIn">
       Log in / Register
     </NavBarButton>
     <span v-else class="nav-button login-side" style="border-right: 0;" @click="logOut">
@@ -36,6 +36,19 @@
     <div v-if="loggedIn" class="nav-button login-side nav-active-link" style="cursor: default">
       Welcome, {{ username }}
     </div>
+
+    <div class="login-side nav-button nav-with-menu" @click.self="toggleGame">
+      <a>
+        {{ gameList[$route.params.game]?.name ?? '???' }}
+      </a>
+      <div class="nav-dropdown" :style="{'visibility': pickGame ? 'visible' : '', 'opacity': pickGame ? '1' : ''}">
+        <template v-for="(gameInfo, gameName) in gameList">
+          <div @click="selectGame(gameName)" v-if="gameName != $route.params.game">
+            {{ gameInfo.name }}
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -43,18 +56,28 @@
 import NavBarButton from "@/components/NavBarButton.vue";
 import LogoSVG from "@/components/LogoSVG.vue";
 import {endpoint} from "@/http";
+
 export default {
   name: "TopBar",
   components: {LogoSVG, NavBarButton},
-  inject: ["userDetails"],
+  inject: ["userDetails", "gameList"],
   computed: {
     loggedIn() {
       return this.userDetails.values.value.displayName != null;
+    },
+    isAdmin() {
+      return this.userDetails.values.value.isAdmin === true;
     },
     username() {
       if (this.loggedIn) return this.userDetails.values.value.displayName;
       return "Not logged in";
     },
+  },
+  data() {
+    return {
+      selectedGame: this.$route.game,
+      pickGame: false,
+    };
   },
   methods: {
     logOut() {
@@ -68,8 +91,24 @@ export default {
             console.log('Log out failed? probably just server disconnect?', err);
             this.userDetails.updateUserDetails();
           });
-    }
-  }
+    },
+    selectGame(newGame) {
+      this.$router.push({
+          name: this.$route.name,
+          params: {
+            game: newGame,
+          }
+        });
+        this.pickGame = false;
+    },
+    toggleGame() {
+      // If currently no game, just prevent the menu from opening
+      if (!this.pickGame && this.$route.params.game == null)
+        return;
+
+      this.pickGame = !this.pickGame;
+    },
+  },
 };
 </script>
 
@@ -193,6 +232,31 @@ export default {
     top: 0;
     width: 0;
   }
+}
+
+.nav-dropdown {
+  position: absolute;
+  top: 100%;
+  visibility: hidden;
+  opacity: 0;
+
+  transition: all 0.1s;
+  width: 100%;
+}
+
+.nav-dropdown > div {
+  min-height: 50px;
+
+  background: #5156bf;
+  border: 1px solid white;
+  color: white;
+  align-content: center;
+}
+
+.nav-with-menu {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 100px;
 }
 
 
