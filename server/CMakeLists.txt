@@ -49,9 +49,10 @@ add_executable(full-server
         games/simple/GuessGame.cpp
         games/simple/TickTackToe.cpp
         games/simple/Connect4.cpp
+        games/StringChannel.cpp
         )
 
-target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)
+target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated SubProcess)
 
 
 add_executable(BBRunGames vijf/runsomegames.cpp
