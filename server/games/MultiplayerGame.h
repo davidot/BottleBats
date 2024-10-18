@@ -39,12 +39,12 @@ class MultiplayerGame : public InteractiveGame {
 
     virtual GameState* game_for_players(std::array<std::unique_ptr<BasePlayerType>, NumberOfPlayers> players) const = 0;
 
-    virtual std::optional<PlayerIdentifier> tick_interactive_game(InteractiveGameState* game_data) const final {
+    virtual InteractiveGameTickResult tick_interactive_game(InteractiveGameState* game_data) const final {
         ASSERT(dynamic_cast<GameState*>(game_data));
         return tick_game_state(*static_cast<GameState*>(game_data));
     }
 
-    virtual std::optional<PlayerIdentifier> tick_game_state(GameState& state) const = 0;
+    virtual InteractiveGameTickResult tick_game_state(GameState& state) const = 0;
 };
 
 }

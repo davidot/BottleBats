@@ -1,13 +1,13 @@
 #pragma once
 
 #include "../MultiplayerGame.h"
-#include "../PlayerFactoryHelper.h"
 #include <cstdint>
 #include <memory>
 #include <array>
-#include <iostream>
 
 namespace BBServer::Guessing {
+
+using MadeGuess = ContinuableResult<int>;
 
 class GuessPlayer {
 public:
@@ -20,23 +20,22 @@ public:
     static std::string result_to_string(GuessResult result);
 
     virtual void guess_made(int, GuessResult) {};
-    virtual std::optional<int> guess() = 0;
+    virtual MadeGuess guess() = 0;
     virtual ~GuessPlayer() {}
 };
 
 class InteractivePlayer: public GuessPlayer {
 public:
-    InteractivePlayer(std::string& input, std::vector<std::string>& output) :
-        m_input_buffer(input), m_output_buffer(output) {}
+    explicit InteractivePlayer(StringCommunicator communicator) :
+        m_communicator(std::move(communicator)) {}
 
     void guess_made(int value, GuessPlayer::GuessResult result) override;
 
-    std::optional<int> guess() override;
+    MadeGuess guess() override;
 
 private:
     bool sent_output = false;
-    std::string& m_input_buffer;
-    std::vector<std::string>& m_output_buffer;
+    StringCommunicator m_communicator;
 };
 
 
@@ -64,7 +63,7 @@ struct GuessGame final : public MultiplayerGame<GuessGameState<5>, 5, GuessPlaye
 
     std::unique_ptr<GuessPlayer> player_from_command(std::string const& command) const override;
 
-    std::optional<PlayerIdentifier> tick_game_state(GuessGameState<5>& game_state) const override;
+    InteractiveGameTickResult tick_game_state(GuessGameState<5>& game_state) const override;
 };
 
 }

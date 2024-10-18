@@ -3,9 +3,11 @@
 #include "../MultiplayerGame.h"
 #include <memory>
 #include <array>
+#include "../StringChannel.h"
 
 namespace BBServer::TickTackToe {
 
+using TTTMove = ContinuableResult<size_t>;
 
 class TTTPlayer {
 public:
@@ -17,23 +19,19 @@ public:
 
     static char to_char(FieldValue value);
 
-    virtual std::optional<size_t> play(std::array<FieldValue, 9> const& field, FieldValue you) = 0;
+    virtual TTTMove play(std::array<FieldValue, 9> const& field, FieldValue you) = 0;
     virtual ~TTTPlayer() {}
 };
 
 
 class InteractiveTTTPlayer: public TTTPlayer {
 public:
+    InteractiveTTTPlayer(StringCommunicator communicator);
 
-    InteractiveTTTPlayer(std::string& input, std::vector<std::string>& output) :
-        m_input_buffer(input), m_output_buffer(output) {}
-
-    std::optional<size_t> play(std::array<FieldValue, 9> const& field, FieldValue you) override;
+    TTTMove play(std::array<FieldValue, 9> const& field, FieldValue you) override;
 
 private:
-    bool sent_output = false;
-    std::string& m_input_buffer;
-    std::vector<std::string>& m_output_buffer;
+    StringCommunicator m_communicator;
 };
 
 struct TTTGameState : public InteractiveGameState {
@@ -68,7 +66,7 @@ struct TTTGame final : public MultiplayerGame<TTTGameState, 2, TTTPlayer, Intera
 
     virtual TTTGameState* game_for_players(std::array<std::unique_ptr<TTTPlayer>, 2> players) const override;
 
-    std::optional<PlayerIdentifier> tick_game_state(TTTGameState& game_state) const override;
+    InteractiveGameTickResult tick_game_state(TTTGameState& game_state) const override;
 };
 
 }

@@ -1,6 +1,7 @@
 #include "GuessGame.h"
 #include <sstream>
 #include <charconv>
+#include "../PlayerFactoryHelper.h"
 
 namespace BBServer::Guessing {
 
@@ -18,37 +19,28 @@ std::string GuessPlayer::result_to_string(GuessResult result)
     return "?";
 }
 
-std::optional<int> InteractivePlayer::guess()
+MadeGuess InteractivePlayer::guess()
 {
-    if (!sent_output) {
-        sent_output = true;
-        m_output_buffer.push_back("guess");
+    if (auto writer = m_communicator.output_writer(StringCommunicator::OncePerInput); writer.will_output()) {
+        writer << "guess";
     }
 
-    std::cout << "Guessing for interactive: Have\n"
-              << m_input_buffer << '\n';
-    std::cout << "Current output buffer:\n"
-              << m_output_buffer.size() << " messages\n";
-    auto end_of_line = m_input_buffer.find('\n');
-    if (end_of_line == std::string::npos)
-        return std::nullopt;
+    auto reader = m_communicator.input_reader(500);
+    if (auto error = reader.has_line(); error.failed)
+        return error;
 
     int value = -1;
-    auto result = std::from_chars(m_input_buffer.data(), m_input_buffer.data() + end_of_line, value);
-    if (result.ec != std::errc {})
-        return std::nullopt; // INVALID!! STOP HERE!
-
-    sent_output = false;
-    m_input_buffer.erase(0, end_of_line + 1);
+    if (auto error = reader.read_int(value); error.failed)
+        return error;
 
     return value;
 }
 
 void InteractivePlayer::guess_made(int value, GuessPlayer::GuessResult result)
 {
-    std::ostringstream message {};
-    message << "result " << value << ' ' << result_to_string(result);
-    m_output_buffer.emplace_back(message.str());
+    auto writer = m_communicator.output_writer(StringCommunicator::EveryTime);
+    ASSERT(writer.will_output());
+    writer << "result " << value << ' ' << result_to_string(result);
 }
 
 class IncrementingPlayer : public GuessPlayer {
@@ -58,7 +50,7 @@ public:
     explicit IncrementingPlayer()
         : m_value(rand() % 1000) {}
 
-    std::optional<int> guess() override {
+    MadeGuess guess() override {
         return m_value++;
     }
 
@@ -88,19 +80,19 @@ std::unique_ptr<GuessPlayer> GuessGame::player_from_command(std::string const& c
     return guess_creator.create(command);
 }
 
-std::optional<PlayerIdentifier> GuessGame::tick_game_state(GuessGameState<5>& game_state) const
+InteractiveGameTickResult GuessGame::tick_game_state(GuessGameState<5>& game_state) const
 {
 
     while (true) {
         PlayerIdentifier this_player = game_state.turnForPlayer;
         auto& player = game_state.players[game_state.turnForPlayer];
         auto potential_guess = player->guess();
-        if (!potential_guess.has_value()) {
+        if (!potential_guess.has_result()) {
             std::cout << "Player " << this_player << " has no move ready waiting...\n";
-            return this_player;
+            return potential_guess.to_tick_result(this_player);
         }
 
-        int guess = *potential_guess;
+        int guess = potential_guess.result();
 
         if (guess == game_state.number) {
             std::cout << "Win for player " << this_player;

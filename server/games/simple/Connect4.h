@@ -2,12 +2,16 @@
 
 #include "../MultiplayerGame.h"
 #include <array>
+#include <cstdint>
+#include <limits>
 
 namespace BBServer::Connect4 {
 
-constexpr size_t RowSize = 7;
-constexpr size_t NumRows = 6;
-constexpr size_t FieldSize = RowSize * NumRows;
+constexpr uint32_t RowSize = 7;
+constexpr uint32_t NumRows = 6;
+constexpr uint32_t FieldSize = RowSize * NumRows;
+
+using Connect4Move = ContinuableResult<uint32_t>;
 
 class Connect4Player {
 public:
@@ -19,22 +23,20 @@ public:
 
     static char to_char(FieldValue value);
 
-    virtual std::optional<size_t> play(std::array<FieldValue, FieldSize> const& field, FieldValue you) = 0;
+    virtual Connect4Move play(std::array<FieldValue, FieldSize> const& field, FieldValue you) = 0;
     virtual ~Connect4Player() {}
 };
 
 class InteractiveConnect4Player: public Connect4Player {
 public:
 
-    InteractiveConnect4Player(std::string& input, std::vector<std::string>& output) :
-        m_input_buffer(input), m_output_buffer(output) {}
+    explicit InteractiveConnect4Player(StringCommunicator communicator) :
+        m_communicator(std::move(communicator)) {}
 
-    std::optional<size_t> play(std::array<FieldValue, FieldSize> const& field, FieldValue you) override;
+    Connect4Move play(std::array<FieldValue, FieldSize> const& field, FieldValue you) override;
 
 private:
-    bool sent_output = false;
-    std::string& m_input_buffer;
-    std::vector<std::string>& m_output_buffer;
+    StringCommunicator m_communicator;
 };
 
 struct Connect4GameState : public InteractiveGameState {
@@ -71,9 +73,7 @@ struct Connect4Game final : public MultiplayerGame<Connect4GameState, 2, Connect
 
     virtual Connect4GameState* game_for_players(std::array<std::unique_ptr<Connect4Player>, 2> players) const override;
 
-    std::optional<PlayerIdentifier> tick_game_state(Connect4GameState& game_state) const override;
+    InteractiveGameTickResult tick_game_state(Connect4GameState& game_state) const override;
 };
-
-
 
 }
