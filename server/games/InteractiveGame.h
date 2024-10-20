@@ -12,15 +12,6 @@ namespace BBServer {
 
 using PlayerIdentifier = uint32_t;
 
-enum class InteractiveTickResult {
-    Running,
-    WaitingOnYou,
-    DoneCleanUpState,
-    DoneClearStateOnly,
-    FailedCleanUpState,
-    FailedClearStateOnly,
-};
-
 struct InteractiveGameState {
     bool game_in_progress();
 

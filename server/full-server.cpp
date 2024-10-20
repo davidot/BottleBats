@@ -63,6 +63,12 @@ struct Observers {
         observers.m_connections.clear();
     }
 
+    void send_message(crow::json::wvalue const& value) const {
+        if (m_connections.empty())
+            return;
+        send_message(value.dump());
+    }
+
     void send_message(std::string const& message) const
     {
         std::cout << "Sending \"" << message << "\" to " << m_connections.size() << " observers!\n";
@@ -430,6 +436,17 @@ InteractiveGameSetup setup_game(bool have_id, std::string const& match_code_full
     };
 }
 
+
+enum class InteractiveTickResult {
+    Running,
+    WaitingOnYou,
+    DoneCleanUpState,
+    DoneClearStateOnly,
+    FailedCleanUpState,
+    FailedClearStateOnly,
+};
+
+
 InteractiveTickResult tick_interactive_game(InteractiveGame const* game, InteractiveGameState* game_data, PlayerIdentifier called_player_id, std::vector<std::string>& called_player_errors)
 {
     std::cout << "My time to shine, running the game!\n";
@@ -717,7 +734,7 @@ void handle_ws_message(crow::websocket::connection& conn, std::string input, boo
 
     if (messages.t() == crow::json::type::List && messages.size() > 0) {
         std::cout << "Got " << messages.size() << " messages!\n";
-        ws_state->observers.send_message(messages.dump());
+        ws_state->observers.send_message(messages);
     }
 
     for (auto& str : ws_state->errors) {
