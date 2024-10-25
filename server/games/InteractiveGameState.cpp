@@ -1,32 +1,10 @@
-#include "InteractiveGame.h"
+#include "InteractiveGameState.h"
+#include "../../util/Assertions.h"
 #include <algorithm>
 
 namespace BBServer {
 
 InteractiveGameState::~InteractiveGameState() { }
-
-bool PlayerFactory::is_interactive() const
-{
-    return !std::holds_alternative<std::string>(data);
-}
-
-bool PlayerFactory::contains_input(std::string const& other) const
-{
-    ASSERT(is_interactive());
-    return &(std::get<InteractivePlayerInput>(data).input) == &other;
-}
-
-void PlayerFactory::override_interactive_player(std::string& input, std::vector<std::string>& output)
-{
-    ASSERT(is_interactive());
-    data.emplace<InteractivePlayerInput>(input, output);
-}
-
-std::string const& PlayerFactory::command() const
-{
-    ASSERT(!is_interactive());
-    return std::get<std::string>(data);
-}
 
 void InteractiveGameState::set_done_if_in_progress()
 {
@@ -88,20 +66,6 @@ void InteractiveGameState::move_errors(PlayerIdentifier for_player, std::vector<
 void InteractiveGameState::add_error(PlayerIdentifier player, std::string&& message)
 {
     m_errors.emplace_back(player, message);
-}
-
-InteractiveGameTickResult::InteractiveGameTickResult()
-    : m_finished(true)
-    , m_waitingOnPlayer(0)
-    , m_error("")
-{
-}
-
-InteractiveGameTickResult::InteractiveGameTickResult(size_t player, std::string error, bool finished)
-    : m_finished(finished)
-    , m_waitingOnPlayer(player)
-    , m_error(std::move(error))
-{
 }
 
 }

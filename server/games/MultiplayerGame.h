@@ -21,7 +21,7 @@ class MultiplayerGame : public InteractiveGame {
         for (size_t i = 0; i < NumberOfPlayers; ++i) {
             auto& command = setup[i];
             if (command.is_interactive()) {
-                players[i] = command.construct_interactive<StringBasedPlayer>();
+                players[i] = command.construct_string_based<StringBasedPlayer>();
                 ASSERT(players[i]);
             } else {
                 players[i] = player_from_command(command.command());
