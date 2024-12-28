@@ -51,6 +51,7 @@ add_executable(full-server
         games/simple/TickTackToe.cpp
         games/simple/Connect4.cpp
         games/StringChannel.cpp
+        games/blokus/BlokusGame.cpp
         )
 
 target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)

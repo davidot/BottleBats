@@ -4,6 +4,7 @@
 #include <array>
 #include <bitset>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <sys/types.h>
 
@@ -24,14 +25,7 @@ constexpr const std::array<Piece, num_pieces> ALL_PIECES = {
     Piece {},
 };
 
-size_t piece_letter_to_index(char c)
-{
-    for (size_t i = 0; i < ALL_PIECES.size(); ++i) {
-        if (ALL_PIECES[i].letter == c)
-            return i;
-    }
-    return ALL_PIECES.size();
-}
+size_t piece_letter_to_index(char c);
 
 struct BlokusMoveBase {
     uint8_t rotation;
@@ -47,7 +41,7 @@ enum class PlaceResult {
     OverlapsExisting,
     TouchesSameColor,
     InvalidPlace, // top + height or left + width outside or rotation incorrect
-    PieceFits,
+    CanPlace,
 };
 
 struct PossibleSpots {
@@ -57,7 +51,14 @@ template<size_t Size, size_t NumPlayers>
 struct Board {
     static_assert(Size < 32, "Size can be at most 31");
 
+    static constexpr size_t BoardSize = Size;
+    static constexpr size_t NPlayers = NumPlayers;
+
     using RowType = uint32_t;
+
+    Board() {
+        pieces_left.set();
+    }
 
     struct BitBoard {
         std::array<RowType, Size> board {};
@@ -65,7 +66,7 @@ struct Board {
 
         BitBoard()
         {
-            // zero initialize
+            board.fill(0);
         }
 
         BitBoard(Piece const& piece, uint8_t rotation, uint8_t top, uint8_t left)
@@ -73,89 +74,117 @@ struct Board {
             // FIXME: Implement
         }
 
-        BitBoard diagonals()
+        BitBoard diagonals() const
         {
             // FIXME: Implement
             return {};
         }
 
-        BitBoard cardinals()
+        BitBoard cardinals() const
         {
             // FIXME: Implement
             return {};
+        }
+
+        bool overlaps_with(BitBoard const& other) const
+        {
+            // FIXME: Implement
+            return false;
+        }
+
+        BitBoard& operator |=(BitBoard const& other) {
+            for (size_t i = 0; i < Size; ++i) {
+                board[i] |= other.board[i];
+            }
         }
     };
 
-    static constexpr size_t u64PerBoard = (Size * Size + 63) / 64;
-    static constexpr size_t BitBoardSize = u64PerBoard * 64;
-
     bool piece_available(uint8_t player, size_t piece_index) const
     {
-        return pieces_left.test(player * ALL_PIECES.size() + piece_index);
+        return pieces_left.test(_piece_available_index(player, piece_index));
     }
 
     PlaceResult place_piece(uint8_t piece_index, uint8_t player, uint8_t rotation, uint8_t top, uint8_t left)
     {
-        if (!piece_available(player, piece_index))
+        if (piece_index >= ALL_PIECES.size() || !piece_available(player, piece_index))
             return PlaceResult::PieceNotAvailable;
 
         auto const& piece = ALL_PIECES[piece_index];
 
-        BitBoard piece_board(piece, rotation, top, left);
-        auto fits = piece_fits(piece, player, rotation, top, left, &piece_board);
-        if (fits != PlaceResult::PieceFits) {
-            ASSERT((fits != PlaceResult::Placed));
-            return fits;
-        }
+        if (!_position_valid(piece, player, rotation, top, left))
+            return PlaceResult::InvalidPlace;
+
+        BitBoard piece_board {piece, rotation, top, left};
+
+        if (!_piece_touches_on_diagonal(piece_board, player))
+            return PlaceResult::NotInRightSpot;
+
+        if (_piece_touches_on_cardinal(piece_board, player))
+            return PlaceResult::TouchesSameColor;
+
+        if (_piece_overlaps(piece_board))
+            return PlaceResult::OverlapsExisting;
 
         board_per_player[player] |= piece_board;
+        pieces_left.set(_piece_available_index(player, piece_index), false);
+
+        return PlaceResult::Placed;
     }
 
     // This does _not_ check wether the piece is available!
     PlaceResult piece_fits(Piece const& piece, uint8_t player, uint8_t rotation, uint8_t top, uint8_t left) const
     {
 
-        // return _piece_fits(piece, player, rotation, top, left, nullptr);
-        return {};
+        if (!_position_valid(piece, player, rotation, top, left))
+            return PlaceResult::InvalidPlace;
+
+        BitBoard piece_board {piece, rotation, top, left};
+
+        if (!_piece_touches_on_diagonal(piece_board, player))
+            return PlaceResult::NotInRightSpot;
+
+        if (_piece_touches_on_cardinal(piece_board, player))
+            return PlaceResult::TouchesSameColor;
+
+        if (_piece_overlaps(piece_board))
+            return PlaceResult::OverlapsExisting;
+
+        return PlaceResult::CanPlace;
     }
 
 private:
-    PlaceResult _position_valid(Piece const& piece, uint8_t rotation, uint8_t top, uint8_t left) const
-    {
-        if ((rotation >= 8) || (left + piece.width) > Size || (top + piece.height) > Size)
-            return PlaceResult::InvalidPlace;
 
-        return PlaceResult::PieceFits;
+    static size_t _piece_available_index(uint8_t player, uint8_t piece_index) {
+        return player * ALL_PIECES.size() + piece_index;
     }
 
-    PlaceResult _piece_touches_on_diagonal(BitBoard const& piece_board, uint8_t player) const
+    bool _position_valid(Piece const& piece, uint8_t player, uint8_t rotation, uint8_t top, uint8_t left) const
     {
-        auto diagonal_board = piece_board.diagonal();
-        if (!(board_per_player[player].overlaps_with(diagonal_board)))
-            return PlaceResult::NotInRightSpot;
-
-        return PlaceResult::PieceFits;
+        return ((player < NumPlayers) || (rotation < 8) || (left + piece.width) <= Size || (top + piece.height) <= Size);
     }
 
-    PlaceResult _piece_does_not_touch_on_cardinal(BitBoard const& piece_board, uint8_t player) const
+    bool _piece_touches_on_diagonal(BitBoard const& piece_board, uint8_t player) const
+    {
+        auto diagonal_board = piece_board.diagonals();
+        return board_per_player[player].overlaps_with(diagonal_board);
+    }
+
+    bool _piece_touches_on_cardinal(BitBoard const& piece_board, uint8_t player) const
     {
         auto cardinals_board = piece_board.cardinals();
-        if (board_per_player[player].overlaps_with(cardinals_board))
-            return PlaceResult::TouchesSameColor;
-
-        return PlaceResult::PieceFits;
+        return board_per_player[player].overlaps_with(cardinals_board);
     }
 
-    PlaceResult _piece_does_not_overlap(BitBoard const& piece_board) const
+    bool _piece_overlaps(BitBoard const& piece_board) const
     {
         for (BitBoard const& per_player : board_per_player) {
             if (per_player.overlaps_with(piece_board))
-                return PlaceResult::OverlapsExisting;
+                return true;
         }
-        return PlaceResult::PieceFits;
+        return false;
     }
 
-    std::array<BitBoard, NumPlayers> board_per_player;
+    std::array<BitBoard, NumPlayers> board_per_player{};
     std::bitset<NumPlayers * ALL_PIECES.size()> pieces_left;
 };
 
@@ -164,62 +193,156 @@ struct S {
     FourPlayerBoard b;
 };
 
-constexpr uint32_t RowSize = 7;
-constexpr uint32_t NumRows = 6;
-constexpr uint32_t FieldSize = RowSize * NumRows;
-
 using BlokusMove = ContinuableResult<BlokusMoveBase>;
 
-template<size_t Size, size_t NumPlayers>
-struct BoardAtMove {
-    Board<Size, NumPlayers> const& board;
+struct AnyBoard {
+    using Blokus2Player = Board<2, 14>;
+    using Blokus4Player = Board<4, 20>;
+
+    size_t board_size() const {
+        switch(board_value.index()) {
+            case 0:
+                return Blokus2Player::BoardSize;
+            case 1:
+                return Blokus4Player::BoardSize;
+        }
+        ASSERT_NOT_REACHED();
+    }
+
+    size_t num_players() const {
+        switch(board_value.index()) {
+            case 0:
+                return Blokus2Player::NPlayers;
+            case 1:
+                return Blokus4Player::NPlayers;
+        }
+        ASSERT_NOT_REACHED();
+    }
+
+    bool piece_available(uint8_t player, size_t piece_index) const
+    {
+        ASSERT(player < num_players());
+        return std::visit(
+            [&](auto const& b) { return b.piece_available(player, piece_index); },
+            board_value);
+    }
+
+    PlaceResult place_piece(uint8_t piece_index, uint8_t player, uint8_t rotation, uint8_t top, uint8_t left)
+    {
+        return std::visit(
+            [&](auto& b) { return b.place_piece(piece_index, player, rotation, top, left);},
+            board_value);
+    }
+
+    // This does _not_ check wether the piece is available!
+    PlaceResult piece_fits(Piece const& piece, uint8_t player, uint8_t rotation, uint8_t top, uint8_t left) const
+    {
+        return std::visit(
+            [&](auto const& b) { return b.piece_fits(piece, player, rotation, top, left);},
+            board_value);
+    }
+
+    explicit AnyBoard(size_t n_players)
+    {
+        switch(n_players) {
+            case Blokus2Player::NPlayers:
+                board_value = Blokus2Player{};
+            case Blokus4Player::NPlayers:
+                board_value = Blokus4Player{};
+            default:
+                ASSERT_NOT_REACHED();
+        }
+    }
+
+private:
+    std::variant<Blokus2Player, Blokus4Player> board_value;
 };
 
-template<size_t Size, size_t NumPlayers>
+struct BoardAtMove {
+    AnyBoard const& board;
+    uint8_t const you_player;
+
+    bool has_move(bool is_initial_move);
+
+    BoardAtMove(AnyBoard& _board, uint8_t player_turn)
+        : board(_board),
+          you_player(player_turn)
+    {}
+
+private:
+    // Put caching things here!
+    std::vector<BlokusMove> m_possible_moves{};
+};
+
 class BlokusPlayer {
 public:
-    virtual BlokusMove play(BoardAtMove<Size, NumPlayers>) = 0;
+    virtual BlokusMove play(BoardAtMove) = 0;
     virtual ~BlokusPlayer() { }
 };
 
-template<size_t Size, size_t NumPlayers>
-class InteractiveBlokusPlayer : public BlokusPlayer<Size, NumPlayers> {
+class InteractiveBlokusPlayer : public BlokusPlayer {
 public:
     explicit InteractiveBlokusPlayer(StringCommunicator communicator)
         : m_communicator(std::move(communicator))
     {
     }
 
-    virtual BlokusMove play(BoardAtMove<Size, NumPlayers>) override;
+    virtual BlokusMove play(BoardAtMove) override;
 
 private:
     StringCommunicator m_communicator;
 };
 
-template<size_t Size, size_t NumPlayers>
+enum class PlayerState {
+    InitialTurn,
+    Playing,
+    Passed
+};
+
+template<size_t NumPlayers>
 struct BlokusState : public InteractiveGameState {
 
-    Board<Size, NumPlayers> board;
-    size_t turnForPlayer = 0;
+    uint8_t turnForPlayer = 0;
+    AnyBoard board;
 
-    std::array<std::unique_ptr<BlokusPlayer<Size, NumPlayers>>, NumPlayers> players {};
+    std::array<PlayerState, NumPlayers> player_state{};
+    std::array<std::unique_ptr<BlokusPlayer>, NumPlayers> players;
 
-    explicit BlokusState(std::array<std::unique_ptr<BlokusPlayer<Size, NumPlayers>>, NumPlayers> new_players)
-        : players(std::move(new_players))
+    explicit BlokusState(std::array<std::unique_ptr<BlokusPlayer>, NumPlayers> new_players)
+        : board(NumPlayers), players(std::move(new_players))
     {
+        player_state.fill(PlayerState::InitialTurn);
     }
 };
 
-template<size_t Size, size_t NumPlayers>
-struct BlokusGame final : public MultiplayerGame<BlokusState<Size, NumPlayers>, NumPlayers, BlokusPlayer<Size, NumPlayers>, InteractiveBlokusPlayer<Size, NumPlayers>> {
+template<size_t NumPlayers>
+struct BlokusGame final : public MultiplayerGame<BlokusState<NumPlayers>, NumPlayers, BlokusPlayer, InteractiveBlokusPlayer> {
 
-    virtual std::vector<std::string> const& available_algortihms() const override;
+    virtual std::vector<std::string> const& available_algortihms() const override
+    {
+        return available_algortihms();
+    }
 
-    virtual std::unique_ptr<BlokusPlayer<Size, NumPlayers>> player_from_command(std::string const& command) const override;
+    virtual std::unique_ptr<BlokusPlayer> player_from_command(std::string const& command) const override
+    {
+        return player_from_command(command);
+    }
 
-    virtual BlokusState<Size, NumPlayers>* game_for_players(std::array<std::unique_ptr<BlokusPlayer<Size, NumPlayers>>, NumPlayers> players) const override;
+    virtual BlokusState<NumPlayers>* game_for_players(std::array<std::unique_ptr<BlokusPlayer>, NumPlayers> players) const override
+    {
+        return new BlokusState<NumPlayers> {
+            std::move(players),
+        };
+    }
 
-    InteractiveGameTickResult tick_game_state(BlokusState<Size, NumPlayers>& game_state) const override;
+    InteractiveGameTickResult tick_game_state(BlokusState<NumPlayers>& game_state) const override
+    {
+        return tick_blokus_game(game_state.board, game_state.turnForPlayer, game_state.players);
+    }
 };
+
+std::vector<std::string> const& available_algortihms();
+std::unique_ptr<BlokusPlayer> player_from_command(std::string const& command);
+InteractiveGameTickResult tick_game_state(AnyBoard&, uint8_t& turn, std::span<PlayerState>, std::span<std::unique_ptr<BlokusPlayer>>);
 
 }
