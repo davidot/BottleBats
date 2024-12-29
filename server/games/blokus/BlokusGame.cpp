@@ -340,9 +340,111 @@ bool BoardAtMove::any_move_available() const
     return !m_possible_moves.empty();
 }
 
-BlokusMove InteractiveBlokusPlayer::play(BoardAtMove)
+static char PLAYER_NAMES[5] {
+    'R',
+    'B',
+    'Y',
+    'G',
+};
+
+BlokusMove InteractiveBlokusPlayer::play(BoardAtMove move)
 {
-    return {};
+    if (auto writer = m_communicator.output_writer(StringCommunicator::OncePerInput); writer.will_output()) {
+        writer << "turn ";
+        size_t num_players = move.board.num_players();
+        writer << num_players << ' ';
+        auto print_pieces = [&](size_t print_player) {
+            writer << PLAYER_NAMES[print_player] << ':';
+            bool first = true;
+            for (size_t i = 0; i < ALL_PIECES.size(); ++i) {
+                if (!move.board.piece_available(print_player, i))
+                    continue;
+
+                if (!first)
+                    writer << ',';
+
+                first = false;
+                writer << ALL_PIECES[i].letter;
+            }
+        };
+        print_pieces(move.you_player);
+        writer << ' ';
+
+        for (size_t i = 0; i < num_players; ++i) {
+            if (i == move.you_player)
+                continue;
+            print_pieces(i);
+            writer << ' ';
+        }
+
+        uint32_t board_size = move.board.board_size();
+        auto next_start_spot = move.start_spots().begin();
+        auto end_start_spot = move.start_spots().end();
+
+        std::vector<std::span<RowType const>> player_boards;
+        player_boards.reserve(num_players);
+        for (uint32_t i = 0; i < num_players; ++i) {
+            player_boards.emplace_back(move.board.board_for_player(i));
+        }
+
+        for (uint32_t r = 0; r < board_size; ++r) {
+            if (r > 0)
+                writer << '|';
+            for (uint32_t c = 0; c < board_size; ++c) {
+                if (next_start_spot != end_start_spot && next_start_spot->top == r && next_start_spot->left == c) {
+                    writer << 'O';
+                    ++next_start_spot;
+                    continue;
+                }
+
+                bool empty = true;
+
+                for (uint32_t i = 0; i < num_players; ++i) {
+                    if ((player_boards[i][r] & (1 << c)) != 0) {
+                        writer << PLAYER_NAMES[i];
+                        empty = false;
+                        break;
+                    }
+                }
+
+                if (empty)
+                    writer << '-';
+            }
+        }
+    }
+
+    auto reader = m_communicator.input_reader(1000);
+    if (auto error = reader.has_line(); error.failed)
+        return error;
+
+    std::string_view piece;
+
+    if (auto error = reader.read_value(piece); error.failed)
+        return error;
+
+    if (piece.size() != 1)
+        return reader.error(std::string("Piece name exactly one character long! Got: ") + std::string(piece));
+
+    uint32_t piece_index = piece_letter_to_index(piece[0]);
+    if (piece_index >= ALL_PIECES.size())
+        return reader.error(std::string("Unknown piece: ") + std::string(piece));
+
+    if (!move.board.piece_available(move.you_player, piece_index))
+        return reader.error(std::string("Do not have piece to place: ") + piece[0]);
+
+    uint8_t rotation;
+    if (auto error = reader.read_int(rotation, uint8_t(0), uint8_t(7)); error.failed)
+        return error;
+
+    uint8_t top;
+    if (auto error = reader.read_int(top, uint8_t(0), (uint8_t)(move.board.board_size() - 1u)); error.failed)
+        return error;
+
+    uint8_t left;
+    if (auto error = reader.read_int(left, uint8_t(0), (uint8_t)(move.board.board_size() - 1u)); error.failed)
+        return error;
+
+    return BlokusMoveBase { rotation, top, left, piece_index };
 }
 
 }

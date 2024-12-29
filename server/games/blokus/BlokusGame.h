@@ -238,7 +238,7 @@ struct AnyBoard {
     using Blokus2Player = Board<2, 14>;
     using Blokus4Player = Board<4, 20>;
 
-    size_t board_size() const
+    uint32_t board_size() const
     {
         switch (board_value.index()) {
         case 0:
@@ -249,7 +249,7 @@ struct AnyBoard {
         ASSERT_NOT_REACHED();
     }
 
-    size_t num_players() const
+    uint32_t num_players() const
     {
         switch (board_value.index()) {
         case 0:
@@ -293,7 +293,6 @@ struct AnyBoard {
 
     explicit AnyBoard(size_t n_players)
     {
-        std::cout << "N players:" << n_players << '\n';
         switch (n_players) {
         case Blokus2Player::NPlayers:
             board_value = Blokus2Player {};
