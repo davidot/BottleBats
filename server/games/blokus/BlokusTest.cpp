@@ -17,8 +17,10 @@ int main()
 {
     srand(time(nullptr));
 
-    BlokusState<2> game_state { { std::make_unique<RandomPlayer>(), std::make_unique<RandomPlayer>() } };
-    BlokusGame<2> game {};
-    auto res = game.tick_game_state(game_state);
-    std::cout << "game-res:" << res.has_error() << " and " << res.is_done() << '\n';
+    for (size_t i = 0; i < 100; ++i) {
+        BlokusState<2> game_state { { std::make_unique<RandomPlayer>(), std::make_unique<RandomPlayer>() } };
+        BlokusGame<2> game {};
+        auto res = game.tick_game_state(game_state);
+        std::cout << "game-res:" << res.has_error() << " and " << res.is_done() << '\n';
+    }
 }
