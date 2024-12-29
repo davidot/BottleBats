@@ -1,5 +1,4 @@
 <template>
-<input v-model="pieceShowIndex" type="number" step="1">
 
 {{ hoverPos }} {{ selectedRotation }} {{ lockState }}
 
@@ -7,14 +6,13 @@
     <table key="base" class="base">
         <tr v-for="(r, i) in tableField">
             <td v-for="(c, j) in r" 
-                :class="[c !== '-' && `${c}-instant`, (i === hoverPos.row && j === hoverPos.col) && 'cursor']" 
-                @click="tableField[i][j] = 'red'" 
+                :class="[c !== '-' && `${c}-instant`, (i === hoverPos.row && j === hoverPos.col) && 'cursor']"
                 :data-row="i" :data-col="j">
             </td>
         </tr>
     </table>
 
-    <BlokusPiece v-for="p in placedPieces.slice(0, Math.max(0, pieceShowIndex))" 
+    <BlokusPiece v-for="p in placedPieces" 
         :key="'piece' + p.player + '-' + p.startCol + '-' + p.startRow" 
         :class="['piece', p.player]" :piece="p" />
 
@@ -45,24 +43,66 @@
 import BlokusPiece from '@/components/blokus/BlokusPiece.vue';
 import BlokusPieceLink from '@/components/blokus/BlokusPieceLink.vue';
 import rawPieces from '@/components/blokus/pieces.json';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, defineProps } from 'vue';
+
+const props = defineProps({
+    messages: {
+        type: Array,
+        required: true,
+    },
+    // FIXME: Get "game" settings from the config
+});
 
 const emit = defineEmits(['suggestion', 'sendMessage']);
 
-const fieldSize = 20;
+// const fieldSize = 14;
 
-const tableField = ref([]);
-for (let i = 0; i < fieldSize; ++i) {
-    const row = [];
-    tableField.value.push(row);
-    for (let j = 0; j < fieldSize; ++j) {
-        row.push('-');
-    }
+// const tableField = ref([]);
+// for (let i = 0; i < fieldSize; ++i) {
+//     const row = [];
+//     tableField.value.push(row);
+//     for (let j = 0; j < fieldSize; ++j) {
+//         row.push('-');
+//     }
+// }
+
+
+const lastMessage = computed(() => {
+    const maybeLastMesasge = props.messages
+        .filter(m => m.from === "game" && m.content.startsWith("turn "))
+        .at(-1);
+    if (maybeLastMesasge == null)
+        return null;
+    return maybeLastMesasge.content.toLowerCase().split(" ");
+});
+
+function toUsableCol(baseCol) {
+    if (baseCol === 'r')
+        return 'red';
+    if (baseCol === 'b')
+        return 'blue';
+    if (baseCol === 'g')
+        return 'green';
+    if (baseCol === 'y')
+        return 'yellow';
+    return baseCol;
 }
 
-const pieceShowIndex = ref(0);
+const tableField = computed(() => {
+    if (lastMessage.value == null)
+        return null;
+
+    console.log(lastMessage.value);
+    const board = lastMessage.value.at(-1);
+    return board.split('|').map(s => s.split('').map(c => toUsableCol(c)));
+});
 
 const placedPieces = computed(() => {
+    if (tableField.value == null)
+        return [];
+
+    const fieldSize = tableField.value.length;
+
     const connectedBoard = new Array(fieldSize);
 
     let nextComponent = 0;
@@ -74,7 +114,7 @@ const placedPieces = computed(() => {
         connectedBoard[i].fill(-1);
         for (let j = 0; j < fieldSize; ++j) {
             const cellColor = tableField.value[i][j];
-            if (cellColor === '-') {
+            if (cellColor === '-' || cellColor === 'o') {
                 continue;
             }
 
@@ -233,6 +273,11 @@ let hoverPos = ref({row: -1, col: -1});
 
 
 const hoverPiece = computed(() => {
+    if (tableField.value == null)
+        return null;
+
+    const fieldSize = tableField.value.length;
+
     const hoverCol = hoverPos.value.col;
     const hoverRow = hoverPos.value.row;
     if (hoverCol < 0 || hoverRow < 0 || selectedPiece.value == null)
@@ -321,7 +366,7 @@ function createMessage() {
     const top = hoverPiece.value.top;
     const left = hoverPiece.value.left;
     
-    return `place ${piece.name}-${piece.rotation} @ ${top},${left}`;
+    return `${piece.name} ${piece.rotation} ${top} ${left}`;
 }
 
 function mouseClicked(e) {
@@ -360,14 +405,28 @@ function keyUp(e) {
 onMounted(() => {
     document.addEventListener('keyup', keyUp);
 });
+
 onUnmounted(() => {
     document.removeEventListener('keyup', keyUp);
 });
-
-
 </script>
   
 <style>
+.o-instant {
+    position: relative;
+}
+
+.o-instant::after {
+    content: '';
+    width: 80%;
+    height: 80%;
+    border-radius: 50%;
+    border: 1px solid black;
+    top: 10%;
+    left: 10%;
+    position: absolute;
+}
+
 .red-instant {
     background-color: rgba(255, 0, 0, 0.2);
 }
