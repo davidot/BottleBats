@@ -45,17 +45,32 @@ add_executable(full-server
         vijf/GamePlayer.cpp
         vijf/BotCreator.cpp
         vijf/EndPoints.cpp
+        games/InteractiveGame.cpp
         games/InteractiveGameState.cpp
+        games/InteractiveGameTickResult.cpp
         games/PlayerFactory.cpp
+        games/StringChannel.cpp
         games/simple/GuessGame.cpp
         games/simple/TickTackToe.cpp
         games/simple/Connect4.cpp
-        games/StringChannel.cpp
+        games/blokus/BlokusTest.cpp
         games/blokus/BlokusGame.cpp
+        games/blokus/BlokusPieces.cpp
         )
 
 target_link_libraries(full-server PUBLIC BBServer LibVijf LibElevated)
 
+add_executable(BlokusTest
+        games/blokus/BlokusTest.cpp
+        games/blokus/BlokusGame.cpp
+        games/blokus/BlokusPieces.cpp
+        games/InteractiveGameState.cpp
+        games/InteractiveGameTickResult.cpp
+        games/PlayerFactory.cpp
+        games/StringChannel.cpp
+        )
+
+target_link_libraries(BlokusTest PUBLIC BBServer)
 
 add_executable(BBRunGames vijf/runsomegames.cpp
         database/ConnectionPool.cpp
