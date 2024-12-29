@@ -6,6 +6,7 @@
 #include <bit>
 #include <bitset>
 #include <cstdint>
+#include <vector>
 
 namespace BBServer::Blokus {
 
@@ -130,46 +131,53 @@ void for_each_one(std::span<RowType const> input, Func&& func)
 InteractiveGameTickResult tick_blokus_game(AnyBoard& board, uint8_t& turn, std::span<PlayerState> player_states, std::span<std::unique_ptr<BlokusPlayer>> players)
 {
     while (true) {
-        auto turn_for = turn;
-        turn = (turn + 1) % players.size();
-
-        if (player_states[turn_for] == PlayerState::Passed)
+        if (player_states[turn] == PlayerState::Passed) {
+            turn = (turn + 1) % players.size();
             continue;
+        }
 
-        auto& player = players[turn_for];
+        auto& player = players[turn];
 
-        BoardAtMove board_at_move { board, turn_for, player_states[turn_for] == PlayerState::InitialTurn };
+        BoardAtMove board_at_move {
+            board,
+            turn,
+            player_states[turn] == PlayerState::InitialTurn
+        };
 
         if (!board_at_move.any_move_available()) {
-            std::cout << "No more moves for: " << (int)turn_for << '\n';
-            player_states[turn_for] = PlayerState::Passed;
+            std::cout << "No move possible for " << (int)turn << '\n';
+            player_states[turn] = PlayerState::Passed;
             if (std::all_of(player_states.begin(), player_states.end(), [](PlayerState state) { return state == PlayerState::Passed; })) {
-                for (size_t i = 0; i < player_states.size(); ++i) {
-                    std::cout << "Board for " << i << '\n';
-                    for (auto& row : board.board_for_player(i)) {
-                        std::bitset<14> val_bin { row };
-                        std::cout << val_bin << '\n';
-                    }
-                }
+                // for (size_t i = 0; i < player_states.size(); ++i) {
+                //     std::cout << "Board for " << i << '\n';
+                //     for (auto& row : board.board_for_player(i)) {
+                //         std::bitset<14> val_bin { row };
+                //         std::cout << val_bin << '\n';
+                //     }
+                // }
                 // FIXME: Compute score and store!
+                std::cout << "All players are done!\n";
                 return {};
             }
             continue;
-        } else {
-            player_states[turn_for] = PlayerState::Playing;
         }
 
         auto potential_move = player->play(std::move(board_at_move));
 
-        if (!potential_move.has_result())
-            return potential_move.to_tick_result(turn_for);
+        if (!potential_move.has_result()) {
+            std::cout << "Did not get move: " << potential_move.error() << '\n';
+            return potential_move.to_tick_result(turn);
+        }
 
         auto& made_move = potential_move.result();
-        std::cout << (int)turn_for << " playing " << ALL_PIECES[made_move.piece_index].letter << '\n';
 
-        auto result = board.place_piece(made_move.piece_index, turn_for, made_move.rotation, made_move.top, made_move.left);
-        if (result != PlaceResult::Placed)
-            return { turn_for, "Wrong!" }; // FIXME: Make nicer error message
+        auto result = board.place_piece(made_move.piece_index, turn, made_move.rotation, made_move.top, made_move.left);
+        if (result != PlaceResult::Placed) {
+            return { turn, "Wrong!" }; // FIXME: Make nicer error message
+        }
+
+        player_states[turn] = PlayerState::Playing;
+        turn = (turn + 1) % players.size();
     }
 
     return {};
@@ -187,7 +195,6 @@ void BoardAtMove::_find_first_move()
     uint32_t board_size = board.board_size();
 
     if (is_initial_move) {
-        std::cout << "intial move for " << (int)you_player << '\n';
         // Should always have tiny piece available so as long as starting spot is fine we know what to do.
         ASSERT((ALL_PIECES[0].width == 1) && (ALL_PIECES[0].height == 1));
         ASSERT(board.piece_available(you_player, 0));
@@ -209,10 +216,6 @@ void BoardAtMove::_find_first_move()
         }
 
         ASSERT(m_start_spots.size() > 0);
-
-        for (auto& loc : m_start_spots) {
-            std::cout << "Got option: " << (int)loc.top << ", " << (int)loc.left << '\n';
-        }
 
         find_next_move();
         return;
