@@ -40,7 +40,7 @@ StringReaderResult StringReader::read_value(std::string_view& view)
 
     auto [start, end] = m_parts[m_index];
 
-    view = std::string_view { m_value }.substr(start, start - end);
+    view = std::string_view { m_value }.substr(start, end - start);
     ++m_index;
     return {};
 }
